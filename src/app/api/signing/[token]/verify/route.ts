@@ -39,7 +39,7 @@ export async function POST(request: Request, context: VerifyRouteContext) {
     category: "signing_verify",
     key: buildRateLimitKey(["signing-verify", token]),
     limit: 10,
-    message: "Too many tries. Wait a few minutes and try again.",
+    message: "Túl sok próbálkozás. Várj néhány percet, és próbáld újra.",
     request,
     windowMs: 15 * 60 * 1000,
   });
@@ -80,7 +80,7 @@ export async function POST(request: Request, context: VerifyRouteContext) {
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: "Enter the code." },
+        { error: "Add meg a kódot." },
         { headers: NO_STORE, status: 400 },
       );
     }
@@ -107,7 +107,7 @@ export async function POST(request: Request, context: VerifyRouteContext) {
     });
 
     return NextResponse.json(
-      { error: "The code could not be checked right now." },
+      { error: "Most nem sikerült ellenőrizni a kódot." },
       { headers: NO_STORE, status: 500 },
     );
   }

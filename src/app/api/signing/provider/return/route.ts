@@ -29,7 +29,7 @@ function seeOther(location: string, request: Request) {
 
 function endedPage() {
   return new NextResponse(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Signing session ended</title></head><body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5"><h1 style="font-size: 1.25rem">This signing session has ended</h1><p>Nothing was signed. Open the signing link from your email again to sign.</p></body></html>`,
+    `<!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Az aláírási munkamenet véget ért</title></head><body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5"><h1 style="font-size: 1.25rem">Ez az aláírási munkamenet véget ért</h1><p>Semmi nem lett aláírva. Az aláíráshoz nyisd meg újra az e-mailben kapott aláírási linket.</p></body></html>`,
     {
       headers: {
         "cache-control": "private, no-store",

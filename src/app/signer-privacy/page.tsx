@@ -7,8 +7,9 @@ import { getSettings } from "@/lib/settings";
 import { STALE_DRAFT_RETENTION_DAYS } from "@/lib/retention";
 
 export const metadata: Metadata = {
-  description: "How your information is used when you sign a document here.",
-  title: "Privacy notice for signers",
+  description:
+    "Hogyan használjuk az adataidat, amikor itt aláírsz egy dokumentumot.",
+  title: "Adatvédelmi tájékoztató aláíróknak",
 };
 
 // A GDPR Article 13 notice for signers, built from the install's settings.
@@ -28,107 +29,114 @@ export default async function SignerPrivacyPage() {
   }
 
   const organization =
-    settings.organizationName?.trim() || "The organization that runs this site";
+    settings.organizationName?.trim() || "Az oldalt üzemeltető szervezet";
   const contact = settings.supportAddress;
   const retention = settings.retentionDays
-    ? `Finished documents and their audit trails are deleted ${String(settings.retentionDays)} days after they are finished.`
-    : "Finished documents and their audit trails are kept until the organization deletes them, because they are evidence of an agreement and many must be kept for years by law.";
+    ? `A lezárt dokumentumokat és eseménynaplóikat a lezárás után ${String(settings.retentionDays)} nappal töröljük.`
+    : "A lezárt dokumentumokat és eseménynaplóikat addig őrizzük, amíg a szervezet nem törli őket, mert egy megállapodás bizonyítékai, és sokat jogszabály szerint évekig meg kell őrizni.";
 
   return (
     <PublicDocumentShell
-      description={`${organization} uses this site to send documents for electronic signature. This notice says what is collected about you when you sign, why, and what you can do about it.`}
-      lastUpdated="2026-11-13"
-      title="Privacy notice for signers"
+      description={`Ezen az oldalon a következő szervezet küld dokumentumokat elektronikus aláírásra: ${organization}. Ez a tájékoztató leírja, milyen adatokat gyűjtünk rólad az aláíráskor, miért, és mit tehetsz ezzel kapcsolatban.`}
+      lastUpdated="2026. november 13."
+      title="Adatvédelmi tájékoztató aláíróknak"
     >
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Who is responsible
+          Ki felel az adataidért
         </h2>
         <p>
-          {organization} is responsible for your information (the
-          &ldquo;controller&rdquo;).{" "}
+          Az adataidért ez a szervezet felel („adatkezelő”): {organization}.{" "}
           {contact ? (
             <>
-              Contact them at{" "}
+              Elérhetőség:{" "}
               <a className="underline" href={`mailto:${contact}`}>
                 {contact}
               </a>
               .
             </>
           ) : (
-            "Contact them through the person who sent you the document."
+            "Azon a személyen keresztül érheted el őket, aki a dokumentumot küldte neked."
           )}
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          What is collected
+          Milyen adatokat gyűjtünk
         </h2>
         <ul className="list-disc space-y-2 pl-6">
-          <li>Your name and email address, given by the sender.</li>
+          <li>A neved és az e-mail-címed, amelyet a küldő ad meg.</li>
           <li>
-            What you enter: your signature or initials (typed or drawn), dates,
-            text and checkboxes, or your reason for declining.
+            Amit te adsz meg: az aláírásod vagy a monogramod (gépelve vagy
+            rajzolva), dátumok, szövegek és jelölőnégyzetek, illetve az
+            elutasítás oka.
           </li>
           <li>
-            Evidence of signing: when you opened, agreed and signed, your IP
-            address, your browser&apos;s description of itself, and the checks
-            you passed (such as an emailed code).
+            Az aláírás bizonyítékai: mikor nyitottad meg, fogadtad el és írtad
+            alá a dokumentumot, az IP-címed, a böngésződ önazonosítása, és az
+            ellenőrzések, amelyeken átmentél (például e-mailben kapott kód).
           </li>
-          <li>Records of the emails sent to you about the document.</li>
+          <li>
+            A dokumentummal kapcsolatban neked küldött e-mailek nyilvántartása.
+          </li>
         </ul>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Why, and on what basis
+          Miért és milyen jogalapon
         </h2>
         <p>
-          To let you review and sign the document, to deliver copies, and to
-          keep evidence of who signed what and when. The basis is taking steps
-          for or performing a contract you are part of (GDPR Article 6(1)(b)),
-          the organization&apos;s legitimate interest in being able to prove the
-          agreement (Article 6(1)(f)), and any legal duty to keep records
-          (Article 6(1)(c)).
+          Azért, hogy átnézhesd és aláírhasd a dokumentumot, hogy megkapd a
+          példányokat, és hogy bizonyíték maradjon arról, ki mit és mikor írt
+          alá. A jogalap egy olyan szerződés megkötését megelőző lépések vagy a
+          szerződés teljesítése, amelyben részes fél vagy (GDPR 6. cikk (1)
+          bekezdés b) pont), a szervezet jogos érdeke, hogy bizonyítani tudja a
+          megállapodást (6. cikk (1) bekezdés f) pont), valamint az
+          iratmegőrzésre vonatkozó jogi kötelezettség (6. cikk (1) bekezdés c)
+          pont).
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Who else handles it
+          Ki fér még hozzá
         </h2>
         <p>
-          The other parties to the document see your name, email and signature.
-          The services that run this site process it for {organization}: the
-          hosting provider (Vercel), the database provider (such as Neon), file
-          storage (Vercel Blob) and the email provider (Resend). Some are based
-          in the United States; where information leaves the European Economic
-          Area, it is protected by the EU-US Data Privacy Framework or by
-          standard contractual clauses.
+          A dokumentum többi szereplője látja a nevedet, az e-mail-címedet és az
+          aláírásodat. Az oldalt működtető szolgáltatások a szervezet (
+          {organization}) nevében kezelik az adatokat: a tárhelyszolgáltató
+          (Vercel), az adatbázis-szolgáltató (például Neon), a fájltárolás
+          (Vercel Blob) és az e-mail-szolgáltató (Resend). Közülük néhány az
+          Egyesült Államokban működik. Ha az adatok elhagyják az Európai
+          Gazdasági Térséget, az EU–USA adatvédelmi keretrendszer vagy általános
+          szerződési feltételek védik őket.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          How long it is kept
+          Meddig őrizzük
         </h2>
         <p>
-          {retention} Unsent drafts are deleted after{" "}
-          {String(STALE_DRAFT_RETENTION_DAYS)} days without changes.
+          {retention} Az el nem küldött piszkozatokat{" "}
+          {String(STALE_DRAFT_RETENTION_DAYS)} nap változatlanság után töröljük.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Your rights
+          A jogaid
         </h2>
         <p>
-          You can ask {organization} for a copy of your information, to correct
-          it, to restrict or object to its use, or to erase it. A signed record
-          may be kept despite a request to erase it while it is needed as
-          evidence or by law (GDPR Article 17(3)). You can also complain to the
-          data protection authority where you live or work.
+          A szervezettől ({organization}) kérheted, hogy adjon másolatot az
+          adataidról, javítsa ki őket, korlátozza a felhasználásukat, vagy
+          törölje őket. A felhasználásuk ellen tiltakozhatsz is. Egy aláírt
+          nyilvántartás törlési kérés ellenére is megőrizhető, amíg
+          bizonyítékként vagy jogszabály alapján szükség van rá (GDPR 17. cikk
+          (3) bekezdés). Panaszt tehetsz annak az országnak az adatvédelmi
+          hatóságánál is, ahol élsz vagy dolgozol.
         </p>
       </section>
     </PublicDocumentShell>

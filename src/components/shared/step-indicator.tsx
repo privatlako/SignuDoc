@@ -8,7 +8,7 @@ type StepIndicatorProps = {
 export function StepIndicator({ current, steps }: StepIndicatorProps) {
   return (
     <nav
-      aria-label="Progress"
+      aria-label="Haladás"
       className="panel px-3 py-3 sm:px-4"
       data-animate="enter"
       data-animate-delay="1"

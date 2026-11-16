@@ -8,18 +8,21 @@ export const SIGNATURE_MEANING_DETAILS: Record<
   SignatureMeaning,
   { label: string; statement: string }
 > = {
-  approval: { label: "Approval", statement: "I approve this document." },
+  approval: {
+    label: "Jóváhagyás",
+    statement: "Jóváhagyom ezt a dokumentumot.",
+  },
   authorship: {
-    label: "Authorship",
-    statement: "I am the author of this document.",
+    label: "Szerzőség",
+    statement: "Én vagyok ennek a dokumentumnak a szerzője.",
   },
   responsibility: {
-    label: "Responsibility",
-    statement: "I take responsibility for this document.",
+    label: "Felelősségvállalás",
+    statement: "Felelősséget vállalok ezért a dokumentumért.",
   },
   review: {
-    label: "Review",
-    statement: "I have reviewed this document.",
+    label: "Felülvizsgálat",
+    statement: "Átnéztem ezt a dokumentumot.",
   },
 };
 
@@ -55,5 +58,5 @@ export function buildSignatureManifestation(signer: {
     .replace(/\.\d{3}Z$/, " UTC")
     .replace("T", " ");
 
-  return `Signed by ${signer.name} | ${signedAt} | Meaning: ${SIGNATURE_MEANING_DETAILS[signer.signatureMeaning].label}`;
+  return `Aláírta: ${signer.name} | ${signedAt} | Jelentés: ${SIGNATURE_MEANING_DETAILS[signer.signatureMeaning].label}`;
 }

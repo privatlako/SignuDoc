@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Send the file's SHA-256 value." },
+      { error: "Küldd el a fájl SHA-256 értékét." },
       { status: 400 },
     );
   }
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       path: getRequestPathname(request),
     });
     return NextResponse.json(
-      { error: "The file could not be checked right now." },
+      { error: "Most nem sikerült ellenőrizni a fájlt." },
       { status: 500 },
     );
   }

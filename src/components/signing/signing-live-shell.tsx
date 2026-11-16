@@ -81,9 +81,9 @@ type PositionedSigningField = {
 };
 
 const defaultSubmitErrorMessage =
-  "We couldn't finish signing right now. Reload the page or request a fresh signing link from the sender.";
+  "Most nem sikerült befejezni az aláírást. Töltsd újra az oldalt, vagy kérj új aláírási linket a küldőtől.";
 const defaultDeclineErrorMessage =
-  "We couldn't record your decline right now. Reload the page or request a fresh signing link from the sender.";
+  "Most nem sikerült rögzíteni az elutasítást. Töltsd újra az oldalt, vagy kérj új aláírási linket a küldőtől.";
 const compactFieldHeightThreshold = 0.045;
 const compactFieldWidthThreshold = 0.12;
 
@@ -130,23 +130,23 @@ function getCanvasFieldLabel(
 
   switch (field.type) {
     case "signature":
-      return "Sign";
+      return "Aláírás";
     case "initials":
-      return "Initial";
+      return "Szignó";
     case "date":
-      return "Date";
+      return "Dátum";
     case "text":
-      return "Text";
+      return "Szöveg";
     case "checkbox":
-      return "Checkbox";
+      return "Jelölőnégyzet";
     case "number":
-      return "Number";
+      return "Szám";
     case "dropdown":
-      return "Choose";
+      return "Válassz";
     case "radio":
-      return "Option";
+      return "Lehetőség";
     default:
-      return "Field";
+      return "Mező";
   }
 }
 
@@ -169,23 +169,23 @@ function getFieldLabel(
 
   switch (field.type) {
     case "signature":
-      return "Sign here";
+      return "Írd alá itt";
     case "initials":
-      return "Initial here";
+      return "Szignózd itt";
     case "date":
-      return "Date";
+      return "Dátum";
     case "text":
-      return "Enter text";
+      return "Írd be a szöveget";
     case "checkbox":
-      return "Checkbox";
+      return "Jelölőnégyzet";
     case "number":
-      return "Enter a number";
+      return "Írj be egy számot";
     case "dropdown":
-      return "Choose one";
+      return "Válassz egyet";
     case "radio":
-      return "Option";
+      return "Lehetőség";
     default:
-      return "Field";
+      return "Mező";
   }
 }
 
@@ -224,23 +224,23 @@ function hasInvalidNumber(
 function getSummaryLabel(field: SigningCurrentField) {
   switch (field.type) {
     case "signature":
-      return "Signature";
+      return "Aláírás";
     case "initials":
-      return "Initials";
+      return "Kezdőbetűk";
     case "date":
-      return "Date";
+      return "Dátum";
     case "text":
-      return "Text input";
+      return "Szövegmező";
     case "checkbox":
-      return "Checkbox";
+      return "Jelölőnégyzet";
     case "number":
-      return "Number";
+      return "Szám";
     case "dropdown":
-      return "Dropdown";
+      return "Legördülő lista";
     case "radio":
-      return "Choice";
+      return "Választás";
     default:
-      return "Field";
+      return "Mező";
   }
 }
 
@@ -275,25 +275,25 @@ function getCompletionValue(
   }: EnteredValues & { localDateLabel: string },
 ) {
   if (field.type === "signature" || field.type === "initials") {
-    return signatureValues[field.id]?.value ?? "Tap to sign";
+    return signatureValues[field.id]?.value ?? "Koppints az aláíráshoz";
   }
 
   if (field.type === "text") {
-    return textValues[field.id]?.trim() || "Enter text";
+    return textValues[field.id]?.trim() || "Írd be a szöveget";
   }
 
   if (field.type === "number") {
     return hasInvalidNumber(field, textValues)
-      ? "Not a number"
-      : textValues[field.id]?.trim() || "Enter a number";
+      ? "Ez nem szám"
+      : textValues[field.id]?.trim() || "Írj be egy számot";
   }
 
   if (field.type === "dropdown") {
-    return textValues[field.id]?.trim() || "Choose one";
+    return textValues[field.id]?.trim() || "Válassz egyet";
   }
 
   if (field.type === "checkbox") {
-    return checkboxValues[field.id] ? "Checked" : "Optional";
+    return checkboxValues[field.id] ? "Bejelölve" : "Nem kötelező";
   }
 
   if (field.type === "radio") {
@@ -301,7 +301,7 @@ function getCompletionValue(
       (button) => checkboxValues[button.id],
     );
 
-    return chosen ? getFieldLabel(chosen) : "Choose one";
+    return chosen ? getFieldLabel(chosen) : "Válassz egyet";
   }
 
   return localDateLabel;
@@ -356,7 +356,7 @@ function isFieldComplete(
 
 function getVisibleFieldValue(field: SigningVisibleField) {
   if (field.type === "checkbox" || field.type === "radio") {
-    return field.checked ? "Checked" : "Unchecked";
+    return field.checked ? "Bejelölve" : "Nincs bejelölve";
   }
 
   return field.value?.trim() || getFieldLabel(field);
@@ -438,13 +438,13 @@ function describeProviderProblem(
 ): string {
   switch (problem) {
     case "cancelled":
-      return `You did not finish signing at ${providerName}. Nothing was signed, so you can try again.`;
+      return `Nem fejezted be az aláírást itt: ${providerName}. Semmi nem lett aláírva, így újra megpróbálhatod.`;
     case "expired":
-      return "Your earlier signing session ended before it finished. Nothing was signed, so you can try again.";
+      return "A korábbi aláírási munkameneted lejárt, mielőtt befejeződött volna. Semmi nem lett aláírva, így újra megpróbálhatod.";
     case "name":
-      return `The certificate you signed with at ${providerName} is not in the name this document was sent to. Nothing was signed. If the name is wrong, ask the sender to send the document again under the name on your certificate.`;
+      return `A tanúsítvány, amellyel itt aláírtál (${providerName}), nem arra a névre szól, akinek a dokumentumot küldték. Semmi nem lett aláírva. Ha a név hibás, kérd meg a küldőt, hogy küldje el újra a dokumentumot a tanúsítványodon szereplő névre.`;
     default:
-      return `${providerName} could not complete your signature. Nothing was signed. Try again, or ask the sender for help.`;
+      return `A(z) ${providerName} nem tudta befejezni az aláírásodat. Semmi nem lett aláírva. Próbáld újra, vagy kérj segítséget a küldőtől.`;
   }
 }
 
@@ -506,7 +506,7 @@ export function SigningLiveShell({
   const [drawnSignatureVersion, setDrawnSignatureVersion] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_DOCUMENT_ZOOM_LEVEL);
   const [localDateLabel] = useState(() =>
-    new Intl.DateTimeFormat("en-US", {
+    new Intl.DateTimeFormat("hu-HU", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -698,14 +698,14 @@ export function SigningLiveShell({
 
       if (!response.ok || typeof payload?.consentedAt !== "number") {
         setConsentError(
-          payload?.error ?? "Your agreement could not be saved right now.",
+          payload?.error ?? "Most nem sikerült elmenteni a hozzájárulásodat.",
         );
         return;
       }
 
       setConsentedAt(payload.consentedAt);
     } catch {
-      setConsentError("Your agreement could not be saved right now.");
+      setConsentError("Most nem sikerült elmenteni a hozzájárulásodat.");
     } finally {
       setIsSavingConsent(false);
     }
@@ -795,18 +795,18 @@ export function SigningLiveShell({
                 {record.envelopeTitle}
               </p>
               <p className="mt-0.5 truncate text-[0.8125rem] text-(--tertiary)">
-                From {record.senderName}
+                Küldő: {record.senderName}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <a
               className="btn-quiet min-h-11 px-3 sm:px-4"
-              download="document.pdf"
+              download="dokumentum.pdf"
               href={`${record.documentUrl}?download=1`}
             >
               <DownloadIcon aria-hidden="true" className="size-4" />
-              <span className="sr-only sm:not-sr-only">Download PDF</span>
+              <span className="sr-only sm:not-sr-only">PDF letöltése</span>
             </a>
             <ShellButton
               className="min-h-11 px-4"
@@ -817,7 +817,7 @@ export function SigningLiveShell({
               }}
               variant="secondary"
             >
-              Decline
+              Elutasítás
             </ShellButton>
           </div>
         </div>
@@ -855,7 +855,7 @@ export function SigningLiveShell({
 
                 <div className="flex items-center justify-center gap-3">
                   <button
-                    aria-label="Previous page"
+                    aria-label="Előző oldal"
                     className="btn-quiet size-10 px-0"
                     disabled={activePage === 1}
                     onClick={() =>
@@ -866,13 +866,13 @@ export function SigningLiveShell({
                     <ChevronLeftIcon className="size-4" />
                   </button>
                   <div className="min-w-[7.5rem] text-center">
-                    <p className="sr-only">Document page</p>
+                    <p className="sr-only">Dokumentumoldal</p>
                     <p className="text-sm font-bold text-(--fg)">
-                      {`Page ${activePage} of ${record.pageCount}`}
+                      {`${activePage}. oldal / ${record.pageCount}`}
                     </p>
                   </div>
                   <button
-                    aria-label="Next page"
+                    aria-label="Következő oldal"
                     className="btn-quiet size-10 px-0"
                     disabled={activePage === record.pageCount}
                     onClick={() =>
@@ -997,11 +997,12 @@ export function SigningLiveShell({
                         <div className="absolute inset-0 z-1 flex items-center justify-center px-6">
                           <div className="max-w-[320px] rounded-[1.25rem] border-2 border-dashed border-(--border-strong) bg-white/92 px-6 py-7 text-center">
                             <p className="text-lg font-extrabold tracking-[-0.02em] text-(--fg)">
-                              No signer fields on this page
+                              Ezen az oldalon nincs kitöltendő mező
                             </p>
                             <p className="mt-2 text-sm leading-6 text-(--secondary)">
-                              Move between pages to review your assigned fields
-                              and any completed values from earlier signers.
+                              Lapozz az oldalak között, hogy lásd a neked
+                              kijelölt mezőket és a korábbi aláírók által
+                              kitöltött értékeket.
                             </p>
                           </div>
                         </div>
@@ -1015,7 +1016,7 @@ export function SigningLiveShell({
 
           <aside className="space-y-4 xl:sticky xl:top-[5.25rem] xl:self-start">
             <section className="panel rounded-[1.25rem] p-5">
-              <p className="section-eyebrow">Current signer</p>
+              <p className="section-eyebrow">Aláíró</p>
               <div className="mt-3 flex items-center gap-3">
                 <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-(--accent-soft) text-[0.9375rem] font-bold text-(--accent-ink)">
                   {getInitials(record.signer.name)}
@@ -1031,18 +1032,18 @@ export function SigningLiveShell({
               </div>
 
               <div className="well mt-5 p-4">
-                <p className="section-eyebrow">Ready to finish</p>
+                <p className="section-eyebrow">Befejezés előtt</p>
                 <p className="mt-1.5 text-[0.9375rem] font-bold text-(--fg)">
                   {remainingFields === 0
-                    ? "All required fields complete"
-                    : `${remainingFields} required field${remainingFields === 1 ? "" : "s"} remaining`}
+                    ? "Minden kötelező mező kész"
+                    : `Még ${remainingFields} kötelező mező van hátra`}
                 </p>
                 {invalidNumberCount > 0 ? (
                   <p
                     className="mt-1.5 text-[0.8125rem] font-semibold leading-5 text-(--danger)"
                     role="alert"
                   >
-                    A number field marked in red does not hold a number.{" "}
+                    A pirossal jelölt számmező nem számot tartalmaz.{" "}
                     {NUMBER_ENTRY_MESSAGE}
                   </p>
                 ) : null}
@@ -1058,8 +1059,8 @@ export function SigningLiveShell({
                   />
                 </div>
                 <p className="mt-3 text-[0.8125rem] leading-5 text-(--secondary)">
-                  Previous signer values stay visible but locked. Only your
-                  assigned fields are interactive.
+                  A korábbi aláírók értékei láthatók, de nem módosíthatók. Csak
+                  a neked kijelölt mezőket tudod kitölteni.
                 </p>
               </div>
 
@@ -1072,14 +1073,14 @@ export function SigningLiveShell({
                     setIsFinishDialogOpen(true);
                   }}
                 >
-                  Finish
+                  Befejezés
                 </ShellButton>
               </div>
             </section>
 
             <section className="panel rounded-[1.25rem] p-5">
               <div className="flex items-center justify-between gap-3">
-                <p className="section-eyebrow">Assigned fields</p>
+                <p className="section-eyebrow">Neked kijelölt mezők</p>
                 <span className="pill pill-neutral">
                   {actionSummaryFields.length}
                 </span>
@@ -1094,7 +1095,7 @@ export function SigningLiveShell({
                     )}
                     isInvalid={hasInvalidNumber(field, textValues)}
                     key={field.id}
-                    label={`${getSummaryLabel(field)} · Page ${field.page}`}
+                    label={`${getSummaryLabel(field)} · ${field.page}. oldal`}
                     value={getCompletionValue(
                       field,
                       record.currentSignerFields,
@@ -1152,8 +1153,8 @@ export function SigningLiveShell({
 
       {isFinishDialogOpen ? (
         <DialogFrame
-          description={`You are signing "${record.envelopeTitle}" from ${record.senderName}.`}
-          title="Finish signing?"
+          description={`Most aláírod ezt a dokumentumot: „${record.envelopeTitle}” (küldő: ${record.senderName}).`}
+          title="Befejezed az aláírást?"
           onClose={() => {
             if (isSubmitting) {
               return;
@@ -1166,30 +1167,30 @@ export function SigningLiveShell({
           {providerSignature ? (
             <div className="grid gap-3 text-sm leading-6 text-(--secondary)">
               <p>
-                This document asks for{" "}
+                Ehhez a dokumentumhoz{" "}
                 {providerSignature.level === "qualified"
-                  ? "a qualified electronic signature"
-                  : "an advanced electronic signature"}
-                , made with a certificate in your own name.
+                  ? "minősített elektronikus aláírás"
+                  : "fokozott biztonságú elektronikus aláírás"}{" "}
+                kell, a saját nevedre szóló tanúsítvánnyal.
               </p>
               <p>
-                Next, {providerSignature.providerName} asks you to confirm who
-                you are and to approve the signature. When it is done, you come
-                back here. By continuing, you confirm that your signature is
-                intended to be binding for this document.
+                Következő lépésként a(z) {providerSignature.providerName}{" "}
+                megkér, hogy igazold, ki vagy, és hagyd jóvá az aláírást. Ha
+                kész, visszajössz ide. A folytatással megerősíted, hogy az
+                aláírásod erre a dokumentumra nézve kötelező érvényű.
               </p>
             </div>
           ) : (
             <p className="text-sm leading-6 text-(--secondary)">
-              By clicking Finish, you confirm that your electronic signature is
-              intended to be binding for this document.
+              A Befejezés gombra kattintva megerősíted, hogy az elektronikus
+              aláírásod erre a dokumentumra nézve kötelező érvényű.
             </p>
           )}
           {part11 ? (
             <div className="grid gap-4">
               <div className="well rounded-xl px-3.5 py-3">
                 <p className="text-xs font-semibold text-(--tertiary)">
-                  Meaning of your signature
+                  Az aláírásod jelentése
                 </p>
                 <p className="mt-0.5 text-sm font-semibold text-(--fg)">
                   {part11.meaningLabel}: {part11.meaningStatement}
@@ -1197,7 +1198,7 @@ export function SigningLiveShell({
               </div>
               <label className="flex items-start gap-3 text-sm leading-6 text-(--secondary)">
                 <Checkbox
-                  aria-label="I confirm the meaning of my signature"
+                  aria-label="Megerősítem az aláírásom jelentését"
                   checked={isMeaningConfirmed}
                   className="mt-1"
                   disabled={isSubmitting}
@@ -1206,17 +1207,17 @@ export function SigningLiveShell({
                   }
                 />
                 <span>
-                  I confirm this meaning. My name, the date and time, and this
-                  meaning will be printed with my signature.
+                  Megerősítem ezt a jelentést. A nevem, a dátum és az időpont,
+                  valamint ez a jelentés az aláírásommal együtt jelenik meg.
                 </span>
               </label>
               <p className="text-sm leading-6 text-(--secondary)">
-                Enter your account&apos;s email address and password to sign.
+                Az aláíráshoz add meg a fiókod e-mail-címét és jelszavát.
               </p>
               <FieldShell
                 autoComplete="username"
                 disabled={isSubmitting}
-                label="Email address"
+                label="E-mail-cím"
                 name="reauth-email"
                 onChange={(event) => setReauthEmail(event.target.value)}
                 readOnly={false}
@@ -1226,7 +1227,7 @@ export function SigningLiveShell({
               <FieldShell
                 autoComplete="current-password"
                 disabled={isSubmitting}
-                label="Password"
+                label="Jelszó"
                 name="reauth-password"
                 onChange={(event) => setReauthPassword(event.target.value)}
                 readOnly={false}
@@ -1249,7 +1250,7 @@ export function SigningLiveShell({
               }}
               variant="secondary"
             >
-              Back
+              Vissza
             </ShellButton>
             <ShellButton
               disabled={!isReauthReady}
@@ -1258,11 +1259,11 @@ export function SigningLiveShell({
             >
               {providerSignature
                 ? isSubmitting
-                  ? "Preparing..."
-                  : `Continue to ${providerSignature.providerName}`
+                  ? "Előkészítés…"
+                  : `Tovább: ${providerSignature.providerName}`
                 : isSubmitting
-                  ? "Finishing..."
-                  : "Finish signing"}
+                  ? "Befejezés…"
+                  : "Aláírás befejezése"}
             </ShellButton>
           </div>
         </DialogFrame>
@@ -1270,9 +1271,9 @@ export function SigningLiveShell({
 
       {consentedAt === null && !isDeclineDialogOpen ? (
         <DialogFrame
-          description={`${record.senderName} sent you "${record.envelopeTitle}" to sign electronically.`}
+          description={`${record.senderName} elektronikus aláírásra küldte neked ezt a dokumentumot: „${record.envelopeTitle}”.`}
           onClose={() => undefined}
-          title="Before you sign"
+          title="Mielőtt aláírod"
         >
           <div className="well max-h-[45vh] space-y-4 overflow-y-auto px-4 py-4 text-sm leading-6 text-(--secondary) sm:px-5">
             {record.disclosure.sections.map((section) => (
@@ -1284,7 +1285,7 @@ export function SigningLiveShell({
           </div>
           <label className="flex items-start gap-3 text-sm leading-6 text-(--fg)">
             <Checkbox
-              aria-label="I agree to use electronic records and signatures"
+              aria-label="Hozzájárulok az elektronikus dokumentumok és aláírások használatához"
               checked={isConsentChecked}
               className="mt-1"
               disabled={isSavingConsent}
@@ -1308,14 +1309,14 @@ export function SigningLiveShell({
               }}
               variant="secondary"
             >
-              Decline
+              Elutasítás
             </ShellButton>
             <ShellButton
               disabled={!isConsentChecked}
               loading={isSavingConsent}
               onClick={handleConsent}
             >
-              Agree and continue
+              Elfogadom, tovább
             </ShellButton>
           </div>
         </DialogFrame>
@@ -1323,8 +1324,8 @@ export function SigningLiveShell({
 
       {isDeclineDialogOpen ? (
         <DialogFrame
-          description={`The sender (${record.senderName}) will be notified that you declined. This cannot be undone.`}
-          title="Decline to sign?"
+          description={`A küldő (${record.senderName}) értesítést kap arról, hogy elutasítottad. Ezt később nem lehet visszavonni.`}
+          title="Elutasítod az aláírást?"
           onClose={() => {
             if (isDeclining) {
               return;
@@ -1336,7 +1337,7 @@ export function SigningLiveShell({
         >
           <label className="grid gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              Reason (optional)
+              Indoklás (nem kötelező)
             </span>
             <Textarea
               autoFocus
@@ -1344,7 +1345,7 @@ export function SigningLiveShell({
               id="signing-decline-reason"
               name="signing-decline-reason"
               onChange={(event) => setDeclineReason(event.target.value)}
-              placeholder="I'd like to discuss some terms first..."
+              placeholder="Előbb szeretnék egyeztetni néhány feltételről…"
               value={declineReason}
             />
           </label>
@@ -1362,14 +1363,14 @@ export function SigningLiveShell({
               }}
               variant="secondary"
             >
-              Cancel
+              Mégse
             </ShellButton>
             <ShellButton
               loading={isDeclining}
               onClick={handleDeclineSigning}
               variant="danger"
             >
-              {isDeclining ? "Declining..." : "Decline to sign"}
+              {isDeclining ? "Elutasítás…" : "Aláírás elutasítása"}
             </ShellButton>
           </div>
         </DialogFrame>
@@ -1419,11 +1420,11 @@ function SigningToolbarStatus({
       <div className="min-w-0">
         <p className="text-[0.8125rem] font-bold leading-tight text-(--fg)">
           {remainingFields === 0
-            ? "Ready to finish"
-            : `${remainingFields} required remaining`}
+            ? "Befejezhető"
+            : `Még ${remainingFields} kötelező mező`}
         </p>
         <p className="text-xs leading-tight text-(--tertiary)">
-          {hasLockedFields ? "Locked values visible" : "Current signer view"}
+          {hasLockedFields ? "Lezárt értékek láthatók" : "Aláírói nézet"}
         </p>
       </div>
     </div>
@@ -1475,7 +1476,7 @@ function CurrentSignerField({
           signatureEntry.imageDataUrl ? (
             <span className="relative block h-full w-full">
               <Image
-                alt={`${field.type === "initials" ? "Initials" : "Signature"} preview`}
+                alt={`${field.type === "initials" ? "Kezdőbetűk" : "Aláírás"} előnézete`}
                 className="object-contain p-1"
                 fill
                 src={signatureEntry.imageDataUrl}
@@ -1565,7 +1566,7 @@ function CurrentSignerField({
           inputMode="decimal"
           name={`signing-field-${field.id}`}
           onChange={(event) => onTextChange(event.target.value)}
-          placeholder={showInlineLabel ? "Number" : ""}
+          placeholder={showInlineLabel ? "Szám" : ""}
           value={textValue}
         />
       </div>
@@ -1590,7 +1591,7 @@ function CurrentSignerField({
           value={textValue}
         >
           <option value="">
-            {field.required ? "Choose one" : "No answer"}
+            {field.required ? "Válassz egyet" : "Nincs válasz"}
           </option>
           {(field.options ?? []).map((option) => (
             <option key={option} value={option}>
@@ -1724,7 +1725,7 @@ function VisibleFieldStamp({ field }: { field: SigningVisibleField }) {
         style={frame}
       >
         <Image
-          alt={`${field.signerName} completed ${field.type}`}
+          alt={`${field.signerName} ${field.type === "initials" ? "szignója" : "aláírása"}`}
           className="object-contain"
           fill
           src={field.imageDataUrl}
@@ -1808,10 +1809,12 @@ function SignatureModal({
   });
   const drawPreviewMessage =
     drawnSignatureVersion === 0
-      ? "Draw with mouse or finger"
-      : `Canvas cleared ${drawnSignatureVersion} time${drawnSignatureVersion === 1 ? "" : "s"}`;
+      ? "Rajzolj egérrel vagy ujjal"
+      : `Rajzfelület törölve (${drawnSignatureVersion}×)`;
   const typedPlaceholder =
-    fieldType === "initials" ? "Type your initials" : "Type your signature";
+    fieldType === "initials"
+      ? "Gépeld be a kezdőbetűidet"
+      : "Gépeld be az aláírásodat";
   const normalizedTypedSignatureValue = typedSignatureValue.trim();
   const canApply =
     signatureMode === "typed"
@@ -1829,9 +1832,11 @@ function SignatureModal({
 
   return (
     <DialogFrame
-      description="By signing, you agree that this electronic signature is the legal equivalent of your manual signature."
+      description="Az aláírással elfogadod, hogy ez az elektronikus aláírás jogilag egyenértékű a kézzel írt aláírásoddal."
       title={
-        fieldType === "initials" ? "Add your initials" : "Add your signature"
+        fieldType === "initials"
+          ? "Add meg a kezdőbetűidet"
+          : "Add meg az aláírásodat"
       }
       onClose={onClose}
     >
@@ -1845,13 +1850,13 @@ function SignatureModal({
             className="segmented-item h-auto min-h-10 flex-1 data-active:bg-white data-active:text-(--fg) data-active:shadow-[0_1px_3px_rgba(28,29,43,0.12)] after:hidden"
             value="typed"
           >
-            Type
+            Gépelés
           </TabsTrigger>
           <TabsTrigger
             className="segmented-item h-auto min-h-10 flex-1 data-active:bg-white data-active:text-(--fg) data-active:shadow-[0_1px_3px_rgba(28,29,43,0.12)] after:hidden"
             value="drawn"
           >
-            Draw
+            Rajzolás
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -1860,7 +1865,9 @@ function SignatureModal({
         <div className="space-y-4">
           <label className="grid gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              {fieldType === "initials" ? "Type initials" : "Type signature"}
+              {fieldType === "initials"
+                ? "Kezdőbetűk gépelése"
+                : "Aláírás gépelése"}
             </span>
             <input
               autoFocus
@@ -1888,7 +1895,7 @@ function SignatureModal({
               {normalizedTypedSignatureValue || typedPlaceholder}
             </p>
             <p className="mt-4 text-xs font-medium text-(--tertiary)">
-              Rendered in signature style
+              Aláírásszerű betűtípussal
             </p>
           </div>
         </div>
@@ -1914,7 +1921,7 @@ function SignatureModal({
               }}
               variant="ghost"
             >
-              Clear
+              Törlés
             </ShellButton>
           </div>
         </div>
@@ -1922,7 +1929,7 @@ function SignatureModal({
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <ShellButton onClick={onClose} variant="secondary">
-          Cancel
+          Mégse
         </ShellButton>
         <ShellButton
           disabled={!canApply}
@@ -1934,8 +1941,8 @@ function SignatureModal({
                     inputMethod: "drawn",
                     value:
                       fieldType === "initials"
-                        ? "Drawn initials"
-                        : "Drawn signature",
+                        ? "Rajzolt szignó"
+                        : "Rajzolt aláírás",
                   }
                 : {
                     imageDataUrl: null,
@@ -1945,7 +1952,9 @@ function SignatureModal({
             )
           }
         >
-          {fieldType === "initials" ? "Apply initials" : "Apply signature"}
+          {fieldType === "initials"
+            ? "Kezdőbetűk elfogadása"
+            : "Aláírás elfogadása"}
         </ShellButton>
       </div>
     </DialogFrame>
@@ -2121,7 +2130,7 @@ function SignatureDrawCanvas({
   return (
     <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-(--border-strong) bg-white">
       <canvas
-        aria-label="Draw signature canvas"
+        aria-label="Aláírás rajzolófelülete"
         className="h-[220px] w-full touch-none"
         onPointerCancel={handlePointerEnd}
         onPointerDown={handlePointerDown}
@@ -2199,7 +2208,7 @@ function FieldStatusRow({
               : "pill-accent"
         }`}
       >
-        {isInvalid ? "Fix this" : isComplete ? "Complete" : "Required"}
+        {isInvalid ? "Javítsd" : isComplete ? "Kész" : "Kötelező"}
       </span>
     </div>
   );

@@ -1,3 +1,4 @@
+// TODO(homilla): needs Homilla-specific legal review
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -7,8 +8,8 @@ import { resolvePublicSupportAddress } from "@/lib/public-contact";
 
 export const metadata: Metadata = {
   description:
-    "Review the terms that govern use of the SignuDoc public e-signature service.",
-  title: "Terms of Service | SignuDoc",
+    "A SignuDoc nyilvános elektronikus aláírási szolgáltatás használatára vonatkozó feltételek.",
+  title: "Felhasználási feltételek | SignuDoc",
 };
 
 export default async function TermsPage() {
@@ -18,325 +19,343 @@ export default async function TermsPage() {
 
   return (
     <PublicDocumentShell
-      description="These Terms of Service govern your access to and use of SignuDoc. They are written for a launch-stage U.S. e-signature product intended for ordinary business agreements and commercial workflows."
-      lastUpdated="March 21, 2026"
-      title="Terms of Service"
+      description="Ezek a felhasználási feltételek szabályozzák, hogyan férhetsz hozzá a SignuDochoz és hogyan használhatod. Egy induló, egyesült államokbeli elektronikus aláírási termékre vonatkoznak, amely hétköznapi üzleti megállapodásokhoz és kereskedelmi folyamatokhoz készült."
+      lastUpdated="2026. március 21."
+      title="Felhasználási feltételek"
     >
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          1. Overview
+          1. Áttekintés
         </h2>
         <p>
-          By creating an account, uploading a document, sending an envelope, or
-          signing through SignuDoc, you agree to these Terms. If you use
-          SignuDoc on behalf of a company or other organization, you represent
-          that you are authorized to bind that organization to these Terms.
+          Azzal, hogy fiókot hozol létre, dokumentumot töltesz fel, küldeményt
+          küldesz vagy a SignuDocon keresztül aláírsz, elfogadod ezeket a
+          feltételeket. Ha a SignuDocot egy cég vagy más szervezet nevében
+          használod, kijelented, hogy jogosult vagy a szervezetet ezekkel a
+          feltételekkel kötelezni.
         </p>
         <p>
-          SignuDoc provides software for preparing, sending, signing, and
-          storing electronic records. SignuDoc is not a law firm, is not your
-          lawyer, does not give legal advice, and does not determine whether a
-          particular document is legally suitable for electronic signing in any
-          jurisdiction.
+          A SignuDoc szoftvert biztosít elektronikus iratok előkészítéséhez,
+          küldéséhez, aláírásához és tárolásához. A SignuDoc nem ügyvédi iroda,
+          nem a jogi képviselőd, nem ad jogi tanácsot, és nem dönti el, hogy egy
+          adott dokumentum valamely joghatóságban jogilag alkalmas-e
+          elektronikus aláírásra.
         </p>
         <p>
-          SignuDoc is currently offered for use by U.S.-based businesses and
-          organizations.
+          A SignuDoc jelenleg egyesült államokbeli vállalkozások és szervezetek
+          számára érhető el.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          2. Eligibility and authority
+          2. Jogosultság és felhatalmazás
         </h2>
         <p>
-          You may use SignuDoc only if you can form a binding contract under
-          applicable law and only for lawful business or organizational
-          purposes. You are responsible for making sure that each sender,
-          signer, and recipient has authority to act for the party they
-          represent.
+          A SignuDocot csak akkor használhatod, ha az alkalmazandó jog szerint
+          kötelező erejű szerződést köthetsz, és csak jogszerű üzleti vagy
+          szervezeti célra. Te felelsz azért, hogy minden küldő, aláíró és
+          címzett jogosult legyen eljárni az általa képviselt fél nevében.
         </p>
         <p>
-          You are also responsible for determining whether your transaction
-          requires witnesses, notarization, paper delivery, special retention
-          rules, or a signature form that SignuDoc does not provide.
+          Azt is neked kell eldöntened, hogy az ügyletedhez kell-e tanú,
+          közjegyzői hitelesítés, papíralapú kézbesítés, különleges megőrzési
+          szabály, vagy olyan aláírási forma, amelyet a SignuDoc nem biztosít.
         </p>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          3. Permitted use and excluded documents
+          3. Megengedett használat és kizárt dokumentumok
         </h2>
         <p>
-          SignuDoc is intended for ordinary business agreements and comparable
-          commercial records, such as NDAs, statements of work, vendor
-          agreements, service agreements, procurement approvals, and similar
-          business documents.
+          A SignuDoc hétköznapi üzleti megállapodásokhoz és hasonló kereskedelmi
+          iratokhoz készült, például titoktartási megállapodásokhoz (NDA),
+          munkaleírásokhoz, beszállítói és szolgáltatási szerződésekhez,
+          beszerzési jóváhagyásokhoz és hasonló üzleti dokumentumokhoz.
         </p>
         <p>
-          You must not use SignuDoc for documents or notices that are excluded
-          from SignuDoc&apos;s permitted scope, including:
+          A SignuDoc nem használható olyan dokumentumokhoz vagy értesítésekhez,
+          amelyek kívül esnek a megengedett használati körén, többek között:
         </p>
         <ul className="list-disc space-y-2 pl-6">
-          <li>wills, codicils, and testamentary trusts;</li>
-          <li>adoption, divorce, or other matters of family law;</li>
           <li>
-            court orders, court notices, pleadings, or other official court
-            documents;
+            végrendeletek, végrendelet-kiegészítések és végrendeleti trösztök;
+          </li>
+          <li>örökbefogadás, válás vagy más családjogi ügyek;</li>
+          <li>
+            bírósági határozatok, bírósági értesítések, periratok vagy más
+            hivatalos bírósági iratok;
           </li>
           <li>
-            notices of utility cancellation or termination, including water,
-            heat, or power;
+            közüzemi szolgáltatások (például víz, fűtés vagy áram)
+            megszüntetéséről vagy felmondásáról szóló értesítések;
           </li>
           <li>
-            notices of default, acceleration, repossession, foreclosure,
-            eviction, or the right to cure involving a primary residence;
+            elsődleges lakóhelyet érintő késedelemről, lejárttá tételről,
+            visszavételről, végrehajtásról, kilakoltatásról vagy a hibaorvoslás
+            jogáról szóló értesítések;
           </li>
           <li>
-            cancellation or termination of health insurance benefits or life
-            insurance benefits;
+            egészségbiztosítási vagy életbiztosítási juttatások megszüntetése
+            vagy felmondása;
           </li>
           <li>
-            product recall notices or notices of material product failure that
-            risk endangering health or safety;
+            termékvisszahívási értesítések, illetve az egészséget vagy
+            biztonságot veszélyeztető lényeges termékhibákról szóló értesítések;
           </li>
           <li>
-            documents required to accompany the transportation or handling of
-            hazardous materials, pesticides, or other toxic or dangerous
-            materials; and
+            veszélyes anyagok, növényvédő szerek vagy más mérgező vagy veszélyes
+            anyagok szállításához vagy kezeléséhez kötelezően mellékelendő
+            iratok;
           </li>
           <li>
-            legally required consumer disclosures or other workflows that
-            require a separate E-SIGN consumer-consent process before the record
-            may be delivered electronically.
+            jogszabályban előírt fogyasztói tájékoztatások, vagy más olyan
+            folyamatok, amelyekhez az irat elektronikus kézbesítése előtt külön
+            E-SIGN szerinti fogyasztói hozzájárulás kell.
           </li>
         </ul>
         <p>
-          If a document falls into a regulated, safety-sensitive, consumer
-          disclosure, estate-planning, court, or family-law category, do not use
-          SignuDoc for that workflow. By sending an envelope, you confirm that
-          the document is an ordinary business agreement within SignuDoc&apos;s
-          permitted use.
+          Ha egy dokumentum szabályozott, biztonsági szempontból érzékeny,
+          fogyasztói tájékoztatási, hagyatéktervezési, bírósági vagy családjogi
+          kategóriába tartozik, ne használd hozzá a SignuDocot. Egy küldemény
+          elküldésével megerősíted, hogy a dokumentum a SignuDoc megengedett
+          használati körébe tartozó, hétköznapi üzleti megállapodás.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          4. Sender responsibilities
+          4. A küldő felelőssége
         </h2>
         <p>
-          Senders are responsible for the content they upload, the routing order
-          they configure, the fields they place, the recipients they invite, and
-          the legal sufficiency of the resulting process. You must have the
-          rights and permissions needed to upload the document and request
-          signatures from each recipient.
+          A küldő felel a feltöltött tartalomért, a beállított aláírási
+          sorrendért, az elhelyezett mezőkért, a meghívott címzettekért és a
+          létrejövő folyamat jogi megfelelőségéért. Rendelkezned kell a
+          dokumentum feltöltéséhez és az egyes címzettektől kért aláírásokhoz
+          szükséges jogokkal és engedélyekkel.
         </p>
         <p>
-          You are responsible for maintaining accurate signer contact
-          information, avoiding misleading or deceptive envelopes, and making
-          sure that any required notices, disclosures, or offline procedures are
-          handled outside SignuDoc when needed.
+          Te felelsz azért, hogy az aláírók elérhetőségei pontosak legyenek,
+          hogy ne küldj félrevezető vagy megtévesztő küldeményt, és hogy a
+          szükséges értesítéseket, tájékoztatásokat vagy offline eljárásokat
+          szükség esetén a SignuDocon kívül intézd.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          5. Electronic signatures and records
+          5. Elektronikus aláírások és iratok
         </h2>
         <p>
-          For documents within SignuDoc&apos;s permitted scope, SignuDoc is
-          designed to support standard electronic signatures and records used in
-          the United States under laws such as the Electronic Signatures in
-          Global and National Commerce Act (E-SIGN) and state electronic
-          transactions laws such as UETA, where applicable.
+          A SignuDoc megengedett használati körébe tartozó dokumentumok esetén a
+          SignuDoc az Egyesült Államokban használt szabványos elektronikus
+          aláírásokat és iratokat támogatja, olyan jogszabályok alapján, mint az
+          Electronic Signatures in Global and National Commerce Act (E-SIGN) és
+          az államok elektronikus ügyletekről szóló törvényei (például UETA),
+          ahol ezek alkalmazandók.
         </p>
         <p>
-          SignuDoc does not provide qualified electronic signatures under eIDAS
-          and does not promise that a SignuDoc workflow will satisfy any
-          country-specific trust-service, certificate, identity-proofing, or
-          notarization regime outside the ordinary U.S. electronic-signature
-          context.
+          A SignuDoc nem biztosít eIDAS szerinti minősített elektronikus
+          aláírást, és nem ígéri, hogy egy SignuDoc-folyamat a hétköznapi
+          egyesült államokbeli elektronikus aláírási kereteken kívül megfelel
+          bármely ország bizalmi szolgáltatási, tanúsítványra vonatkozó,
+          személyazonosság-ellenőrzési vagy közjegyzői szabályainak.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          6. Account security and acceptable use
+          6. A fiók biztonsága és elfogadható használat
         </h2>
         <p>
-          You are responsible for safeguarding your credentials, restricting
-          access to your account, and promptly notifying SignuDoc if you suspect
-          unauthorized use. You may not use SignuDoc to break the law, infringe
-          rights, transmit malware, harass recipients, scrape data, interfere
-          with service operation, or attempt to bypass access controls or rate
-          limits.
+          Te felelsz a belépési adataid védelméért, a fiókodhoz való hozzáférés
+          korlátozásáért, és azért, hogy haladéktalanul értesítsd a SignuDocot,
+          ha jogosulatlan használatot gyanítasz. A SignuDoc nem használható
+          jogsértésre, mások jogainak megsértésére, kártevő terjesztésére, a
+          címzettek zaklatására, adatok automatikus kigyűjtésére, a szolgáltatás
+          működésének zavarására, illetve a hozzáférés-szabályozás vagy a
+          kérésgyakorisági korlátok megkerülésére.
         </p>
         <p>
-          You may not use SignuDoc to impersonate another person, to collect
-          signatures through deception, or to send spam or bulk messages that do
-          not relate to an actual signing workflow.
+          A SignuDoc nem használható más személy megszemélyesítésére, aláírások
+          megtévesztéssel történő gyűjtésére, vagy olyan kéretlen vagy tömeges
+          üzenetek küldésére, amelyek nem kapcsolódnak valódi aláírási
+          folyamathoz.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          7. Service changes, availability, and records
+          7. A szolgáltatás változásai, elérhetősége és az iratok
         </h2>
         <p>
-          SignuDoc may change, improve, suspend, or discontinue features at any
-          time. We may introduce limits on document size, signer count, storage,
-          or retention as the service evolves. We may also remove content or
-          suspend accounts that appear to violate these Terms or create legal,
-          operational, or security risk.
+          A SignuDoc bármikor módosíthatja, fejlesztheti, felfüggesztheti vagy
+          megszüntetheti az egyes funkciókat. A szolgáltatás fejlődésével
+          korlátokat vezethetünk be a dokumentumméretre, az aláírók számára, a
+          tárhelyre vagy a megőrzésre. Eltávolíthatunk tartalmat, illetve
+          felfüggeszthetünk fiókokat, ha azok látszólag megsértik ezeket a
+          feltételeket, vagy jogi, működési vagy biztonsági kockázatot
+          jelentenek.
         </p>
         <p>
-          You should download and retain your own copies of important completed
-          documents. SignuDoc&apos;s hosted document storage is a convenience
-          feature and is subject to the retention and deletion practices
-          described in the Privacy Policy.
+          A fontos lezárt dokumentumokról érdemes saját példányt letöltened és
+          megőrizned. A SignuDoc által biztosított dokumentumtárolás kényelmi
+          funkció, és az adatvédelmi tájékoztatóban leírt megőrzési és törlési
+          gyakorlat vonatkozik rá.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          8. Intellectual property and your content
+          8. Szellemi tulajdon és a tartalmaid
         </h2>
         <p>
-          As between you and SignuDoc, you retain ownership of the documents and
-          data you upload, subject to the rights needed for SignuDoc and its
-          service providers to host, process, transmit, display, secure, and
-          store that content to operate the service.
+          Közted és a SignuDoc között a feltöltött dokumentumok és adatok a
+          tieid maradnak, azzal, hogy a SignuDoc és szolgáltatói megkapják
+          azokat a jogokat, amelyek a tartalom tárolásához, feldolgozásához,
+          továbbításához, megjelenítéséhez, védelméhez és őrzéséhez szükségesek
+          a szolgáltatás működtetése érdekében.
         </p>
         <p>
-          SignuDoc and its branding, software, interface, and related materials
-          are protected by applicable intellectual-property laws. Except as
-          expressly allowed by law, you may not copy, resell, reverse engineer,
-          or create derivative works from the service.
+          A SignuDocot, a márkajelzéseit, a szoftverét, a felületét és a
+          kapcsolódó anyagokat a vonatkozó szellemitulajdon-jogi szabályok
+          védik. Ha jogszabály kifejezetten nem engedi, nem másolhatod,
+          értékesítheted tovább, fejtheted vissza a szolgáltatást, és nem
+          készíthetsz belőle származékos művet.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          9. Suspension, termination, and account closure
+          9. Felfüggesztés, megszüntetés és a fiók lezárása
         </h2>
         <p>
-          You may stop using the service at any time. SignuDoc may suspend or
-          terminate access if we reasonably believe that you violated these
-          Terms, used the service outside its permitted scope, or created
-          security, fraud, or legal risk.
+          A szolgáltatás használatát bármikor abbahagyhatod. A SignuDoc
+          felfüggesztheti vagy megszüntetheti a hozzáférésedet, ha észszerűen
+          úgy ítéli meg, hogy megsértetted ezeket a feltételeket, a
+          szolgáltatást a megengedett körön kívül használtad, vagy biztonsági,
+          csalási vagy jogi kockázatot okoztál.
         </p>
         <p>
-          Account-closure requests may be submitted through the settings page or
-          by contacting{" "}
+          A fiók lezárását a beállítások oldalon kérheted, vagy írhatsz ide:{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href={`mailto:${supportAddress}`}
           >
             {supportAddress}
           </Link>
-          . Before closing your account, download any documents you want to
-          keep. After closure, SignuDoc may provide a limited export window and
-          then delete stored document files and related envelope records, except
-          limited information kept for security, fraud prevention, legal
-          compliance, or dispute resolution.
+          . A fiók lezárása előtt töltsd le azokat a dokumentumokat, amelyeket
+          meg szeretnél tartani. A lezárás után a SignuDoc korlátozott ideig
+          lehetőséget adhat az adatok exportálására, majd törölheti a tárolt
+          dokumentumfájlokat és a kapcsolódó küldeményadatokat, kivéve azokat a
+          korlátozott adatokat, amelyeket biztonsági, csalásmegelőzési, jogi
+          megfelelési vagy vitarendezési célból megőriz.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          10. Disclaimers
+          10. Felelősségkizárás
         </h2>
         <p>
-          SignuDoc is provided on an &quot;as is&quot; and &quot;as
-          available&quot; basis to the maximum extent permitted by law. SignuDoc
-          disclaims all warranties, whether express, implied, statutory, or
-          otherwise, including implied warranties of merchantability, fitness
-          for a particular purpose, title, noninfringement, accuracy,
-          uninterrupted availability, and legal sufficiency for any specific
-          transaction.
+          A SignuDocot a jogszabályok által megengedett legteljesebb mértékben
+          „ahogy van” és „ahogy elérhető” alapon biztosítjuk. A SignuDoc kizár
+          minden kifejezett, hallgatólagos, törvényi vagy egyéb szavatosságot,
+          ideértve a forgalomképességre, az adott célra való alkalmasságra, a
+          jogcímre, a jogsértés hiányára, a pontosságra, a megszakítás nélküli
+          elérhetőségre és az adott ügylethez szükséges jogi megfelelőségre
+          vonatkozó hallgatólagos szavatosságot is.
         </p>
         <p>
-          SignuDoc does not warrant that a particular workflow will be valid in
-          court, accepted by a regulator, or appropriate for a regulated or
-          excluded document type. You should obtain legal advice for questions
-          about document enforceability, retention, consumer disclosures,
-          notarization, or jurisdiction-specific requirements.
+          A SignuDoc nem szavatolja, hogy egy adott folyamat a bíróság előtt
+          érvényes lesz, a hatóság elfogadja, vagy alkalmas egy szabályozott
+          vagy kizárt dokumentumtípushoz. A dokumentumok érvényesíthetőségével,
+          megőrzésével, a fogyasztói tájékoztatásokkal, a közjegyzői
+          hitelesítéssel vagy az egyes joghatóságok előírásaival kapcsolatos
+          kérdésekben kérj jogi tanácsot.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          11. Limitation of liability
+          11. A felelősség korlátozása
         </h2>
         <p>
-          To the maximum extent permitted by law, SignuDoc and its affiliates,
-          service providers, licensors, and personnel will not be liable for any
-          indirect, incidental, special, consequential, exemplary, or punitive
-          damages, or for any loss of profits, revenue, goodwill, data, or use,
-          arising out of or relating to the service or these Terms.
+          A jogszabályok által megengedett legteljesebb mértékben a SignuDoc,
+          valamint kapcsolt vállalkozásai, szolgáltatói, licencadói és
+          munkatársai nem felelnek semmilyen közvetett, járulékos, különleges,
+          következményi, példaértékű vagy büntető jellegű kárért, illetve az
+          elmaradt haszonért, bevételért, jó hírnévért, adatokért vagy
+          használatért, amely a szolgáltatásból vagy ezekből a feltételekből
+          ered, vagy azokkal összefügg.
         </p>
         <p>
-          To the maximum extent permitted by law, the aggregate liability of
-          SignuDoc for all claims arising out of or relating to the service or
-          these Terms will not exceed the greater of the amount you paid
-          SignuDoc for the service during the 12 months before the event giving
-          rise to the claim or one hundred U.S. dollars (US$100).
+          A jogszabályok által megengedett legteljesebb mértékben a SignuDoc
+          összesített felelőssége a szolgáltatásból vagy ezekből a feltételekből
+          eredő vagy azokkal összefüggő valamennyi igényre nem haladhatja meg a
+          következők közül a nagyobbat: az az összeg, amelyet az igényt
+          megalapozó eseményt megelőző 12 hónapban a szolgáltatásért a
+          SignuDocnak fizettél, vagy száz amerikai dollár (100 USD).
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          12. Indemnification
+          12. Kártalanítás
         </h2>
         <p>
-          You will defend, indemnify, and hold harmless SignuDoc and its
-          affiliates, service providers, licensors, and personnel from and
-          against claims, losses, damages, liabilities, costs, and expenses
-          (including reasonable attorneys&apos; fees) arising out of or relating
-          to your documents, your use of the service, your breach of these
-          Terms, or your violation of law or the rights of another person.
+          Megvéded és kártalanítod a SignuDocot, valamint kapcsolt
+          vállalkozásait, szolgáltatóit, licencadóit és munkatársait, és
+          mentesíted őket minden olyan igény, veszteség, kár, felelősség,
+          költség és kiadás (ideértve az észszerű ügyvédi díjakat is) alól,
+          amely a dokumentumaidból, a szolgáltatás általad történő
+          használatából, ezeknek a feltételeknek a megszegéséből, illetve
+          jogszabály vagy más személy jogainak megsértéséből ered, vagy azokkal
+          összefügg.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          13. Governing law and changes
+          13. Irányadó jog és változások
         </h2>
         <p>
-          Except where applicable law requires otherwise, these Terms are
-          governed by applicable U.S. federal law and the law of the state in
-          which the SignuDoc operator is organized, without regard to
-          conflict-of-law rules. You and SignuDoc agree to the exclusive venue
-          of the state or federal courts serving that location for disputes that
-          may be brought in court.
+          Hacsak az alkalmazandó jog másként nem rendelkezik, ezekre a
+          feltételekre az Egyesült Államok szövetségi joga és annak az államnak
+          a joga az irányadó, amelyben a SignuDoc üzemeltetőjét bejegyezték, a
+          kollíziós szabályok figyelembevétele nélkül. Te és a SignuDoc
+          elfogadjátok, hogy a bíróság elé vihető vitákban kizárólag az adott
+          helyen illetékes állami vagy szövetségi bíróságok járnak el.
         </p>
         <p>
-          SignuDoc may update these Terms from time to time by posting a revised
-          version on this page. The updated Terms will apply when posted unless
-          a later effective date is stated.
+          A SignuDoc ezeket a feltételeket időről időre frissítheti úgy, hogy a
+          módosított változatot közzéteszi ezen az oldalon. A frissített
+          feltételek a közzétételükkor lépnek hatályba, hacsak nem jelölünk meg
+          későbbi hatálybalépési időpontot.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          14. Contact
+          14. Kapcsolat
         </h2>
         <p>
-          Questions about these Terms may be sent to{" "}
+          A feltételekkel kapcsolatos kérdéseidet ide küldheted:{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href={`mailto:${supportAddress}`}
           >
             {supportAddress}
-          </Link>{" "}
-          or through the{" "}
+          </Link>
+          , vagy használhatod a{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href="/contact"
           >
-            Contact
+            Kapcsolat
           </Link>{" "}
-          page.
+          oldalt.
         </p>
       </section>
     </PublicDocumentShell>

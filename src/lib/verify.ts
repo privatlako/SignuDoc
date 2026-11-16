@@ -12,7 +12,7 @@ export const verifyRequestSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .regex(/^[a-f0-9]{64}$/, "Expected a SHA-256 value."),
+    .regex(/^[a-f0-9]{64}$/, "SHA-256 értéket vártunk."),
 });
 
 export type VerifyResult =

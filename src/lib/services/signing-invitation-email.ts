@@ -1,5 +1,4 @@
 import { type Branding } from "../branding.ts";
-import { formatDeadline } from "../envelope-deadline.ts";
 import { escapeHtml } from "../utils/html.ts";
 import { withUserEmailLegalFooter } from "./email-legal-footer.ts";
 import { type TransactionalEmailMessage } from "./email.ts";
@@ -15,40 +14,72 @@ type SigningInvitationEmailInput = {
   signingUrl: string;
 };
 
-/** "This request expires on …", or nothing for an envelope with no deadline. */
+const emailDeadlineFormatter = new Intl.DateTimeFormat("hu-HU", {
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  month: "long",
+  timeZone: "UTC",
+  year: "numeric",
+});
+
+/** A deadline as emails write it: "2027. január 15. 08:00 (UTC)". */
+export function formatEmailDeadline(unixTimestamp: number): string {
+  return `${emailDeadlineFormatter
+    .format(new Date(unixTimestamp * 1000))
+    .replace(/[  ]/g, " ")} (UTC)`;
+}
+
+/** "Az aláírási kérés lejár: …", or nothing for an envelope with no deadline. */
 export function buildDeadlineLine(
   expiresAt: number | null | undefined,
 ): string | null {
   return typeof expiresAt === "number"
-    ? `This request expires on ${formatDeadline(expiresAt)}.`
+    ? `Az aláírási kérés lejár: ${formatEmailDeadline(expiresAt)}.`
     : null;
+}
+
+/** The greeting every email to a person opens with. */
+export function buildGreeting(name: string | null | undefined): string {
+  const trimmed = name?.trim();
+
+  return trimmed ? `Szia ${trimmed}!` : "Szia!";
+}
+
+/** „Title”, with Hungarian quotation marks. */
+export function quoteTitle(title: string): string {
+  return `„${title}”`;
 }
 
 export function buildSigningInvitationEmail(
   input: SigningInvitationEmailInput,
 ): TransactionalEmailMessage {
-  const { productName } = input.branding;
-  const subject = `${input.senderName} requested your signature on "${input.envelopeTitle}"`;
+  const title = quoteTitle(input.envelopeTitle);
+  const subject = `${input.senderName} aláírást kér tőled: ${title}`;
   const deadlineLine = buildDeadlineLine(input.expiresAt);
+  const introLine = `${input.senderName} aláírásra küldte neked ezt a dokumentumot: ${title}.`;
+  const noAccountLine = "Az aláíráshoz nem kell fiókot létrehoznod.";
+  const newestLinkLine =
+    "Ha közben újabb meghívót vagy emlékeztetőt kapsz, mindig a legfrissebb linket használd.";
   const textBody = [
-    `Hi ${input.signerName},`,
+    buildGreeting(input.signerName),
     "",
-    `${input.senderName} sent you "${input.envelopeTitle}" through ${productName}.`,
+    introLine,
     "",
-    "Review and sign the document here:",
+    "Itt tudod megnézni és aláírni:",
     input.signingUrl,
     ...(deadlineLine ? ["", deadlineLine] : []),
     "",
-    `You do not need a ${productName} account to sign.`,
-    "If you receive a newer invitation or reminder link, use the newest one.",
+    noAccountLine,
+    newestLinkLine,
   ].join("\n");
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.signerName)},</p>`,
-    `<p>${escapeHtml(input.senderName)} sent you &ldquo;${escapeHtml(input.envelopeTitle)}&rdquo; through ${escapeHtml(productName)}.</p>`,
-    `<p><a href="${escapeHtml(input.signingUrl)}">Review and sign the document</a></p>`,
+    `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
+    `<p>${escapeHtml(introLine)}</p>`,
+    `<p><a href="${escapeHtml(input.signingUrl)}">Megnézem és aláírom</a></p>`,
     deadlineLine ? `<p>${escapeHtml(deadlineLine)}</p>` : "",
-    `<p>You do not need a ${escapeHtml(productName)} account to sign.</p>`,
-    "<p>If you receive a newer invitation or reminder link, use the newest one.</p>",
+    `<p>${noAccountLine}</p>`,
+    `<p>${newestLinkLine}</p>`,
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {

@@ -8,14 +8,16 @@ export const MIN_FIELD_OPTIONS = 2;
 export const MAX_RADIO_GROUP_BUTTONS = 20;
 export const MAX_NUMBER_ENTRY_LENGTH = 40;
 
-export const NUMBER_ENTRY_MESSAGE = "Enter a number, such as 1250 or 12.5.";
+export const NUMBER_ENTRY_MESSAGE =
+  "Írj be egy számot, például 1250, 1 250 vagy 12,5.";
 
-// Plain digits with an optional sign and decimal part, or the same with a
-// comma between every three digits. A comma used as a decimal mark ("12,5")
-// is refused rather than guessed at: read one way it is twelve and a half,
-// read the other it is one hundred and twenty-five.
-const PLAIN_NUMBER = /^[+-]?\d{1,18}(\.\d{1,10})?$/;
-const GROUPED_NUMBER = /^[+-]?\d{1,3}(,\d{3}){1,5}(\.\d{1,10})?$/;
+// Hungarian conventions: a decimal comma ("12,5"), and digits optionally
+// grouped by threes with a space ("1 250 000,75"). A decimal point ("12.5")
+// is accepted too. Grouping with commas or points is refused rather than
+// guessed at: "1,250" reads as one and a quarter in Hungarian and as one
+// thousand two hundred and fifty in English.
+const PLAIN_NUMBER = /^[+-]?\d{1,18}([.,]\d{1,10})?$/;
+const GROUPED_NUMBER = /^[+-]?\d{1,3}([ \u00a0\u202f]\d{3}){1,5}(,\d{1,10})?$/;
 
 /** True for what a signer may leave in a number field. */
 export function isNumberEntry(value: string): boolean {
@@ -139,8 +141,8 @@ export function describeChoiceFieldProblem(
   signerName: string,
 ): string {
   return problem.kind === "dropdown_options"
-    ? `A dropdown for ${signerName} needs at least two choices. Select it and add them.`
-    : `A radio button for ${signerName} is on its own. Add another button to its group, or remove it.`;
+    ? `${signerName} egyik legördülő listájában legalább két lehetőség kell. Jelöld ki, és adj hozzá lehetőségeket.`
+    : `${signerName} egyik választógombja egyedül áll. Adj hozzá még egy gombot a csoportjához, vagy töröld.`;
 }
 
 /**
@@ -173,7 +175,7 @@ export function countAnswerableFields<
 }
 
 export const DROPDOWN_ENTRY_MESSAGE =
-  "Choose one of the listed options in each dropdown.";
+  "Minden legördülő listában a felsorolt lehetőségek közül válassz.";
 
 /**
  * What is wrong with what a signer entered in a number or dropdown field,

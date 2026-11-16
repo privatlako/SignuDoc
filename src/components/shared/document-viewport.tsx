@@ -163,7 +163,7 @@ export function DocumentZoomControls({
   return (
     <div className="inline-flex min-h-11 items-center gap-0.5 rounded-xl bg-(--surface) p-1">
       <button
-        aria-label="Zoom out"
+        aria-label="Kicsinyítés"
         className="inline-flex size-9 items-center justify-center rounded-[0.5625rem] text-lg leading-none text-(--fg) transition hover:bg-white disabled:text-(--placeholder) disabled:hover:bg-transparent"
         disabled={zoomLevel <= MIN_DOCUMENT_ZOOM_LEVEL}
         onClick={onDecrease}
@@ -175,7 +175,7 @@ export function DocumentZoomControls({
         {zoomPercentage}%
       </div>
       <button
-        aria-label="Zoom in"
+        aria-label="Nagyítás"
         className="inline-flex size-9 items-center justify-center rounded-[0.5625rem] text-lg leading-none text-(--fg) transition hover:bg-white disabled:text-(--placeholder) disabled:hover:bg-transparent"
         disabled={zoomLevel >= MAX_DOCUMENT_ZOOM_LEVEL}
         onClick={onIncrease}
@@ -188,7 +188,7 @@ export function DocumentZoomControls({
         onClick={onReset}
         type="button"
       >
-        Fit
+        Igazítás
       </button>
     </div>
   );

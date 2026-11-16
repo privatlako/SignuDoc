@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   // The public contact form belongs to the hosted service. Other installs
   // have no such page, so there is nothing for this route to accept.
   if (!isHostedMode()) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
+    return NextResponse.json({ error: "Nem található." }, { status: 404 });
   }
 
   const ipAddress = getClientIpAddress(request.headers);
@@ -98,7 +98,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: "Unable to send your message right now.",
+        error:
+          "Most nem sikerült elküldeni az üzenetedet. Próbáld újra kicsit később.",
       },
       { status: 500 },
     );

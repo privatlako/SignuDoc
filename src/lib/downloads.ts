@@ -530,13 +530,13 @@ async function buildSignedPdfDownload(
 ): Promise<EnvelopeDownloadResult> {
   if (envelope.status !== "completed") {
     throw new DownloadAccessError(
-      "Signed PDF downloads are available only for completed envelopes.",
+      "Az aláírt PDF csak akkor tölthető le, ha mindenki aláírta a dokumentumot.",
       409,
     );
   }
 
   if (typeof envelope.completedAt !== "number") {
-    throw new DownloadAccessError("Signed PDF is unavailable.", 404);
+    throw new DownloadAccessError("Az aláírt PDF nem érhető el.", 404);
   }
 
   if (envelope.signedPdfKey) {
@@ -558,7 +558,7 @@ async function buildSignedPdfDownload(
   // A file whose fingerprint was recorded cannot be made again: a rebuilt
   // copy would not match it, and handing one out would undo the point.
   if (envelope.signedPdfSha256) {
-    throw new DownloadAccessError("This file is no longer available.", 404);
+    throw new DownloadAccessError("Ez a fájl már nem érhető el.", 404);
   }
 
   const [auditEvents, fields, signers] = await Promise.all([
@@ -587,7 +587,7 @@ async function buildSignedPdfDownload(
     // for example after the retention period removed both.
     // The same words as when any other stored file turns out to be gone.
     if (error instanceof StorageObjectNotFoundError) {
-      throw new DownloadAccessError("This file is no longer available.", 404);
+      throw new DownloadAccessError("Ez a fájl már nem érhető el.", 404);
     }
 
     throw error;
@@ -636,7 +636,7 @@ async function buildCertificateDownload(
     envelope.status !== "voided"
   ) {
     throw new DownloadAccessError(
-      "Certificate downloads are available only after completion, decline, or void.",
+      "Az igazolás csak akkor tölthető le, ha a dokumentumot aláírták, elutasították vagy visszavonták.",
       409,
     );
   }
@@ -666,7 +666,7 @@ async function buildCertificateDownload(
       ? envelope.recipientEvidenceSha256
       : envelope.evidenceSha256
   ) {
-    throw new DownloadAccessError("This file is no longer available.", 404);
+    throw new DownloadAccessError("Ez a fájl már nem érhető el.", 404);
   }
 
   const [auditEvents, signers, copyRecipients] = await Promise.all([
@@ -735,7 +735,7 @@ export async function getSenderEnvelopeDownload(
   const storageService = createStorageService();
 
   if (!envelope) {
-    throw new DownloadAccessError("Envelope not found.", 404);
+    throw new DownloadAccessError("A dokumentum nem található.", 404);
   }
 
   if (parsedFileType === "signed") {
@@ -762,7 +762,7 @@ export async function getPublicEnvelopeDownloadForToken(
 
   if (!tokenRow) {
     throw new DownloadAccessError(
-      "This download link is invalid or has expired.",
+      "Ez a letöltési link érvénytelen vagy lejárt.",
       410,
     );
   }
@@ -775,7 +775,7 @@ export async function getPublicEnvelopeDownloadForToken(
 
   if (!envelope) {
     throw new DownloadAccessError(
-      "This download link is invalid or has expired.",
+      "Ez a letöltési link érvénytelen vagy lejárt.",
       410,
     );
   }
@@ -788,7 +788,7 @@ export async function getPublicEnvelopeDownloadForToken(
     ))
   ) {
     throw new DownloadAccessError(
-      "This download link is invalid or has expired.",
+      "Ez a letöltési link érvénytelen vagy lejárt.",
       410,
     );
   }
@@ -869,7 +869,7 @@ async function replaceRecipientDownloadLinks(
   // a second pair would leave that email with dead links.
   if (!previousTokens.some((row) => row.tokenHash === presentedTokenHash)) {
     throw new DownloadAccessError(
-      "This download link is invalid or has expired.",
+      "Ez a letöltési link érvénytelen vagy lejárt.",
       410,
     );
   }
@@ -942,7 +942,7 @@ export async function renewRecipientDownloadLinks(
       envelope.status !== "voided")
   ) {
     throw new DownloadAccessError(
-      "This download link is invalid or has expired.",
+      "Ez a letöltési link érvénytelen vagy lejárt.",
       410,
     );
   }

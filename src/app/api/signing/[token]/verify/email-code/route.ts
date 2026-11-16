@@ -27,7 +27,7 @@ export async function POST(request: Request, context: EmailCodeRouteContext) {
     category: "signing_email_code",
     key: buildRateLimitKey(["signing-email-code", token]),
     limit: 5,
-    message: "Several codes were sent already. Check your email.",
+    message: "Már több kódot is küldtünk. Nézd meg az e-mailjeidet.",
     request,
     windowMs: 60 * 60 * 1000,
   });
@@ -64,7 +64,7 @@ export async function POST(request: Request, context: EmailCodeRouteContext) {
     });
 
     return NextResponse.json(
-      { error: "The code could not be sent right now." },
+      { error: "Most nem sikerült elküldeni a kódot." },
       { headers: NO_STORE, status: 500 },
     );
   }

@@ -25,7 +25,7 @@ export async function POST(request: Request, context: RenewRouteContext) {
     // Per link, not per address: each request sends an email.
     key: buildRateLimitKey(["download-renew", token]),
     limit: 3,
-    message: "A new link was sent recently. Check your email.",
+    message: "Nemrég már küldtünk új linket. Nézd meg a postafiókodat.",
     request,
     windowMs: 60 * 60 * 1000,
   });
@@ -54,7 +54,7 @@ export async function POST(request: Request, context: RenewRouteContext) {
     });
 
     return NextResponse.json(
-      { error: "New links could not be sent right now." },
+      { error: "Most nem sikerült új linkeket küldeni." },
       { headers: NO_STORE, status: 500 },
     );
   }

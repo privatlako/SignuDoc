@@ -6,8 +6,8 @@ import { requireHostedMode } from "@/lib/hosted-pages";
 
 export const metadata: Metadata = {
   description:
-    "Get in touch with SignuDoc for support, privacy questions, accessibility requests, or legal inquiries.",
-  title: "Contact | SignuDoc",
+    "Írj a SignuDocnak, ha támogatásra van szükséged, adatvédelmi kérdésed, akadálymentességi kérésed vagy jogi megkeresésed van.",
+  title: "Kapcsolat | SignuDoc",
 };
 
 export default async function ContactPage() {
@@ -15,9 +15,9 @@ export default async function ContactPage() {
 
   return (
     <PublicDocumentShell
-      description="Use the form below for product support, privacy requests, accessibility accommodations, legal notices, or questions about a document sent through SignuDoc."
-      lastUpdated="March 23, 2026"
-      title="Contact"
+      description="Az alábbi űrlapon írhatsz nekünk terméktámogatás, adatvédelmi kérés, akadálymentességi igény, jogi értesítés vagy egy SignuDockal küldött dokumentum ügyében."
+      lastUpdated="2026. március 23."
+      title="Kapcsolat"
     >
       <div className="mx-auto w-full max-w-[52rem]">
         <ContactForm />

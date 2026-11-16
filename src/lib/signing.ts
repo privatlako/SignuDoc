@@ -69,7 +69,11 @@ import {
   storeEnvelopeCertificatePdf,
   storeRecipientEnvelopeCertificatePdf,
 } from "./services/pdf-finalize.ts";
-import { buildSigningInvitationEmail } from "./services/signing-invitation-email.ts";
+import {
+  buildGreeting,
+  buildSigningInvitationEmail,
+  quoteTitle,
+} from "./services/signing-invitation-email.ts";
 import {
   issueSigningLink,
   type IssuedSigningLink,
@@ -295,14 +299,14 @@ function getSigningUnavailableMessage(
 ): string {
   switch (state) {
     case "already-signed":
-      return "You've already signed.";
+      return "Ezt már aláírtad.";
     case "declined":
-      return "This envelope has been declined.";
+      return "Ezt a dokumentumot elutasították.";
     case "voided":
-      return "This envelope has been voided.";
+      return "Ezt a dokumentumot visszavonták.";
     case "expired":
     default:
-      return "This link has expired.";
+      return "Ez a link lejárt.";
   }
 }
 
@@ -354,21 +358,25 @@ function buildCompletionSenderEmail(input: {
   senderName: string;
 }) {
   const completedUrl = getEnvelopeUrl(input.envelopeId);
-  const subject = `"${input.envelopeTitle}" is fully signed`;
+  const title = quoteTitle(input.envelopeTitle);
+  const subject = `Mindenki aláírta: ${title}`;
+  const introLine = `Mindenki aláírta ezt a dokumentumot: ${title}.`;
+  const readyLine =
+    "Az aláírt PDF és a hitelesítési igazolás már elérhető a fiókodban.";
   const textBody = [
-    `Hi ${input.senderName},`,
+    buildGreeting(input.senderName),
     "",
-    `"${input.envelopeTitle}" has been fully signed in ${input.branding.productName}.`,
-    "The final signed PDF and certificate are ready in your dashboard.",
+    introLine,
+    readyLine,
     "",
-    "Review the completed envelope:",
+    "Itt tudod megnézni:",
     completedUrl,
   ].join("\n");
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.senderName)},</p>`,
-    `<p>&ldquo;${escapeHtml(input.envelopeTitle)}&rdquo; has been fully signed in ${escapeHtml(input.branding.productName)}.</p>`,
-    "<p>The final signed PDF and certificate are ready in your dashboard.</p>",
-    `<p><a href="${escapeHtml(completedUrl)}">Review the completed envelope</a></p>`,
+    `<p>${escapeHtml(buildGreeting(input.senderName))}</p>`,
+    `<p>${escapeHtml(introLine)}</p>`,
+    `<p>${readyLine}</p>`,
+    `<p><a href="${escapeHtml(completedUrl)}">Megnézem a lezárt dokumentumot</a></p>`,
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -398,26 +406,24 @@ function buildDeclineNotificationEmail(input: {
   signerName: string;
 }) {
   const envelopeUrl = getEnvelopeUrl(input.envelopeId);
-  const subject = `"${input.envelopeTitle}" was declined by ${input.signerName}`;
-  const reasonLine = input.declineReason?.trim()
-    ? `Reason provided: ${input.declineReason.trim()}`
-    : null;
+  const title = quoteTitle(input.envelopeTitle);
+  const subject = `${input.signerName} elutasította: ${title}`;
+  const reason = input.declineReason?.trim() || null;
+  const introLine = `${input.signerName} (${input.signerEmail}) elutasította ezt a dokumentumot: ${title}.`;
   const textBody = [
-    `Hi ${input.senderName},`,
+    buildGreeting(input.senderName),
     "",
-    `${input.signerName} (${input.signerEmail}) declined "${input.envelopeTitle}" in ${input.branding.productName}.`,
-    ...(reasonLine ? ["", reasonLine] : []),
+    introLine,
+    ...(reason ? ["", `Az indoklása: ${reason}`] : []),
     "",
-    "Review the envelope:",
+    "Itt tudod megnézni a dokumentumot:",
     envelopeUrl,
   ].join("\n");
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.senderName)},</p>`,
-    `<p>${escapeHtml(input.signerName)} (${escapeHtml(input.signerEmail)}) declined &ldquo;${escapeHtml(input.envelopeTitle)}&rdquo; in ${escapeHtml(input.branding.productName)}.</p>`,
-    reasonLine
-      ? `<p><strong>Reason provided:</strong> ${escapeHtml(input.declineReason!.trim())}</p>`
-      : "",
-    `<p><a href="${escapeHtml(envelopeUrl)}">Review the envelope</a></p>`,
+    `<p>${escapeHtml(buildGreeting(input.senderName))}</p>`,
+    `<p>${escapeHtml(introLine)}</p>`,
+    reason ? `<p><strong>Az indoklása:</strong> ${escapeHtml(reason)}</p>` : "",
+    `<p><a href="${escapeHtml(envelopeUrl)}">Megnézem a dokumentumot</a></p>`,
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -449,33 +455,33 @@ function buildCompletionSignerEmail(input: {
   signerName: string;
   signedDownloadUrl: string;
 }) {
-  const subject = `"${input.envelopeTitle}" is fully signed`;
+  const title = quoteTitle(input.envelopeTitle);
+  const subject = `Mindenki aláírta: ${title}`;
+  const introLine = `Mindenki aláírta ezt a dokumentumot: ${title}. Küldő: ${input.senderName}.`;
+  const copyLine = input.copyOnly
+    ? `${input.senderName} kérte, hogy kapj róla egy másolatot.`
+    : null;
+  const filesLine = input.attached
+    ? "Csatoltuk az aláírt dokumentumot és a hitelesítési igazolást. Őrizd meg őket: ez a te példányod a megállapodásból."
+    : "Az aláírt dokumentum és a hitelesítési igazolás elkészült.";
   const textBody = [
-    `Hi ${input.signerName},`,
+    buildGreeting(input.signerName),
     "",
-    `"${input.envelopeTitle}" from ${input.senderName} has been fully signed in ${input.branding.productName}.`,
-    ...(input.copyOnly
-      ? [`${input.senderName} asked for you to receive a copy.`]
-      : []),
-    input.attached
-      ? "The completed document and its certificate are attached. Keep them: they are your copy of the agreement."
-      : "The completed document and its certificate are ready.",
+    introLine,
+    ...(copyLine ? [copyLine] : []),
+    filesLine,
     "",
-    `Download links (available for ${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} days; an expired link offers to send a new one):`,
-    `Signed PDF: ${input.signedDownloadUrl}`,
-    `Redacted certificate: ${input.evidenceDownloadUrl}`,
+    `Letöltési linkek (${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} napig érvényesek; ha egy link lejárt, ott kérhetsz újat):`,
+    `Aláírt PDF: ${input.signedDownloadUrl}`,
+    `Hitelesítési igazolás (kitakart adatokkal): ${input.evidenceDownloadUrl}`,
   ].join("\n");
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.signerName)},</p>`,
-    `<p>&ldquo;${escapeHtml(input.envelopeTitle)}&rdquo; from ${escapeHtml(input.senderName)} has been fully signed in ${escapeHtml(input.branding.productName)}.</p>`,
-    input.copyOnly
-      ? `<p>${escapeHtml(input.senderName)} asked for you to receive a copy.</p>`
-      : "",
-    input.attached
-      ? "<p>The completed document and its certificate are attached. Keep them: they are your copy of the agreement.</p>"
-      : "<p>The completed document and its certificate are ready.</p>",
-    `<p>Download links are available for ${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} days. An expired link offers to send a new one.</p>`,
-    `<p><a href="${escapeHtml(input.signedDownloadUrl)}">Download signed PDF</a><br /><a href="${escapeHtml(input.evidenceDownloadUrl)}">Download redacted certificate</a></p>`,
+    `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
+    `<p>${escapeHtml(introLine)}</p>`,
+    copyLine ? `<p>${escapeHtml(copyLine)}</p>` : "",
+    `<p>${filesLine}</p>`,
+    `<p>A letöltési linkek ${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} napig érvényesek. Ha egy link lejárt, ott kérhetsz újat.</p>`,
+    `<p><a href="${escapeHtml(input.signedDownloadUrl)}">Aláírt PDF letöltése</a><br /><a href="${escapeHtml(input.evidenceDownloadUrl)}">Hitelesítési igazolás letöltése (kitakart adatokkal)</a></p>`,
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -761,7 +767,7 @@ async function lockSentEnvelope(
   if (locked.rowCount !== 1) {
     // Voided, declined or deleted since the page was opened.
     throw new SigningMutationError(
-      "This signing link is no longer active.",
+      "Ez az aláírási link már nem érvényes.",
       409,
     );
   }
@@ -827,9 +833,9 @@ function formatLocalSigningDate(
     submittedAt * 1000 - timezoneOffsetMinutes * 60 * 1000,
   );
 
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "long",
+  return new Intl.DateTimeFormat("hu-HU", {
+    day: "2-digit",
+    month: "2-digit",
     timeZone: "UTC",
     year: "numeric",
   }).format(localDateTime);
@@ -842,7 +848,7 @@ function parsePngDataUrl(dataUrl: string): Uint8Array {
 
   if (!match?.[1]) {
     throw new SigningMutationError(
-      "Drawn signatures must be submitted as PNG images.",
+      "A rajzolt aláírást PNG-képként kell beküldeni.",
       400,
     );
   }
@@ -857,23 +863,17 @@ function parsePngDataUrl(dataUrl: string): Uint8Array {
     Math.floor((base64Body.length * 3) / 4) - paddingLength;
 
   if (decodedByteLength > MAX_DRAWN_SIGNATURE_BYTES) {
-    throw new SigningMutationError(
-      "Drawn signature image data is too large.",
-      400,
-    );
+    throw new SigningMutationError("A rajzolt aláírás képe túl nagy.", 400);
   }
 
   const imageBody = Buffer.from(base64Body, "base64");
 
   if (imageBody.byteLength === 0) {
-    throw new SigningMutationError("Drawn signature image data is empty.", 400);
+    throw new SigningMutationError("A rajzolt aláírás képe üres.", 400);
   }
 
   if (imageBody.byteLength > MAX_DRAWN_SIGNATURE_BYTES) {
-    throw new SigningMutationError(
-      "Drawn signature image data is too large.",
-      400,
-    );
+    throw new SigningMutationError("A rajzolt aláírás képe túl nagy.", 400);
   }
 
   return new Uint8Array(imageBody);
@@ -923,14 +923,14 @@ function assertRadioGroupsAnswered(
 
   if (verdict === "too_many") {
     throw new SigningMutationError(
-      "Choose only one option in each group of radio buttons.",
+      "Minden választócsoportban csak egy lehetőséget jelölj be.",
       400,
     );
   }
 
   if (verdict === "missing") {
     throw new SigningMutationError(
-      "Complete all required fields before finishing.",
+      "Mielőtt befejeznéd, tölts ki minden kötelező mezőt.",
       400,
     );
   }
@@ -1124,7 +1124,7 @@ async function sendCompletionEmails(input: {
     recipients.map(async (signer) => {
       if (!signer.id) {
         throw new SigningMutationError(
-          "Completed signer records must include an id.",
+          "Az aláíró adatai hiányosak, ezért nem sikerült lezárni az aláírást.",
           500,
         );
       }
@@ -1236,7 +1236,7 @@ export class SigningVerificationRequiredError extends Error {
   readonly statusCode = 401;
 
   constructor(details: SigningVerificationState) {
-    super("Confirm your identity to open this document.");
+    super("A dokumentum megnyitásához erősítsd meg, hogy te vagy az.");
     this.name = "SigningVerificationRequiredError";
     this.details = details;
   }
@@ -1289,7 +1289,7 @@ export async function sendSignerEmailCode(
   const now = Math.floor(Date.now() / 1000);
 
   if (!state.requireEmailCode) {
-    throw new SigningMutationError("No code is needed for this link.", 400);
+    throw new SigningMutationError("Ehhez a linkhez nem kell kód.", 400);
   }
 
   if (
@@ -1341,20 +1341,22 @@ export async function sendSignerEmailCode(
   }
 
   const minutes = Math.round(EMAIL_CODE_TTL_SECONDS / 60);
+  const codeIntro = `Ezzel az ellenőrző kóddal nyithatod meg ezt a dokumentumot: ${quoteTitle(context.envelope.title)}.`;
+  const codeNote = `A kód ${String(minutes)} percig érvényes. Ha nem te nyitottál meg az imént egy aláírási linket, nyugodtan hagyd figyelmen kívül ezt az e-mailt.`;
   const textBody = [
-    `Hi ${context.signer.name},`,
+    buildGreeting(context.signer.name),
     "",
-    `Your code to open "${context.envelope.title}" in ${branding.productName} is:`,
+    codeIntro,
     "",
     issued.code,
     "",
-    `It works for ${String(minutes)} minutes. If you did not just open a signing link, ignore this email.`,
+    codeNote,
   ].join("\n");
   const htmlBody = [
-    `<p>Hi ${escapeHtml(context.signer.name)},</p>`,
-    `<p>Your code to open &ldquo;${escapeHtml(context.envelope.title)}&rdquo; in ${escapeHtml(branding.productName)} is:</p>`,
+    `<p>${escapeHtml(buildGreeting(context.signer.name))}</p>`,
+    `<p>${escapeHtml(codeIntro)}</p>`,
     `<p style="font-size:24px;font-weight:700;letter-spacing:4px">${issued.code}</p>`,
-    `<p>It works for ${String(minutes)} minutes. If you did not just open a signing link, ignore this email.</p>`,
+    `<p>${codeNote}</p>`,
   ].join("");
   const body = withUserEmailLegalFooter({ htmlBody, textBody }, branding);
   let delivery: Awaited<ReturnType<EmailService["send"]>>;
@@ -1362,7 +1364,7 @@ export async function sendSignerEmailCode(
   try {
     delivery = await emailService.send({
       htmlBody: body.htmlBody,
-      subject: `Your code for "${context.envelope.title}"`,
+      subject: `Ellenőrző kód ehhez: ${quoteTitle(context.envelope.title)}`,
       template: "signing_code",
       textBody: body.textBody,
       to: context.signer.email,
@@ -1411,14 +1413,14 @@ function describeCredentialFailure(result: {
   locked: boolean;
 }): string {
   if (result.identityNotConfirmed) {
-    return "Your account cannot sign this document right now: an administrator has to confirm your identity, and your email address must be confirmed. Ask the sender or an administrator.";
+    return "A fiókoddal most nem tudod aláírni ezt a dokumentumot: egy adminisztrátornak meg kell erősítenie a személyazonosságodat, és az e-mail-címednek is megerősítettnek kell lennie. Kérj segítséget a küldőtől vagy egy adminisztrátortól.";
   }
 
   if (result.locked) {
-    return `This account is locked for signing after ${MAX_SIGNING_PASSWORD_ATTEMPTS} wrong passwords. Ask an administrator to unlock it.`;
+    return `${MAX_SIGNING_PASSWORD_ATTEMPTS} hibás jelszó után ezzel a fiókkal nem lehet aláírni. Kérd meg egy adminisztrátort, hogy oldja fel.`;
   }
 
-  return `That email address or password is not right. ${result.attemptsLeft} ${result.attemptsLeft === 1 ? "try is" : "tries are"} left before the account is locked for signing.`;
+  return `Az e-mail-cím vagy a jelszó nem megfelelő. Még ${result.attemptsLeft} próbálkozásod maradt, utána ezzel a fiókkal nem lehet aláírni.`;
 }
 
 export async function verifySignerCheck(
@@ -1439,7 +1441,7 @@ export async function verifySignerCheck(
   let passed = false;
 
   if (!requiredSignerChecks(state).includes(parsed.method)) {
-    throw new SigningMutationError("This check is not needed.", 400);
+    throw new SigningMutationError("Erre az ellenőrzésre nincs szükség.", 400);
   }
 
   if (parsed.method === "account") {
@@ -1499,10 +1501,7 @@ export async function verifySignerCheck(
     const current = attempt.rows[0];
 
     if (!current) {
-      throw new SigningMutationError(
-        "That code has expired. Send a new one.",
-        410,
-      );
+      throw new SigningMutationError("Ez a kód lejárt. Kérj újat.", 410);
     }
 
     if (checkEmailCode(parsed.code, current.hash)) {
@@ -1543,7 +1542,7 @@ export async function verifySignerCheck(
   );
 
   if (!passed) {
-    throw new SigningMutationError("That code is not right.", 400);
+    throw new SigningMutationError("Ez a kód nem megfelelő.", 400);
   }
 
   return [...new Set([...verifiedMethods, parsed.method])];
@@ -1569,7 +1568,7 @@ export async function recordSignerConsent(
 
   if (parsed.disclosureVersion !== ELECTRONIC_RECORDS_DISCLOSURE_VERSION) {
     throw new SigningMutationError(
-      "The disclosure has changed. Reload the page to read the current one.",
+      "A tájékoztató közben megváltozott. Töltsd újra az oldalt, és olvasd el az aktuális változatot.",
       409,
     );
   }
@@ -1860,14 +1859,14 @@ async function reauthenticatePart11Signer(
 
   if (!state.accountUserId || !meaning) {
     throw new SigningMutationError(
-      "This document was sent for Part 11 signatures but has no account or meaning for you. Ask the sender to send it again.",
+      "Ezt a dokumentumot Part 11 szerinti aláírásra küldték, de nincs hozzád rendelve fiók vagy aláírási jelentés. Kérd meg a küldőt, hogy küldje el újra.",
       409,
     );
   }
 
   if (!reauthentication) {
     throw new SigningMutationError(
-      "Enter your email address and password to sign.",
+      "Az aláíráshoz add meg az e-mail-címedet és a jelszavadat.",
       400,
     );
   }
@@ -1940,7 +1939,7 @@ async function commitProviderRevision(
 
   if (!current) {
     throw new SigningMutationError(
-      "The document changed while you were signing. Open your signing link again.",
+      "A dokumentum megváltozott, amíg aláírtad. Nyisd meg újra az aláírási linket.",
       409,
     );
   }
@@ -1964,7 +1963,7 @@ async function commitProviderRevision(
   );
 
   if (session.rowCount !== 1) {
-    throw new SigningMutationError("This signing session has ended.", 409);
+    throw new SigningMutationError("Ez az aláírási munkamenet véget ért.", 409);
   }
 
   return current.revisionKey === completion.revision.key
@@ -2004,7 +2003,7 @@ async function assertStillSignersTurn(
 
   if (turn.rowCount !== 1) {
     throw new SigningMutationError(
-      "This signing link is no longer active.",
+      "Ez az aláírási link már nem érvényes.",
       409,
     );
   }
@@ -2025,7 +2024,7 @@ function buildSignerSubmission(
 
   if (!currentSignerId) {
     throw new SigningMutationError(
-      "This signing link is no longer active.",
+      "Ez az aláírási link már nem érvényes.",
       409,
     );
   }
@@ -2039,7 +2038,7 @@ function buildSignerSubmission(
 
   if (currentSignerFields.length === 0) {
     throw new SigningMutationError(
-      "No signable fields are assigned to this signer.",
+      "Nincs hozzád rendelve aláírandó mező.",
       400,
     );
   }
@@ -2058,7 +2057,7 @@ function buildSignerSubmission(
 
     if (relevantSubmissions.has(submission.fieldId)) {
       throw new SigningMutationError(
-        "Each field can only be submitted once.",
+        "Minden mezőt csak egyszer lehet beküldeni.",
         400,
       );
     }
@@ -2196,7 +2195,7 @@ function buildSignerSubmission(
 
   if (missingRequiredField) {
     throw new SigningMutationError(
-      "Complete all required fields before finishing.",
+      "Mielőtt befejeznéd, tölts ki minden kötelező mezőt.",
       400,
     );
   }
@@ -2232,13 +2231,13 @@ export async function submitSigningForToken(
   if ((context.envelope.signatureLevel ?? "simple") === "simple") {
     if (providerSignature) {
       throw new SigningMutationError(
-        "This document is not signed through a signing provider.",
+        "Ezt a dokumentumot nem aláírásszolgáltatón keresztül kell aláírni.",
         409,
       );
     }
   } else if (!providerSignature) {
     throw new SigningMutationError(
-      "This document is signed with a certificate in your own name. Continue from the signing page.",
+      "Ezt a dokumentumot a saját nevedre szóló tanúsítvánnyal kell aláírni. Folytasd az aláírási oldalon.",
       409,
     );
   }
@@ -2251,7 +2250,7 @@ export async function submitSigningForToken(
 
   if (signerChecks.state.consentedAt === null) {
     throw new SigningMutationError(
-      "Agree to use electronic records and signatures before signing.",
+      "Aláírás előtt fogadd el az elektronikus dokumentumok és aláírások használatát.",
       409,
     );
   }
@@ -2293,14 +2292,14 @@ export async function submitSigningForToken(
     if (nextSigner) {
       if (nextSigner.status !== "pending") {
         throw new SigningMutationError(
-          "Envelope routing is out of sync for the next signer.",
+          "Nem sikerült megállapítani, ki a következő aláíró. Próbáld újra.",
           409,
         );
       }
 
       if (!nextSigner.id) {
         throw new SigningMutationError(
-          "Envelope routing is out of sync for the next signer.",
+          "Nem sikerült megállapítani, ki a következő aláíró. Próbáld újra.",
           500,
         );
       }
@@ -2369,7 +2368,7 @@ export async function submitSigningForToken(
         if (!lockedEnvelope) {
           // Voided or declined since the page was opened.
           throw new SigningMutationError(
-            "This signing link is no longer active.",
+            "Ez az aláírási link már nem érvényes.",
             409,
           );
         }
@@ -2415,7 +2414,7 @@ export async function submitSigningForToken(
 
           if (result.rowCount !== 1) {
             throw new SigningMutationError(
-              "Unable to save one or more field values.",
+              "Egy vagy több mező értékét nem sikerült menteni.",
               500,
             );
           }
@@ -2439,7 +2438,7 @@ export async function submitSigningForToken(
 
         if (signedSignerResult.rowCount !== 1) {
           throw new SigningMutationError(
-            "This signing link is no longer active.",
+            "Ez az aláírási link már nem érvényes.",
             409,
           );
         }
@@ -2471,7 +2470,7 @@ export async function submitSigningForToken(
 
         if (nextSignerResult.rowCount !== 1) {
           throw new SigningMutationError(
-            "Unable to activate the next signer for this envelope.",
+            "Nem sikerült továbbküldeni a dokumentumot a következő aláírónak.",
             500,
           );
         }
@@ -2547,7 +2546,7 @@ export async function submitSigningForToken(
 
     if (!sourcePdfHead.exists) {
       throw new SigningMutationError(
-        "The source document for this envelope could not be found.",
+        "A dokumentum eredeti fájlja nem található.",
         500,
       );
     }
@@ -2650,7 +2649,7 @@ export async function submitSigningForToken(
 
           if (result.rowCount !== 1) {
             throw new SigningMutationError(
-              "Unable to save one or more field values.",
+              "Egy vagy több mező értékét nem sikerült menteni.",
               500,
             );
           }
@@ -2674,7 +2673,7 @@ export async function submitSigningForToken(
 
         if (signedSignerResult.rowCount !== 1) {
           throw new SigningMutationError(
-            "This signing link is no longer active.",
+            "Ez az aláírási link már nem érvényes.",
             409,
           );
         }
@@ -2708,7 +2707,7 @@ export async function submitSigningForToken(
 
         if (completedEnvelopeResult.rowCount !== 1) {
           throw new SigningMutationError(
-            "Unable to finalize this completed envelope.",
+            "Nem sikerült lezárni a dokumentumot.",
             500,
           );
         }
@@ -2829,7 +2828,7 @@ export async function prepareSignerSubmission(
 
   if ((context.envelope.signatureLevel ?? "simple") === "simple") {
     throw new SigningMutationError(
-      "This document is not signed through a signing provider.",
+      "Ezt a dokumentumot nem aláírásszolgáltatón keresztül kell aláírni.",
       409,
     );
   }
@@ -2842,7 +2841,7 @@ export async function prepareSignerSubmission(
 
   if (signerChecks.state.consentedAt === null) {
     throw new SigningMutationError(
-      "Agree to use electronic records and signatures before signing.",
+      "Aláírás előtt fogadd el az elektronikus dokumentumok és aláírások használatát.",
       409,
     );
   }
@@ -2886,7 +2885,7 @@ export async function declineSigningForToken(
 
   if (!currentSignerId) {
     throw new SigningMutationError(
-      "This signing link is no longer active.",
+      "Ez az aláírási link már nem érvényes.",
       409,
     );
   }
@@ -2899,7 +2898,7 @@ export async function declineSigningForToken(
 
   if (!sourcePdfHead.exists) {
     throw new SigningMutationError(
-      "The source document for this envelope could not be found.",
+      "A dokumentum eredeti fájlja nem található.",
       500,
     );
   }
@@ -3014,7 +3013,7 @@ export async function declineSigningForToken(
 
       if (declinedSignerResult.rowCount !== 1) {
         throw new SigningMutationError(
-          "This signing link is no longer active.",
+          "Ez az aláírási link már nem érvényes.",
           409,
         );
       }
@@ -3044,7 +3043,7 @@ export async function declineSigningForToken(
 
       if (declinedEnvelopeResult.rowCount !== 1) {
         throw new SigningMutationError(
-          "This signing link is no longer active.",
+          "Ez az aláírási link már nem érvényes.",
           409,
         );
       }

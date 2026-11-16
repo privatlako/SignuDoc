@@ -80,7 +80,7 @@ function PublicDocumentPage({
             <div className="px-6 pb-2 pt-9 sm:px-12 sm:pt-12">
               {lastUpdated ? (
                 <p className="section-eyebrow mb-3">
-                  Last updated {lastUpdated}
+                  Utolsó frissítés: {lastUpdated}
                 </p>
               ) : null}
               <h1 className="max-w-[20ch] text-[clamp(2rem,4.5vw,3rem)] font-extrabold leading-[1.06] tracking-[-0.035em] text-(--fg)">

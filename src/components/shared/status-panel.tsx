@@ -35,10 +35,10 @@ export function StatusPanel({
       <span className={`pill ${badgeStyles[tone]}`}>
         {eyebrow ??
           (tone === "error"
-            ? "Error"
+            ? "Hiba"
             : tone === "loading"
-              ? "Loading"
-              : "Ready")}
+              ? "Betöltés"
+              : "Kész")}
       </span>
       <div className="space-y-2">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">

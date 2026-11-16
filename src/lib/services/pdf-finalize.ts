@@ -314,36 +314,72 @@ function stripCompletedAuditEvents(
 function getEnvelopeStatusLabel(status: EnvelopeRecord["status"]): string {
   switch (status) {
     case "completed":
-      return "Completed";
+      return "Lezárva";
     case "declined":
-      return "Declined";
+      return "Elutasítva";
     case "voided":
-      return "Voided";
+      return "Visszavonva";
     case "sent":
-      return "Sent";
+      return "Elküldve";
     case "draft":
-      return "Draft";
+      return "Piszkozat";
     default:
       return status;
   }
 }
 
+/** Hungarian wording for each audit event type, printed in the certificate. */
+const AUDIT_EVENT_LABELS: Record<AuditEventRecord["event"], string> = {
+  completed: "lezárva",
+  consented: "hozzájárulás az elektronikus ügyintézéshez",
+  created: "létrehozva",
+  deadline_changed: "határidő módosítva",
+  declined: "elutasítva",
+  email_sent: "e-mail elküldve",
+  expired: "lejárt",
+  reauthentication_failed: "sikertelen újbóli azonosítás",
+  reminded_auto: "automatikus emlékeztető",
+  reminded_manual: "kézi emlékeztető",
+  sent: "elküldve aláírásra",
+  signed: "aláírva",
+  verification_failed: "sikertelen ellenőrzés",
+  verified: "sikeres ellenőrzés",
+  viewed: "megtekintve",
+  voided: "visszavonva",
+};
+
+const AUDIT_ACTOR_LABELS: Record<string, string> = {
+  sender: "küldő",
+  signer: "aláíró",
+  system: "rendszer",
+};
+
+const SIGNATURE_METHOD_LABELS: Record<string, string> = {
+  drawn: "rajzolt",
+  typed: "gépelt",
+};
+
+// Hungarian letters outside Latin-1 (Ő ő Ű ű) and the low opening quote.
+// The font subset's certificate baseline covers Latin-1 only, so these are
+// added to the text the fonts are cut for whenever the wording is drawn.
+const CERTIFICATE_WORDING_EXTRA_CHARACTERS = "ŐőŰű„”";
+
 function getCertificateTitle(envelope: EnvelopeRecord): string {
   return envelope.status === "completed"
-    ? "SignuDoc Certificate of Completion"
-    : "SignuDoc Audit Certificate";
+    ? "SignuDoc lezárási igazolás"
+    : "SignuDoc hitelesítési igazolás";
 }
 
 function getTerminalTimestampLabel(envelope: EnvelopeRecord): string {
   switch (envelope.status) {
     case "completed":
-      return "Completed at";
+      return "Lezárás időpontja";
     case "declined":
-      return "Declined at";
+      return "Elutasítás időpontja";
     case "voided":
-      return "Voided at";
+      return "Visszavonás időpontja";
     default:
-      return "Recorded at";
+      return "Rögzítés időpontja";
   }
 }
 
@@ -665,28 +701,28 @@ function buildAuditLines(input: {
     },
   );
   pushParagraph(
-    `Envelope ID: ${input.envelope.id}`,
+    `Aláírási kérés azonosítója: ${input.envelope.id}`,
     input.fonts.regular,
     bodyFontSize,
   );
   pushParagraph(
-    `Document title: ${input.envelope.title}`,
+    `Dokumentum címe: ${input.envelope.title}`,
     input.fonts.regular,
     bodyFontSize,
   );
   pushParagraph(
-    `Source PDF: ${input.envelope.sourcePdfFilename}`,
+    `Eredeti PDF: ${input.envelope.sourcePdfFilename}`,
     input.fonts.regular,
     bodyFontSize,
   );
   pushParagraph(
-    `Source document hash: ${input.envelope.sourcePdfHash}`,
+    `Eredeti dokumentum hash-értéke: ${input.envelope.sourcePdfHash}`,
     input.fonts.regular,
     bodyFontSize,
   );
   if (input.signedPdfSha256) {
     pushParagraph(
-      `Signed document SHA-256: ${input.signedPdfSha256}`,
+      `Aláírt dokumentum SHA-256: ${input.signedPdfSha256}`,
       input.fonts.regular,
       bodyFontSize,
     );
@@ -694,14 +730,14 @@ function buildAuditLines(input: {
 
   if (input.auditFingerprint) {
     pushParagraph(
-      `Audit trail fingerprint (SHA-256): ${input.auditFingerprint}`,
+      `Eseménynapló ujjlenyomata (SHA-256): ${input.auditFingerprint}`,
       input.fonts.regular,
       bodyFontSize,
     );
   }
 
   pushParagraph(
-    `Status: ${getEnvelopeStatusLabel(input.envelope.status)}`,
+    `Állapot: ${getEnvelopeStatusLabel(input.envelope.status)}`,
     input.fonts.regular,
     bodyFontSize,
   );
@@ -714,7 +750,7 @@ function buildAuditLines(input: {
     },
   );
 
-  pushParagraph("Signers", input.fonts.bold, sectionFontSize, {
+  pushParagraph("Aláírók", input.fonts.bold, sectionFontSize, {
     gapAfter: 4,
   });
 
@@ -736,12 +772,17 @@ function buildAuditLines(input: {
   }
 
   if (input.copyRecipients && input.copyRecipients.length > 0) {
-    pushParagraph("Copy recipients", input.fonts.bold, sectionFontSize, {
-      gapAfter: 4,
-      gapBefore: 10,
-    });
     pushParagraph(
-      "Sent a copy of the finished document. They did not sign it.",
+      "Másolatot kapott címzettek",
+      input.fonts.bold,
+      sectionFontSize,
+      {
+        gapAfter: 4,
+        gapBefore: 10,
+      },
+    );
+    pushParagraph(
+      "Megkapták a lezárt dokumentum másolatát. Nem írták alá.",
       input.fonts.regular,
       bodyFontSize,
     );
@@ -757,7 +798,7 @@ function buildAuditLines(input: {
     }
   }
 
-  pushParagraph("Audit events", input.fonts.bold, sectionFontSize, {
+  pushParagraph("Eseménynapló", input.fonts.bold, sectionFontSize, {
     gapAfter: 4,
     gapBefore: 10,
   });
@@ -767,7 +808,7 @@ function buildAuditLines(input: {
       event.actorEmail ??
       (typeof event.metadata?.signerEmail === "string"
         ? event.metadata.signerEmail
-        : event.actorType);
+        : (AUDIT_ACTOR_LABELS[event.actorType] ?? event.actorType));
     const signerName =
       typeof event.metadata?.signerName === "string"
         ? event.metadata.signerName
@@ -776,7 +817,7 @@ function buildAuditLines(input: {
       signerName && actor !== signerName ? `${signerName} <${actor}>` : actor;
 
     pushParagraph(
-      `${formatAuditTimestamp(event.createdAt)} | ${event.event} | ${actorLabel}`,
+      `${formatAuditTimestamp(event.createdAt)} | ${AUDIT_EVENT_LABELS[event.event] ?? event.event} | ${actorLabel}`,
       input.fonts.regular,
       bodyFontSize,
     );
@@ -786,12 +827,17 @@ function buildAuditLines(input: {
     }
   }
 
-  pushParagraph("How to check this record", input.fonts.bold, sectionFontSize, {
-    gapAfter: 4,
-    gapBefore: 10,
-  });
   pushParagraph(
-    "The signed document and this certificate are each sealed with a digital signature. A PDF reader shows the seal as valid only if the file has not changed since it was sealed. The SHA-256 values above can also be checked on this site's Verify page.",
+    "Hogyan ellenőrizheted ezt az igazolást",
+    input.fonts.bold,
+    sectionFontSize,
+    {
+      gapAfter: 4,
+      gapBefore: 10,
+    },
+  );
+  pushParagraph(
+    "Az aláírt dokumentumot és ezt az igazolást is digitális aláírással, elektronikus bélyegzővel zártuk le. A PDF-olvasó csak akkor mutatja érvényesnek a bélyegzőt, ha a fájl a lezárás óta nem változott. A fenti SHA-256 értékeket ennek az oldalnak a Dokumentum ellenőrzése oldalán is ellenőrizheted.",
     input.fonts.regular,
     bodyFontSize,
   );
@@ -800,9 +846,9 @@ function buildAuditLines(input: {
 }
 
 const AUTHENTICATION_LABELS: Record<string, string> = {
-  access_code: "access code from the sender",
-  account: "own account, with email address and password to open it",
-  email_code: "one-time code sent by email",
+  access_code: "a küldőtől kapott hozzáférési kód",
+  account: "saját fiók, e-mail-címmel és jelszóval megnyitva",
+  email_code: "e-mailben küldött egyszeri kód",
 };
 
 function readStringArray(value: unknown): string[] {
@@ -828,9 +874,9 @@ function describeProviderSignatureEvidence(
   const signature = value as Record<string, unknown>;
   const level =
     signature.level === "qualified"
-      ? "a qualified electronic signature"
+      ? "minősített elektronikus aláírás"
       : signature.level === "advanced"
-        ? "an advanced electronic signature"
+        ? "fokozott biztonságú elektronikus aláírás"
         : null;
 
   if (!level) {
@@ -839,36 +885,36 @@ function describeProviderSignatureEvidence(
 
   const provider =
     typeof signature.provider === "string"
-      ? ` through ${signature.provider}`
+      ? `, szolgáltató: ${signature.provider}`
       : "";
   const method =
     typeof signature.method === "string" ? ` (${signature.method})` : "";
   const details = [
-    `Signed with ${level}${provider}${method}; the signature is in the signed PDF`,
+    `Aláírás típusa: ${level}${provider}${method}; az aláírás az aláírt PDF-ben található`,
   ];
 
   if (!redacted && typeof signature.certificateSubject === "string") {
     const issuer =
       typeof signature.certificateIssuer === "string"
-        ? `, issued by ${signature.certificateIssuer}`
+        ? `, kibocsátó: ${signature.certificateIssuer}`
         : "";
     const serial =
       typeof signature.certificateSerialNumber === "string"
-        ? `, serial ${signature.certificateSerialNumber}`
+        ? `, sorozatszám: ${signature.certificateSerialNumber}`
         : "";
     const validTo =
       typeof signature.certificateValidTo === "number"
-        ? `, valid to ${formatAuditTimestamp(signature.certificateValidTo)}`
+        ? `, érvényes eddig: ${formatAuditTimestamp(signature.certificateValidTo)}`
         : "";
 
     details.push(
-      `Signing certificate: ${signature.certificateSubject}${issuer}${serial}${validTo}`,
+      `Aláíró tanúsítvány: ${signature.certificateSubject}${issuer}${serial}${validTo}`,
     );
   }
 
   if (signature.timestamped === true) {
     details.push(
-      "The signature carries a timestamp from a time-stamping service",
+      "Az aláírás időbélyeg-szolgáltatótól származó időbélyeget tartalmaz",
     );
   }
 
@@ -888,7 +934,7 @@ function describeSignerEvidence(
   const signed = forSigner.find((event) => event.event === "signed");
   const consented = forSigner.find((event) => event.event === "consented");
   const checks = [
-    "possession of the emailed signing link",
+    "az e-mailben kapott aláírási link birtoklása",
     ...readStringArray(signed?.metadata?.authMethods).map(
       (method) => AUTHENTICATION_LABELS[method] ?? method,
     ),
@@ -900,11 +946,11 @@ function describeSignerEvidence(
       : null;
 
   if (part11) {
-    checks.push("email address and password given again to sign");
+    checks.push("az aláíráshoz újra megadott e-mail-cím és jelszó");
   }
 
   if (signed || signer.status === "declined") {
-    details.push(`Identified by: ${checks.join(", ")}`);
+    details.push(`Azonosítás módja: ${checks.join(", ")}`);
   }
 
   const manifestation = buildSignatureManifestation(signer);
@@ -914,31 +960,33 @@ function describeSignerEvidence(
 
     if (typeof part11.meaningStatement === "string") {
       details.push(
-        `Meaning confirmed by the signer: "${part11.meaningStatement}"`,
+        `Az aláíró által megerősített jelentés: „${part11.meaningStatement}”`,
       );
     }
   }
 
   if (consented) {
     details.push(
-      `Agreed to use electronic records and signatures at ${formatAuditTimestamp(consented.createdAt)}${
+      `Hozzájárult az elektronikus iratok és aláírások használatához: ${formatAuditTimestamp(consented.createdAt)}${
         typeof consented.metadata?.disclosureVersion === "string"
-          ? ` (disclosure ${consented.metadata.disclosureVersion})`
+          ? ` (tájékoztató verziója: ${consented.metadata.disclosureVersion})`
           : ""
       }`,
     );
   }
 
-  const methods = readStringArray(signed?.metadata?.signatureMethods);
+  const methods = readStringArray(signed?.metadata?.signatureMethods).map(
+    (method) => SIGNATURE_METHOD_LABELS[method] ?? method,
+  );
 
   if (methods.length > 0) {
-    details.push(`Signature adopted by: ${methods.join(", ")}`);
+    details.push(`Aláírás módja: ${methods.join(", ")}`);
   }
 
   details.push(...describeProviderSignatureEvidence(signed, redacted));
 
   if (!redacted && signed?.ipAddress) {
-    details.push(`Signed from IP ${signed.ipAddress}`);
+    details.push(`Aláírás IP-címe: ${signed.ipAddress}`);
   }
 
   return details;
@@ -951,8 +999,8 @@ function describeEventEvidence(event: AuditEventRecord): string[] {
   if (event.ipAddress || event.userAgent) {
     details.push(
       [
-        event.ipAddress ? `IP ${event.ipAddress}` : null,
-        event.userAgent ? `browser ${event.userAgent.slice(0, 160)}` : null,
+        event.ipAddress ? `IP-cím: ${event.ipAddress}` : null,
+        event.userAgent ? `böngésző: ${event.userAgent.slice(0, 160)}` : null,
       ]
         .filter(Boolean)
         .join(" | "),
@@ -966,7 +1014,7 @@ function describeEventEvidence(event: AuditEventRecord): string[] {
     const minutes = Math.abs(offset) % 60;
 
     details.push(
-      `signer's clock: UTC${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
+      `az aláíró órája: UTC${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
     );
   }
 
@@ -980,18 +1028,20 @@ function describeEventEvidence(event: AuditEventRecord): string[] {
 
     details.push(
       [
-        kind ? `email ${kind.replaceAll("_", " ")}` : "email",
-        recipient ? `to ${recipient}` : null,
-        messageId ? `accepted by the mail provider as ${messageId}` : null,
+        kind ? `e-mail (${kind})` : "e-mail",
+        recipient ? `címzett: ${recipient}` : null,
+        messageId
+          ? `a levelezőszolgáltató ezzel az azonosítóval fogadta: ${messageId}`
+          : null,
       ]
         .filter(Boolean)
-        .join(" "),
+        .join(", "),
     );
   }
 
   if (event.event === "verified" && typeof metadata.method === "string") {
     details.push(
-      `passed: ${AUTHENTICATION_LABELS[metadata.method] ?? metadata.method}`,
+      `sikeres: ${AUTHENTICATION_LABELS[metadata.method] ?? metadata.method}`,
     );
   }
 
@@ -1000,7 +1050,7 @@ function describeEventEvidence(event: AuditEventRecord): string[] {
     typeof metadata.method === "string"
   ) {
     details.push(
-      `wrong ${AUTHENTICATION_LABELS[metadata.method] ?? metadata.method}`,
+      `hibás: ${AUTHENTICATION_LABELS[metadata.method] ?? metadata.method}`,
     );
   }
 
@@ -1013,21 +1063,21 @@ function getSignerCertificateActionLabel(
 ): string {
   switch (signer.status) {
     case "signed":
-      return `Signed at ${formatAuditTimestamp(signer.signedAt)}`;
+      return `Aláírás időpontja: ${formatAuditTimestamp(signer.signedAt)}`;
     case "declined":
-      return `Declined at ${formatAuditTimestamp(signer.declinedAt)}`;
+      return `Elutasítás időpontja: ${formatAuditTimestamp(signer.declinedAt)}`;
     case "notified":
       if (envelope.status === "voided") {
-        return "Awaiting signature when envelope was voided";
+        return "Aláírásra várt, amikor az aláírási kérést visszavonták";
       }
 
       if (envelope.status === "declined") {
-        return "Awaiting signature when envelope was declined";
+        return "Aláírásra várt, amikor az aláírási kérést elutasították";
       }
 
-      return "Awaiting signature";
+      return "Aláírásra vár";
     case "pending":
-      return "Not reached";
+      return "Még nem került sorra";
     default: {
       const exhaustiveStatus: never = signer.status;
       return exhaustiveStatus;
@@ -1189,6 +1239,7 @@ export async function renderEnvelopeCertificatePdf(
       input.signers,
       input.auditEvents,
       input.copyRecipients ?? [],
+      CERTIFICATE_WORDING_EXTRA_CHARACTERS,
     ],
     { bold: true, certificate: true },
   );
@@ -1213,7 +1264,7 @@ export async function renderEnvelopeCertificatePdf(
     signedPdfSha256: input.signedPdfSha256,
     signers: input.signers,
   });
-  pdfDocument.setTitle(`Audit certificate: ${input.envelope.title}`);
+  pdfDocument.setTitle(`Hitelesítési igazolás: ${input.envelope.title}`);
   pdfDocument.setProducer("SignuDoc");
 
   return seal(pdfDocument, "certificate");
@@ -1285,6 +1336,7 @@ export async function renderFinalizedEnvelopePdf(
             input.signers,
             input.auditEvents,
             input.copyRecipients ?? [],
+            CERTIFICATE_WORDING_EXTRA_CHARACTERS,
           ]
         : [],
     ],

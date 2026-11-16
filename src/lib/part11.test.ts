@@ -20,7 +20,7 @@ test("the manifestation gives the name, the UTC time and the meaning", () => {
       signatureMeaning: "approval",
       signedAt: Date.UTC(2026, 10, 13, 9, 5, 7) / 1000,
     }),
-    "Signed by Ada Lovelace | 2026-11-13 09:05:07 UTC | Meaning: Approval",
+    "Aláírta: Ada Lovelace | 2026-11-13 09:05:07 UTC | Jelentés: Jóváhagyás",
   );
 });
 

@@ -41,7 +41,7 @@ export async function GET(
   });
 
   if (rateLimitResponse) {
-    return new NextResponse("Too many requests. Please try again soon.", {
+    return new NextResponse("Túl sok kérés. Próbáld újra egy kicsit később.", {
       headers: {
         "cache-control": "private, no-store",
         "content-type": "text/plain; charset=utf-8",
@@ -86,7 +86,7 @@ export async function GET(
       path: request.url,
     });
 
-    return new NextResponse("Unable to start this download.", {
+    return new NextResponse("Ezt a letöltést nem sikerült elindítani.", {
       headers: {
         "cache-control": "private, no-store",
         "content-type": "text/plain; charset=utf-8",

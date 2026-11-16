@@ -89,7 +89,7 @@ export async function GET(request: Request, context: SigningRouteContext) {
 
     return NextResponse.json(
       {
-        error: "Unable to load this signing link.",
+        error: "Most nem sikerült betölteni az aláírási linket.",
       },
       {
         headers: {

@@ -241,8 +241,8 @@ test("the certificate names the people who were sent a copy", async () => {
     ).then(async (bytes) => (await extractText(bytes)).replace(/\s+/g, " "));
   const full = await render(false);
 
-  assert.ok(full.includes("Copy recipients"));
-  assert.ok(full.includes("They did not sign it."));
+  assert.ok(full.includes("Másolatot kapott címzettek"));
+  assert.ok(full.includes("Nem írták alá."));
   assert.ok(full.includes("Zofia Wiśniewska <zofia@example.com>"));
 
   // The signers' own copy leaves addresses out, as it does for signers.
@@ -261,7 +261,28 @@ test("the certificate names the people who were sent a copy", async () => {
     { seal: saveUnsealed },
   );
 
-  assert.ok(!(await extractText(without)).includes("Copy recipients"));
+  assert.ok(
+    !(await extractText(without)).includes("Másolatot kapott címzettek"),
+  );
+});
+
+test("the certificate's Hungarian wording draws ő and ű, not stand-ins", async () => {
+  const fixture = await makeFixture();
+  const pdfBytes = await renderEnvelopeCertificatePdf(
+    {
+      auditEvents: fixture.auditEvents,
+      envelope: fixture.envelope,
+      signers: fixture.signers,
+    },
+    { seal: saveUnsealed },
+  );
+  const text = (await extractText(pdfBytes)).replace(/\s+/g, " ");
+
+  assert.ok(text.includes("SignuDoc lezárási igazolás"));
+  assert.ok(text.includes("Lezárás időpontja"));
+  assert.ok(text.includes("Hogyan ellenőrizheted ezt az igazolást"));
+  assert.ok(text.includes("bélyegzővel"));
+  assert.ok(!text.includes("\uFFFD"));
 });
 
 test("numbers and dropdown choices are stamped as text, radio buttons as rings", async () => {

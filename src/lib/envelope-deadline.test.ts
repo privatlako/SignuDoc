@@ -82,7 +82,7 @@ test("a deadline is written out in full, in UTC", () => {
   );
   assert.equal(
     buildDeadlineLine(1_800_000_000),
-    "This request expires on January 15, 2027 at 8:00 AM UTC.",
+    "Az aláírási kérés lejár: 2027. január 15. 08:00 (UTC).",
   );
   assert.equal(buildDeadlineLine(null), null);
 });

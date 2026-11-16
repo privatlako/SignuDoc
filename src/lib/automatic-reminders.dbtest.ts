@@ -187,11 +187,8 @@ test("the daily job reminds the waiting signer once per interval", async () => {
   const link = /https:\/\/\S+\/sign\/(\S+)/.exec(reminder.textBody);
 
   assert.equal(reminder.template, "automatic_reminder");
-  assert.equal(
-    reminder.subject,
-    'Reminder: Sam Sender is waiting for your signature on "Lease"',
-  );
-  assert.match(reminder.textBody, /This request expires on /);
+  assert.equal(reminder.subject, "Emlékeztető: „Lease” még az aláírásodra vár");
+  assert.match(reminder.textBody, /Az aláírási kérés lejár: /);
   assert.ok(link);
 
   // The reminder carries a new link, which lasts until the same deadline.

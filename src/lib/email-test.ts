@@ -5,6 +5,7 @@ import {
   type EmailService,
 } from "./services/email.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
+import { buildGreeting } from "./services/signing-invitation-email.ts";
 import { getBranding, getSettings, markEmailReady } from "./settings.ts";
 import { type EnvSource } from "./utils/env.ts";
 import { escapeHtml } from "./utils/html.ts";
@@ -34,13 +35,13 @@ export async function sendTestEmail({
     const branding = await getBranding(env);
     const { productName } = branding;
     const textBody = [
-      `Hi ${name},`,
+      buildGreeting(name),
       "",
-      `This is a test message from ${productName}. If you are reading it, email is working.`,
+      `Ez egy teszt üzenet, a küldő: ${productName}. Ha ezt olvasod, az e-mail-küldés működik.`,
     ].join("\n");
     const htmlBody = [
-      `<p>Hi ${escapeHtml(name)},</p>`,
-      `<p>This is a test message from ${escapeHtml(productName)}. If you are reading it, email is working.</p>`,
+      `<p>${escapeHtml(buildGreeting(name))}</p>`,
+      `<p>Ez egy teszt üzenet, a küldő: ${escapeHtml(productName)}. Ha ezt olvasod, az e-mail-küldés működik.</p>`,
     ].join("");
     const content = withUserEmailLegalFooter(
       { htmlBody, textBody },
@@ -55,7 +56,7 @@ export async function sendTestEmail({
 
     await (emailService ?? createEmailService({ env })).send({
       htmlBody: content.htmlBody,
-      subject: `Test email from ${productName}`,
+      subject: `Teszt e-mail – ${productName}`,
       template: "test_email",
       textBody: content.textBody,
       to,

@@ -13,8 +13,8 @@ import { getBranding } from "@/lib/settings";
 
 export const metadata: Metadata = {
   description:
-    "Which documents can be signed here, and what kind of electronic signature this is.",
-  title: "Electronic signatures: what this is for",
+    "Milyen dokumentumokat lehet itt aláírni, és milyen elektronikus aláírásról van szó.",
+  title: "Elektronikus aláírás: mire való",
 };
 
 function List({ items }: { items: string[] }) {
@@ -36,9 +36,9 @@ export default async function ElectronicSignaturesPage() {
 
   return (
     <PublicDocumentShell
-      description={`${productName} uses Signudoc to collect electronic signatures. This page says which documents that is meant for, and which it is not.`}
+      description={`A(z) ${productName} a Signudocot használja elektronikus aláírások gyűjtésére. Ez az oldal leírja, mely dokumentumokhoz való, és melyekhez nem.`}
       lastUpdated={PERMITTED_USE_VERSION}
-      title="What this is for"
+      title="Mire való"
     >
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
@@ -56,35 +56,36 @@ export default async function ElectronicSignaturesPage() {
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Do not send these documents (United States)
+          Ezeket a dokumentumokat ne küldd (Egyesült Államok)
         </h2>
         <p>
-          The federal ESIGN Act (15 U.S.C. 7003) and the Uniform Electronic
-          Transactions Act adopted by the states leave these out, so an
-          electronic signature may not make them valid:
+          A szövetségi ESIGN törvény (15 U.S.C. 7003) és az államok által
+          elfogadott Uniform Electronic Transactions Act ezeket kizárja, ezért
+          az elektronikus aláírás nem feltétlenül teszi őket érvényessé:
         </p>
         <List items={US_EXCLUDED_DOCUMENTS} />
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Take care with these (European Union)
+          Ezekkel légy óvatos (Európai Unió)
         </h2>
         <p>
-          eIDAS lets member states decide which documents need a stronger form.
-          Commonly these do:
+          Az eIDAS a tagállamokra bízza, mely dokumentumokhoz kell erősebb
+          forma. Ezekhez jellemzően kell:
         </p>
         <List items={EU_LIMITS} />
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Who decides
+          Ki dönt
         </h2>
         <p>
-          {productName} runs this site and decides what it may be used for.
-          Before each send, the sender confirms the document is not one of the
-          kinds listed here. This page is general information, not legal advice.
+          Ezt az oldalt a(z) {productName} üzemelteti, és ő dönt arról, mire
+          használható. Minden küldés előtt a küldő megerősíti, hogy a dokumentum
+          nem tartozik az itt felsorolt típusok közé. Ez az oldal általános
+          tájékoztatás, nem jogi tanácsadás.
         </p>
       </section>
     </PublicDocumentShell>

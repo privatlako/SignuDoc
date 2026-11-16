@@ -7,8 +7,8 @@ import { resolvePublicSupportAddress } from "@/lib/public-contact";
 
 export const metadata: Metadata = {
   description:
-    "Read SignuDoc's accessibility statement, current accessibility features, known limitations, and how to request assistance.",
-  title: "Accessibility Statement | SignuDoc",
+    "A SignuDoc akadálymentességi nyilatkozata: a jelenlegi akadálymentességi funkciók, az ismert korlátok, és hogyan kérhetsz segítséget.",
+  title: "Akadálymentességi nyilatkozat | SignuDoc",
 };
 
 export default async function AccessibilityPage() {
@@ -18,135 +18,135 @@ export default async function AccessibilityPage() {
 
   return (
     <PublicDocumentShell
-      description="SignuDoc is committed to improving accessibility for people with disabilities. This statement describes what is currently supported, the known limitations in our launch-stage product, and how to request assistance or accommodation."
-      lastUpdated="March 25, 2026"
-      title="Accessibility Statement"
+      description="A SignuDoc azon dolgozik, hogy a fogyatékossággal élők számára is egyre jobban használható legyen. Ez a nyilatkozat leírja, mit támogatunk most, milyen ismert korlátai vannak az induló termékünknek, és hogyan kérhetsz segítséget vagy alkalmazkodást."
+      lastUpdated="2026. március 25."
+      title="Akadálymentességi nyilatkozat"
     >
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Commitment
+          Vállalásunk
         </h2>
         <p>
-          We want SignuDoc to be usable by as many people as possible, including
-          people who rely on keyboard navigation, screen readers, zoom, or other
-          assistive technologies. We use accessibility best practices and treat
-          accessibility feedback as a product priority.
+          Azt szeretnénk, hogy a SignuDocot minél többen használhassák, azok is,
+          akik billentyűzetes navigációra, képernyőolvasóra, nagyításra vagy más
+          kisegítő technológiára támaszkodnak. Követjük az akadálymentesség
+          bevált gyakorlatait, és az akadálymentességi visszajelzéseket
+          kiemelten kezeljük.
         </p>
         <p>
-          SignuDoc is still a launch-stage product, and some parts of the
-          experience are more accessible than others. This statement is intended
-          to be candid about the current state of the product and the help that
-          is available right now.
+          A SignuDoc még induló termék, és egyes részei akadálymentesebbek, mint
+          mások. Ez a nyilatkozat őszintén leírja a termék jelenlegi állapotát
+          és a most elérhető segítséget.
         </p>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          What currently works best
+          Ami most a legjobban működik
         </h2>
         <ul className="list-disc space-y-2 pl-6">
           <li>
-            Account creation, log in, dashboard, settings, and most non-canvas
-            forms use semantic controls and are intended to be keyboard
-            navigable.
+            A fiók létrehozása, a bejelentkezés, az irányítópult, a beállítások
+            és a legtöbb nem vászonalapú űrlap szemantikus vezérlőket használ,
+            és billentyűzettel is bejárható.
           </li>
           <li>
-            The signing experience uses keyboard-focusable HTML inputs and
-            buttons layered over the PDF preview, and includes a sidebar summary
-            of assigned fields.
+            Az aláírási felület a PDF-előnézet fölött billentyűzettel
+            fókuszálható HTML-beviteli mezőket és gombokat használ, és az
+            oldalsávban összefoglalja a hozzád rendelt mezőket.
           </li>
           <li>
-            Status messages, buttons, and form labels are designed to expose
-            meaningful text to assistive technology.
+            Az állapotüzenetek, a gombok és az űrlapcímkék értelmes szöveget
+            adnak át a kisegítő technológiáknak.
           </li>
         </ul>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Known limitations
+          Ismert korlátok
         </h2>
         <ul className="list-disc space-y-2 pl-6">
           <li>
-            The PDF preview is rendered on a canvas and is therefore not a fully
-            semantic representation of the source document for screen readers.
+            A PDF-előnézet vásznon jelenik meg, ezért a képernyőolvasók számára
+            nem teljesen szemantikus megjelenítése az eredeti dokumentumnak.
           </li>
           <li>
-            Sender-side document preparation currently relies heavily on
-            drag-and-drop and pointer-based field placement, which is not yet a
-            fully accessible workflow for blind users or some keyboard-only
-            users.
+            A dokumentum küldő oldali előkészítése jelenleg nagyrészt húzással
+            és mutatóeszközzel történő mezőelhelyezésre épül. Ez a folyamat a
+            vak felhasználók és egyes, csak billentyűzetet használók számára még
+            nem teljesen akadálymentes.
           </li>
           <li>
-            Some uploaded PDFs may contain scanned images, complex layouts, or
-            third-party accessibility issues that SignuDoc cannot fully correct
-            at display time.
+            Egyes feltöltött PDF-ek beszkennelt képeket, összetett elrendezést
+            vagy harmadik féltől származó akadálymentességi hibákat
+            tartalmazhatnak, amelyeket a SignuDoc megjelenítéskor nem tud
+            teljesen kijavítani.
           </li>
         </ul>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Alternative assistance
+          Más segítség
         </h2>
         <p>
-          If you need help creating, sending, reviewing, or signing a document,
-          email{" "}
+          Ha segítség kell egy dokumentum létrehozásához, elküldéséhez,
+          átnézéséhez vagy aláírásához, írj ide:{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href={`mailto:${supportAddress}`}
           >
             {supportAddress}
           </Link>
-          . Tell us what part of the workflow you are trying to complete, what
-          assistive technology you use if you are comfortable sharing it, and
-          what kind of accommodation would help.
+          . Írd meg, a folyamat melyik részét szeretnéd elvégezni, milyen
+          kisegítő technológiát használsz (ha szívesen megosztod), és milyen
+          alkalmazkodás segítene.
         </p>
         <p>
-          Depending on the situation, we may be able to provide manual
-          assistance, an alternative communication path, or another supported
-          way to complete the workflow.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Standards and ongoing work
-        </h2>
-        <p>
-          We use WCAG 2.2 Level AA as a practical reference point when planning
-          improvements, but we do not claim that every part of SignuDoc fully
-          conforms today.
-        </p>
-        <p>
-          Our near-term focus includes improving the accessibility of the
-          canvas-based PDF experience, strengthening modal focus behavior,
-          reducing pointer-only interactions, and continuing to expand
-          keyboard-friendly alternatives.
+          A helyzettől függően tudunk személyes segítséget, más kapcsolattartási
+          módot vagy egy másik támogatott utat adni a folyamat elvégzéséhez.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          Feedback
+          Szabványok és folyamatban lévő munka
         </h2>
         <p>
-          Accessibility feedback helps us prioritize the right fixes. If you
-          find a barrier, email{" "}
+          A fejlesztések tervezésénél a WCAG 2.2 AA szintjét vesszük gyakorlati
+          viszonyítási alapnak, de nem állítjuk, hogy a SignuDoc minden része ma
+          teljesen megfelel neki.
+        </p>
+        <p>
+          A közeljövőben a vászonalapú PDF-megjelenítés akadálymentességének
+          javítására, a felugró ablakok fókuszkezelésének megerősítésére, a csak
+          mutatóeszközzel elvégezhető műveletek csökkentésére és a
+          billentyűzetbarát alternatívák bővítésére összpontosítunk.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
+          Visszajelzés
+        </h2>
+        <p>
+          Az akadálymentességi visszajelzések segítenek eldönteni, mit javítsunk
+          először. Ha akadályba ütközöl, írj ide:{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href={`mailto:${supportAddress}`}
           >
             {supportAddress}
           </Link>{" "}
-          or use the{" "}
+          vagy használd a{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href="/contact"
           >
-            Contact
+            Kapcsolat
           </Link>{" "}
-          page.
+          oldalt.
         </p>
       </section>
     </PublicDocumentShell>

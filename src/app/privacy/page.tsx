@@ -1,3 +1,4 @@
+// TODO(homilla): needs Homilla-specific legal review
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -7,8 +8,8 @@ import { resolvePublicSupportAddress } from "@/lib/public-contact";
 
 export const metadata: Metadata = {
   description:
-    "Read how SignuDoc collects, uses, shares, retains, and protects information for its public U.S. e-signature service.",
-  title: "Privacy Policy | SignuDoc",
+    "Hogyan gyűjti, használja, osztja meg, őrzi és védi a SignuDoc az adatokat nyilvános, egyesült államokbeli elektronikus aláírási szolgáltatásában.",
+  title: "Adatvédelmi tájékoztató | SignuDoc",
 };
 
 export default async function PrivacyPage() {
@@ -18,287 +19,315 @@ export default async function PrivacyPage() {
 
   return (
     <PublicDocumentShell
-      description="This Privacy Policy describes the categories of information SignuDoc collects, how we use and share that information, the rights available to users, and how to contact us with privacy requests."
-      lastUpdated="March 25, 2026"
-      title="Privacy Policy"
+      description="Ez az adatvédelmi tájékoztató leírja, milyen adatokat gyűjt a SignuDoc, hogyan használjuk és kivel osztjuk meg őket, milyen jogaid vannak, és hogyan küldhetsz nekünk adatvédelmi kérést."
+      lastUpdated="2026. március 25."
+      title="Adatvédelmi tájékoztató"
     >
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          1. Scope and service design
+          1. Hatály és a szolgáltatás felépítése
         </h2>
         <p>
-          SignuDoc is a U.S.-focused electronic-signature service designed for
-          ordinary business agreements and similar commercial workflows. This
-          Privacy Policy applies to account holders, signers, website visitors,
-          and support contacts who interact with SignuDoc.
+          A SignuDoc elsősorban az Egyesült Államokra összpontosító elektronikus
+          aláírási szolgáltatás, hétköznapi üzleti megállapodásokhoz és hasonló
+          kereskedelmi folyamatokhoz. Ez a tájékoztató a fióktulajdonosokra, az
+          aláírókra, a weboldal látogatóira és a támogatással kapcsolatba
+          lépőkre vonatkozik, akik a SignuDocot használják.
         </p>
         <p>
-          SignuDoc is not intended for legally required consumer disclosure
-          workflows that need a separate E-SIGN consumer-consent process. If a
-          sender uses SignuDoc outside that scope, the sender remains
-          responsible for making sure the workflow is legally appropriate.
+          A SignuDoc nem jogszabályban előírt fogyasztói tájékoztatási
+          folyamatokhoz készült, amelyekhez külön E-SIGN szerinti fogyasztói
+          hozzájárulás kell. Ha egy küldő ezen a körön kívül használja a
+          SignuDocot, továbbra is ő felel azért, hogy a folyamat jogilag
+          megfelelő legyen.
         </p>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          2. Information we collect
+          2. Milyen adatokat gyűjtünk
         </h2>
-        <p>We may collect the following categories of information:</p>
+        <p>A következő adatkategóriákat gyűjthetjük:</p>
         <ul className="list-disc space-y-2 pl-6">
           <li>
-            <strong>Account information</strong>, such as name, email address,
-            password credentials, email-verification status, session data, and
-            profile updates.
+            <strong>Fiókadatok</strong>, például név, e-mail-cím, jelszóadatok,
+            az e-mail-cím megerősítésének állapota, munkamenetadatok és a profil
+            módosításai.
           </li>
           <li>
-            <strong>Document and workflow data</strong>, such as uploaded PDFs,
-            document titles, page counts, placed fields, signer routing order,
-            envelope status, and related metadata.
+            <strong>Dokumentum- és folyamatadatok</strong>, például feltöltött
+            PDF-ek, dokumentumcímek, oldalszámok, elhelyezett mezők, az aláírók
+            sorrendje, a küldemény állapota és a kapcsolódó metaadatok.
           </li>
           <li>
-            <strong>Signer and signature data</strong>, such as signer names and
-            email addresses, typed signature values, drawn signature images,
-            dates, text entries, checkbox selections, and decline reasons.
+            <strong>Aláírói és aláírási adatok</strong>, például az aláírók neve
+            és e-mail-címe, gépelt aláírások, rajzolt aláírásképek, dátumok,
+            szöveges bejegyzések, bejelölt jelölőnégyzetek és az elutasítások
+            indoka.
           </li>
           <li>
-            <strong>Audit and security data</strong>, such as IP address,
-            browser or device information, timestamps, token identifiers, record
-            access events, sending events, reminder events, signing events, and
-            system-generated audit trails.
+            <strong>Eseménynapló- és biztonsági adatok</strong>, például IP-cím,
+            böngésző- vagy eszközadatok, időbélyegek, tokenazonosítók, a
+            nyilvántartásokhoz való hozzáférések, küldési, emlékeztetési és
+            aláírási események, valamint a rendszer által készített
+            eseménynaplók.
           </li>
           <li>
-            <strong>Support and communications data</strong>, such as emails you
-            send to SignuDoc, account-closure requests, privacy requests, and
-            feedback about accessibility or product issues.
+            <strong>Támogatási és kommunikációs adatok</strong>, például a
+            SignuDocnak küldött e-mailjeid, fiókmegszüntetési kérések,
+            adatvédelmi kérések és az akadálymentességgel vagy a termékkel
+            kapcsolatos visszajelzések.
           </li>
           <li>
-            <strong>Cookies and local state</strong>, such as authentication
-            cookies, session information, and limited browser-side data needed
-            to operate the application securely.
+            <strong>Sütik és helyi állapot</strong>, például hitelesítési sütik,
+            munkamenet-információk és az alkalmazás biztonságos működéséhez
+            szükséges, korlátozott, böngészőben tárolt adatok.
           </li>
         </ul>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          3. Where the information comes from
+          3. Honnan származnak az adatok
         </h2>
-        <p>We collect information directly from you when you:</p>
+        <p>Közvetlenül tőled gyűjtünk adatokat, amikor:</p>
         <ul className="list-disc space-y-2 pl-6">
-          <li>create or use an account;</li>
-          <li>upload or send a document;</li>
-          <li>complete, decline, or download a signing package;</li>
-          <li>communicate with us by email or through support channels; or</li>
-          <li>browse or interact with the website.</li>
+          <li>fiókot hozol létre vagy használsz;</li>
+          <li>dokumentumot töltesz fel vagy küldesz;</li>
+          <li>aláírási csomagot teljesítesz, elutasítasz vagy letöltesz;</li>
+          <li>e-mailben vagy támogatási csatornán kapcsolatba lépsz velünk;</li>
+          <li>böngészed vagy használod a weboldalt.</li>
         </ul>
         <p>
-          We also generate information automatically when SignuDoc records audit
-          events, sends transactional emails, secures sessions, enforces rate
-          limits, or stores completed records.
+          Adatok automatikusan is keletkeznek, amikor a SignuDoc eseményeket
+          naplóz, tranzakciós e-maileket küld, védi a munkameneteket, korlátozza
+          a kérések gyakoriságát vagy lezárt nyilvántartásokat tárol.
         </p>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          4. How we use information
+          4. Hogyan használjuk az adatokat
         </h2>
-        <p>We may use information to:</p>
+        <p>Az adatokat a következőkre használhatjuk:</p>
         <ul className="list-disc space-y-2 pl-6">
-          <li>create and manage accounts;</li>
-          <li>deliver signing workflows and completed document packages;</li>
-          <li>verify email addresses and send transactional messages;</li>
-          <li>maintain envelope history, audit trails, and security logs;</li>
-          <li>prevent fraud, abuse, and unauthorized access;</li>
-          <li>respond to support, privacy, and accessibility requests;</li>
+          <li>fiókok létrehozása és kezelése;</li>
+          <li>aláírási folyamatok és lezárt dokumentumcsomagok kézbesítése;</li>
+          <li>e-mail-címek megerősítése és tranzakciós üzenetek küldése;</li>
           <li>
-            comply with legal obligations, enforce agreements, and resolve
-            disputes; and
+            a küldemények előzményeinek, az eseménynaplóknak és a biztonsági
+            naplóknak a vezetése;
+          </li>
+          <li>csalás, visszaélés és jogosulatlan hozzáférés megelőzése;</li>
+          <li>
+            válaszadás támogatási, adatvédelmi és akadálymentességi kérésekre;
           </li>
           <li>
-            improve the reliability, security, and usability of the service.
+            jogi kötelezettségek teljesítése, megállapodások érvényesítése és
+            viták rendezése;
+          </li>
+          <li>
+            a szolgáltatás megbízhatóságának, biztonságának és
+            használhatóságának javítása.
           </li>
         </ul>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          5. How we share information
+          5. Kivel osztjuk meg az adatokat
         </h2>
         <p>
-          We may share information with service providers that help us operate
-          SignuDoc, such as providers for authentication, cloud storage, email
-          delivery, hosting, infrastructure, logging, security, and customer
-          support.
+          Megoszthatjuk az adatokat olyan szolgáltatókkal, amelyek segítenek a
+          SignuDoc működtetésében, például hitelesítési, felhőtárolási,
+          e-mail-kézbesítési, tárhely-, infrastruktúra-, naplózási, biztonsági
+          és ügyféltámogatási szolgáltatókkal.
         </p>
         <p>
-          We may also disclose information when reasonably necessary to comply
-          with law, respond to legal process, protect the rights or safety of
-          SignuDoc, users, or the public, or in connection with a merger,
-          acquisition, financing, or asset sale.
+          Akkor is kiadhatunk adatokat, ha az észszerűen szükséges a
+          jogszabályok betartásához, jogi eljárásra adott válaszhoz, a SignuDoc,
+          a felhasználók vagy a nyilvánosság jogainak vagy biztonságának
+          védelméhez, illetve egyesüléssel, felvásárlással, finanszírozással
+          vagy eszközértékesítéssel összefüggésben.
         </p>
         <p>
-          SignuDoc is not built as an advertising-supported service. If that
-          changes, we will update this Privacy Policy before using personal
-          information in a materially different way.
+          A SignuDoc nem hirdetésekből finanszírozott szolgáltatás. Ha ez
+          megváltozik, frissítjük ezt a tájékoztatót, mielőtt a személyes
+          adatokat lényegesen más módon kezdenénk használni.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          6. Retention
+          6. Megőrzés
         </h2>
         <p>
-          Unsent draft envelopes and their uploaded source documents may be
-          deleted after a period of inactivity, such as 30 days without sender
-          activity.
+          Az el nem küldött piszkozat küldeményeket és a hozzájuk feltöltött
+          forrásdokumentumokat egy inaktív időszak után törölhetjük, például ha
+          a küldő 30 napig nem végez rajtuk semmilyen műveletet.
         </p>
         <p>
-          Completed, declined, and voided envelopes remain available while your
-          account is active so you can access signed documents and audit
-          history. We also keep related audit and security records for as long
-          as reasonably necessary to operate the service, prevent abuse, comply
-          with legal obligations, resolve disputes, and enforce agreements.
+          A lezárt, elutasított és visszavont küldemények addig érhetők el, amíg
+          a fiókod aktív, így hozzáférsz az aláírt dokumentumokhoz és az
+          eseménynaplóhoz. A kapcsolódó eseménynapló- és biztonsági
+          nyilvántartásokat is megőrizzük, ameddig észszerűen szükséges a
+          szolgáltatás működtetéséhez, a visszaélések megelőzéséhez, a jogi
+          kötelezettségek teljesítéséhez, a viták rendezéséhez és a
+          megállapodások érvényesítéséhez.
         </p>
         <p>
-          If you close your account, we may provide a limited export window and
-          then delete stored document files and related envelope records, except
-          limited information we need for security, fraud prevention, legal
-          compliance, or dispute resolution.
+          Ha megszünteted a fiókodat, korlátozott ideig lehetőséget adhatunk az
+          adatok exportálására, majd töröljük a tárolt dokumentumfájlokat és a
+          kapcsolódó küldeményadatokat, kivéve azokat a korlátozott adatokat,
+          amelyekre biztonsági, csalásmegelőzési, jogi megfelelési vagy
+          vitarendezési célból szükségünk van.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          7. Security
+          7. Biztonság
         </h2>
         <p>
-          SignuDoc uses administrative, technical, and physical safeguards that
-          are designed to protect personal information, including authenticated
-          access controls, audit logging, rate limiting, security headers, and
-          cloud-storage controls. No system is perfectly secure, and we cannot
-          guarantee absolute security.
+          A SignuDoc adminisztratív, technikai és fizikai védelmi intézkedéseket
+          alkalmaz a személyes adatok védelmére, többek között hitelesített
+          hozzáférés-szabályozást, eseménynaplózást, a kérések gyakoriságának
+          korlátozását, biztonsági fejléceket és felhőtárolási kontrollokat.
+          Egyetlen rendszer sem tökéletesen biztonságos, ezért abszolút
+          biztonságot nem tudunk garantálni.
         </p>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          8. Your privacy rights
+          8. Adatvédelmi jogaid
         </h2>
         <p>
-          Depending on where you live and the nature of your relationship with
-          SignuDoc, you may have rights to:
+          Attól függően, hol élsz, és milyen kapcsolatban állsz a SignuDockal, a
+          következő jogaid lehetnek:
         </p>
         <ul className="list-disc space-y-2 pl-6">
-          <li>know or access the personal information we hold about you;</li>
-          <li>request correction of inaccurate information;</li>
-          <li>request deletion of information, subject to legal exceptions;</li>
           <li>
-            receive a copy of certain information we can provide manually;
+            megismerheted a rólad tárolt személyes adatokat, vagy hozzáférést
+            kérhetsz hozzájuk;
+          </li>
+          <li>kérheted a pontatlan adatok helyesbítését;</li>
+          <li>kérheted az adatok törlését, a jogszabályi kivételek mellett;</li>
+          <li>
+            másolatot kérhetsz bizonyos adatokról, amelyeket kézzel elő tudunk
+            állítani;
           </li>
           <li>
-            withdraw consent where a processing activity depends on consent; and
+            visszavonhatod a hozzájárulásodat, ha egy adatkezelés hozzájáruláson
+            alapul;
           </li>
           <li>
-            be free from discrimination for exercising applicable privacy
-            rights.
+            nem érhet hátrányos megkülönböztetés amiatt, hogy élsz az
+            adatvédelmi jogaiddal.
           </li>
         </ul>
         <p>
-          California residents may also have rights to request the categories
-          and specific pieces of personal information we collected about them,
-          request correction of inaccurate personal information, and request
-          deletion, subject to applicable exemptions.
+          A kaliforniai lakosoknak emellett joguk lehet megkérdezni, milyen
+          kategóriájú és konkrétan milyen személyes adatokat gyűjtöttünk róluk,
+          kérni a pontatlan személyes adatok helyesbítését, és kérni a törlést,
+          a vonatkozó kivételek mellett.
         </p>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          9. How to exercise your rights
+          9. Hogyan gyakorolhatod a jogaidat
         </h2>
         <p>
-          To request access, correction, deletion, or account closure, email{" "}
+          Hozzáférési, helyesbítési, törlési vagy fiókmegszüntetési kéréssel írj
+          ide:{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href={`mailto:${privacyAddress}`}
           >
             {privacyAddress}
-          </Link>{" "}
-          or use the in-app account-closure request flow when available.
+          </Link>
+          , vagy használd az alkalmazáson belüli fiókmegszüntetési kérést, ha
+          elérhető.
         </p>
         <p>
-          We may ask you to verify your identity before we act on a request. For
-          example, we may ask you to confirm control of the relevant email
-          address, identify recent account activity, or provide envelope details
-          sufficient to locate the records you want us to review.
+          Mielőtt egy kérés alapján intézkedünk, kérhetjük, hogy igazold a
+          személyazonosságodat. Például kérhetjük, hogy igazold, hogy a kérdéses
+          e-mail-cím a tiéd, nevezz meg legutóbbi fióktevékenységet, vagy adj
+          meg annyi adatot a küldeményről, amennyi alapján megtaláljuk a
+          vizsgálandó nyilvántartásokat.
         </p>
         <p>
-          Where California law applies, we aim to respond within 45 calendar
-          days of a verifiable request and may extend once by another 45 days
-          where permitted by law. Where GDPR or similar laws apply, we aim to
-          respond within one month, subject to lawful extensions for complex or
-          numerous requests.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          10. Cookies and local storage
-        </h2>
-        <p>
-          SignuDoc uses cookies and similar technologies primarily for
-          authentication, session continuity, security, and basic application
-          state. We may also store limited local settings needed to make the app
-          usable, such as interface preferences and page state for active
-          workflows. For sender workflows, draft PDF previews may be cached
-          locally in the browser (IndexedDB) for up to 24 hours to improve
-          document preparation performance.
+          Ha a kaliforniai jog alkalmazandó, igyekszünk az ellenőrizhető kérés
+          beérkezésétől számított 45 naptári napon belül válaszolni, és ezt a
+          jogszabály által megengedett esetben egyszer további 45 nappal
+          meghosszabbíthatjuk. Ha a GDPR vagy hasonló jogszabály alkalmazandó,
+          igyekszünk egy hónapon belül válaszolni, összetett vagy nagy számú
+          kérés esetén a jogszerű hosszabbítás lehetőségével.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          11. Children and international use
+          10. Sütik és helyi tárolás
         </h2>
         <p>
-          SignuDoc is not directed to children under 13, and we do not knowingly
-          collect personal information from children through the service. If you
-          believe a child provided personal information to us, contact us so we
-          can review and address the issue.
-        </p>
-        <p>
-          SignuDoc is operated for U.S.-focused business use. If you access the
-          service from outside the United States, you understand that
-          information may be processed and stored in the United States or other
-          locations where our service providers operate.
+          A SignuDoc sütiket és hasonló technológiákat elsősorban hitelesítésre,
+          a munkamenet folytonosságára, biztonsági célra és az alkalmazás
+          alapvető állapotának megőrzésére használ. Az alkalmazás
+          használhatóságához szükséges, korlátozott helyi beállításokat is
+          tárolhatunk, például a felület beállításait és a folyamatban lévő
+          műveletek oldalállapotát. A küldő oldali folyamatoknál a piszkozat
+          PDF-előnézetek legfeljebb 24 órán át a böngészőben (IndexedDB)
+          tárolódhatnak, hogy gyorsabb legyen a dokumentum előkészítése.
         </p>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-          12. Changes and contact
+          11. Gyermekek és nemzetközi használat
         </h2>
         <p>
-          We may update this Privacy Policy from time to time by posting a
-          revised version on this page. Material changes will apply when posted
-          unless a later date is stated.
+          A SignuDoc nem 13 év alatti gyermekeknek szól, és tudatosan nem
+          gyűjtünk személyes adatot gyermekektől a szolgáltatáson keresztül. Ha
+          úgy gondolod, hogy egy gyermek személyes adatot adott meg nekünk, lépj
+          kapcsolatba velünk, hogy megvizsgálhassuk és rendezhessük az ügyet.
         </p>
         <p>
-          Privacy questions, requests, and complaints may be sent to{" "}
+          A SignuDocot elsősorban egyesült államokbeli üzleti használatra
+          üzemeltetjük. Ha az Egyesült Államokon kívülről használod a
+          szolgáltatást, tudomásul veszed, hogy az adatokat az Egyesült
+          Államokban vagy más olyan helyen dolgozhatják fel és tárolhatják, ahol
+          a szolgáltatóink működnek.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
+          12. Változások és kapcsolat
+        </h2>
+        <p>
+          Ezt a tájékoztatót időről időre frissíthetjük úgy, hogy a módosított
+          változatot közzétesszük ezen az oldalon. A lényeges változások a
+          közzétételükkor lépnek hatályba, hacsak nem jelölünk meg későbbi
+          időpontot.
+        </p>
+        <p>
+          Adatvédelmi kérdéseidet, kéréseidet és panaszaidat ide küldheted:{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href={`mailto:${privacyAddress}`}
           >
             {privacyAddress}
-          </Link>{" "}
-          or through the{" "}
+          </Link>
+          , vagy használhatod a{" "}
           <Link
             className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
             href="/contact"
           >
-            Contact
+            Kapcsolat
           </Link>{" "}
-          page.
+          oldalt.
         </p>
       </section>
     </PublicDocumentShell>

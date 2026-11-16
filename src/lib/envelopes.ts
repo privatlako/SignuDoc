@@ -72,7 +72,11 @@ import {
 } from "./services/audit.ts";
 import { createEmailService } from "./services/email.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
-import { buildSigningInvitationEmail } from "./services/signing-invitation-email.ts";
+import {
+  buildGreeting,
+  buildSigningInvitationEmail,
+  quoteTitle,
+} from "./services/signing-invitation-email.ts";
 import {
   storeEnvelopeCertificatePdf,
   storeRecipientEnvelopeCertificatePdf,
@@ -1123,7 +1127,7 @@ function describeChoiceProblem(
   return describeChoiceFieldProblem(
     problem,
     signers.find((signer) => signer.id === problem.signerId)?.name ??
-      "a signer",
+      "egy aláíró",
   );
 }
 
@@ -1166,17 +1170,21 @@ function buildVoidNotificationEmail(input: {
   signerEmail: string;
   signerName: string;
 }) {
-  const subject = `"${input.envelopeTitle}" was voided by ${input.senderName}`;
+  const title = quoteTitle(input.envelopeTitle);
+  const subject = `${input.senderName} visszavonta: ${title}`;
+  const introLine = `${input.senderName} visszavonta ezt a dokumentumot: ${title}.`;
+  const doneLine =
+    "Az aláírási folyamat lezárult, neked nincs vele több teendőd.";
   const textBody = [
-    `Hi ${input.signerName},`,
+    buildGreeting(input.signerName),
     "",
-    `${input.senderName} voided "${input.envelopeTitle}" in ${input.branding.productName}.`,
-    "The signing process has been canceled. No further action is needed.",
+    introLine,
+    doneLine,
   ].join("\n");
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.signerName)},</p>`,
-    `<p>${escapeHtml(input.senderName)} voided &ldquo;${escapeHtml(input.envelopeTitle)}&rdquo; in ${escapeHtml(input.branding.productName)}.</p>`,
-    "<p>The signing process has been canceled. No further action is needed.</p>",
+    `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
+    `<p>${escapeHtml(introLine)}</p>`,
+    `<p>${doneLine}</p>`,
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {

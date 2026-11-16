@@ -72,7 +72,7 @@ export async function POST(
 
       return NextResponse.json(
         {
-          error: issue?.message ?? "Invalid decline request.",
+          error: issue?.message ?? "Érvénytelen elutasítási kérés.",
         },
         {
           headers: {
@@ -125,7 +125,7 @@ export async function POST(
 
     return NextResponse.json(
       {
-        error: "Unable to decline this document.",
+        error: "Most nem sikerült elutasítani a dokumentumot.",
       },
       {
         headers: {

@@ -72,7 +72,7 @@ export async function POST(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: error.issues[0]?.message ?? "Invalid signing submission." },
+        { error: error.issues[0]?.message ?? "Érvénytelen aláírási adatok." },
         { headers: NO_STORE, status: 400 },
       );
     }
@@ -103,7 +103,7 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { error: "Unable to start signing." },
+      { error: "Most nem sikerült elindítani az aláírást." },
       { headers: NO_STORE, status: 500 },
     );
   }

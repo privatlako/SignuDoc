@@ -72,7 +72,7 @@ export async function POST(
 
       return NextResponse.json(
         {
-          error: issue?.message ?? "Invalid signing submission.",
+          error: issue?.message ?? "Érvénytelen aláírási adatok.",
         },
         {
           headers: {
@@ -125,7 +125,7 @@ export async function POST(
 
     return NextResponse.json(
       {
-        error: "Unable to finish signing.",
+        error: "Most nem sikerült befejezni az aláírást.",
       },
       {
         headers: {

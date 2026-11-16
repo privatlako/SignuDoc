@@ -17,13 +17,16 @@ type FooterLink = {
 // absolute URLs. Either way the email gets an absolute URL.
 function buildFooterLinks(branding: Branding, env: EnvSource): FooterLink[] {
   const candidates: Array<[label: string, url: string | null]> = [
-    ["Terms of Service", branding.termsUrl],
+    ["Felhasználási feltételek", branding.termsUrl],
     // Without the organization's own policy, the notice built from the
     // install's settings.
     branding.privacyUrl || branding.hosted
-      ? ["Privacy Policy", branding.privacyUrl]
-      : ["Privacy notice", getEnv(env).appUrl ? "/signer-privacy" : null],
-    ["Contact", branding.contactUrl],
+      ? ["Adatvédelmi tájékoztató", branding.privacyUrl]
+      : [
+          "Adatkezelési tájékoztató",
+          getEnv(env).appUrl ? "/signer-privacy" : null,
+        ],
+    ["Kapcsolat", branding.contactUrl],
   ];
   const links = candidates.filter((candidate): candidate is [string, string] =>
     Boolean(candidate[1]),
@@ -87,15 +90,15 @@ export function withUserEmailLegalFooter(
 
   if (!branding.hosted) {
     if (branding.supportAddress) {
-      textLines.push("", `Questions? Contact ${branding.supportAddress}.`);
+      textLines.push("", `Kérdésed van? Írj ide: ${branding.supportAddress}`);
       htmlLines.push(
-        `Questions? Contact <a href="mailto:${escapeHtml(branding.supportAddress)}">${escapeHtml(branding.supportAddress)}</a>.`,
+        `Kérdésed van? Írj ide: <a href="mailto:${escapeHtml(branding.supportAddress)}">${escapeHtml(branding.supportAddress)}</a>`,
       );
     }
 
     const sentBy = branding.organizationName
-      ? `Sent by ${branding.organizationName} using ${SIGNUDOC_NAME}.`
-      : `Sent using ${SIGNUDOC_NAME}.`;
+      ? `Ezt az üzenetet ${branding.organizationName} küldte a ${SIGNUDOC_NAME} segítségével.`
+      : `Ezt az üzenetet a ${SIGNUDOC_NAME} segítségével küldtük.`;
 
     textLines.push("", sentBy);
     htmlLines.push(escapeHtml(sentBy));

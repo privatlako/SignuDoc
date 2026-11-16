@@ -10,42 +10,42 @@ export type UseSection = { heading: string; items: string[] };
 
 /** Documents the US laws exclude from electronic signature (ESIGN 103, UETA 3). */
 export const US_EXCLUDED_DOCUMENTS: string[] = [
-  "Wills, codicils and testamentary trusts.",
-  "Adoption, divorce and other family-law matters.",
-  "Court orders, notices and official court documents such as briefs and pleadings.",
-  "Notices of default, foreclosure, eviction or repossession under a credit agreement or lease of a primary residence.",
-  "Notices that utility services (water, heat, power) will be cancelled or terminated.",
-  "Notices that health or life insurance benefits will be cancelled or terminated (not including annuities).",
-  "Product recall notices and notices of material failure that risk health or safety.",
-  "Documents required to accompany the transport or handling of hazardous materials, pesticides or other toxic or dangerous materials.",
-  "Most of the Uniform Commercial Code other than sales and leases (for example negotiable instruments such as promissory notes meant to be transferred).",
-  "Anything else your state or country requires on paper, notarized or witnessed in person, such as many real property deeds.",
+  "Végrendeletek, végrendelet-kiegészítések és végrendeleti trösztök.",
+  "Örökbefogadás, válás és más családjogi ügyek.",
+  "Bírósági határozatok, értesítések és hivatalos bírósági iratok, például beadványok és periratok.",
+  "Hitelszerződés vagy elsődleges lakóhely bérlete alapján küldött értesítések késedelemről, végrehajtásról, kilakoltatásról vagy visszavételről.",
+  "Értesítések közüzemi szolgáltatások (víz, fűtés, áram) megszüntetéséről vagy felmondásáról.",
+  "Értesítések egészség- vagy életbiztosítási juttatások megszüntetéséről vagy felmondásáról (a járadékok kivételével).",
+  "Termékvisszahívási értesítések és az egészséget vagy biztonságot veszélyeztető lényeges hibákról szóló értesítések.",
+  "Veszélyes anyagok, növényvédő szerek vagy más mérgező vagy veszélyes anyagok szállításához vagy kezeléséhez kötelezően mellékelendő iratok.",
+  "Az egységes kereskedelmi törvénykönyv (Uniform Commercial Code) legtöbb része az adásvételen és a bérleten kívül (például a forgatásra szánt értékpapírok, mint a saját váltók).",
+  "Minden más, amit az adott állam vagy ország papíron, közjegyzői hitelesítéssel vagy személyes tanúzással ír elő, például sok ingatlan-átruházási okirat.",
 ];
 
 /** Documents that the EU and member states commonly keep out of simple e-signatures. */
 export const EU_LIMITS: string[] = [
-  "Contracts creating or transferring rights in real estate (other than rental), which most member states require in notarial form.",
-  "Contracts that by law need a court, public authority or notary.",
-  "Suretyship and guarantee contracts given by consumers, and family or succession law matters, in many member states.",
-  "Anything your law requires to carry a qualified electronic signature (QES), unless this install has a signing provider and the envelope is sent with qualified signatures, each signer holding a qualified certificate.",
+  "Ingatlanon fennálló jogokat létrehozó vagy átruházó szerződések (a bérlet kivételével), amelyekhez a legtöbb tagállam közjegyzői formát ír elő.",
+  "Szerződések, amelyekhez jogszabály szerint bíróság, hatóság vagy közjegyző közreműködése szükséges.",
+  "Fogyasztók által vállalt kezességi és garanciaszerződések, valamint családjogi és öröklési ügyek, sok tagállamban.",
+  "Minden, amihez a jogszabály minősített elektronikus aláírást (QES) ír elő, kivéve, ha ehhez a telepítéshez aláírás-szolgáltató tartozik, és a küldeményt minősített aláírással küldik, úgy, hogy minden aláíró minősített tanúsítvánnyal rendelkezik.",
 ];
 
 export const WHAT_IT_IS: UseSection = {
-  heading: "What Signudoc is",
+  heading: "Mi a Signudoc",
   items: [
-    "A tool for ordinary business agreements: sales and service contracts, NDAs, offer letters, purchase orders, consent and approval forms, and similar documents.",
-    "In the US, signatures made here are electronic signatures under ESIGN and UETA (and New York's ESRA).",
-    "In the EU and UK, they are simple electronic signatures (SES) under eIDAS. A court cannot refuse them only because they are electronic, but you may need to show who signed. The audit certificate, the sealed PDF and the optional access code or email code help with that.",
+    "Eszköz hétköznapi üzleti megállapodásokhoz: adásvételi és szolgáltatási szerződésekhez, titoktartási megállapodásokhoz (NDA), ajánlatokhoz, megrendelésekhez, hozzájárulási és jóváhagyási űrlapokhoz és hasonló dokumentumokhoz.",
+    "Az Egyesült Államokban az itt tett aláírások az ESIGN és az UETA (valamint New York állam ESRA törvénye) szerinti elektronikus aláírások.",
+    "Az EU-ban és az Egyesült Királyságban ezek az eIDAS szerinti egyszerű elektronikus aláírások (SES). A bíróság nem utasíthatja el őket csak azért, mert elektronikusak, de előfordulhat, hogy bizonyítanod kell, ki írta alá a dokumentumot. Ebben segít a hitelesítési igazolás, a lezárt PDF és a választható hozzáférési kód vagy e-mailes kód.",
   ],
 };
 
 export const WHAT_IT_IS_NOT: UseSection = {
-  heading: "What Signudoc is not",
+  heading: "Mi nem a Signudoc",
   items: [
-    "Not an advanced (AdES) or qualified (QES) electronic signature under eIDAS as it comes. An install can add a signing provider, and then a sender can ask each signer to sign with an advanced or qualified signature in their own name through it; without one, the seal on finished PDFs is the install's own or, with a seal certificate the organization buys, an advanced electronic seal for the organization, not for the signers.",
-    "Not a validated FDA 21 CFR Part 11 system as it comes. An administrator can turn on Part 11 mode (signers sign with their own confirmed accounts and password, and each signature shows its meaning), but your organization still has to validate the install, write and follow its own procedures, and certify its electronic signatures to the FDA.",
-    "Not a HIPAA-covered service. Do not send protected health information unless your organization has its own agreements and controls for every service the install uses.",
-    "Not a consumer-disclosure system beyond the electronic-records agreement each signer gives. If a law requires you to deliver specific consumer notices electronically, check that its own rules are met.",
-    "Not legal advice. Whoever runs this install decides which documents it may be used for.",
+    "Alapállapotában nem az eIDAS szerinti fokozott biztonságú (AdES) vagy minősített (QES) elektronikus aláírás. A telepítéshez hozzá lehet adni aláírás-szolgáltatót, és ezen keresztül a küldő kérheti, hogy minden aláíró a saját nevében fokozott biztonságú vagy minősített aláírással írjon alá. Ilyen szolgáltató nélkül a lezárt PDF-eken lévő elektronikus bélyegző a telepítés sajátja, vagy – ha a szervezet bélyegzőtanúsítványt vásárol – a szervezet fokozott biztonságú elektronikus bélyegzője, nem pedig az aláíróké.",
+    "Alapállapotában nem validált, az FDA 21 CFR Part 11 előírásainak megfelelő rendszer. A rendszergazda bekapcsolhatja a Part 11 módot (az aláírók saját, megerősített fiókkal és jelszóval írnak alá, és minden aláírás feltünteti a jelentését), de a szervezetednek ettől még validálnia kell a telepítést, saját eljárásokat kell kidolgoznia és követnie, és igazolnia kell az elektronikus aláírásait az FDA felé.",
+    "Nem HIPAA hatálya alá tartozó szolgáltatás. Ne küldj védett egészségügyi adatot, hacsak a szervezetednek nincsenek saját megállapodásai és kontrolljai a telepítés által használt minden szolgáltatásra.",
+    "Az egyes aláírók által adott, elektronikus iratokra vonatkozó hozzájáruláson túl nem fogyasztói tájékoztatási rendszer. Ha jogszabály írja elő, hogy bizonyos fogyasztói tájékoztatásokat elektronikusan kell átadnod, ellenőrizd, hogy annak saját szabályai teljesülnek-e.",
+    "Nem jogi tanácsadás. Hogy a telepítés milyen dokumentumokhoz használható, arról az dönt, aki üzemelteti.",
   ],
 };

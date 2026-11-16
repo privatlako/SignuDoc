@@ -41,17 +41,20 @@ test("an editor box shows what was typed only while it still stands for what is 
   assert.equal(labelTextToShow("  ", null), "  ");
 });
 
-test("a number field takes plain and comma-grouped numbers and nothing else", () => {
+test("a number field takes plain and space-grouped numbers and nothing else", () => {
   for (const entry of [
     "0",
     "1250",
     "12.5",
+    "12,5",
+    "1,25",
     "-3",
     "+7.25",
+    "+7,25",
     " 42 ",
-    "1,250",
-    "1,250,000.75",
-    "-12,000",
+    "1 250",
+    "1 250 000,75",
+    "-12 000",
   ]) {
     assert.equal(isNumberEntry(entry), true, entry);
   }
@@ -59,14 +62,14 @@ test("a number field takes plain and comma-grouped numbers and nothing else", ()
   for (const entry of [
     "",
     "abc",
-    "12,5",
-    "1,25",
+    "1,250,000.75",
+    "1.250.000",
     "1.2.3",
     "12.",
     ".5",
     "1e5",
-    "1 250",
-    "12,5000",
+    "12 50",
+    "1 250.5",
     "٣",
     "12%",
     "$12",

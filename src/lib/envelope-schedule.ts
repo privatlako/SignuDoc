@@ -4,11 +4,15 @@ import {
   queryOne,
   withTransaction,
 } from "./db/connection.ts";
-import { formatDeadline } from "./envelope-deadline.ts";
 import { sendAutomaticEnvelopeReminder } from "./reminders.ts";
 import { recordAuditEvent } from "./services/audit.ts";
 import { createEmailService, type EmailService } from "./services/email.ts";
 import { AUTOMATIC_REMINDER_SLACK_SECONDS } from "./services/reminders.ts";
+import {
+  buildGreeting,
+  formatEmailDeadline,
+  quoteTitle,
+} from "./services/signing-invitation-email.ts";
 import { resolveAppUrl } from "./utils/env.ts";
 
 // What the daily job does for envelopes that are out for signature:
@@ -165,20 +169,21 @@ async function noteExpiryNoticeSent(
 function buildExpiryNotice(envelope: ExpiredEnvelopeRow) {
   const appUrl = resolveAppUrl();
   const link = appUrl ? `${appUrl}/envelopes/${envelope.id}` : null;
+  const title = quoteTitle(envelope.title);
   const waitingOn =
     envelope.signerName && envelope.signerEmail
-      ? ` It was still waiting on ${envelope.signerName} (${envelope.signerEmail}).`
+      ? ` Még ${envelope.signerName} (${envelope.signerEmail}) aláírására várt.`
       : "";
 
   return {
-    subject: `"${envelope.title}" expired before everyone signed`,
+    subject: `Lejárt a határidő, mielőtt mindenki aláírta volna: ${title}`,
     template: "expiry_notice" as const,
     textBody: [
-      `Hello ${envelope.ownerName?.trim() || envelope.ownerEmail},`,
+      buildGreeting(envelope.ownerName?.trim() || envelope.ownerEmail),
       "",
-      `The deadline for "${envelope.title}" passed on ${formatDeadline(envelope.expiresAt)}.${waitingOn} Nobody can sign it now.`,
+      `Lejárt az aláírási határidő ennél a dokumentumnál: ${title}. A határidő ${formatEmailDeadline(envelope.expiresAt)} volt.${waitingOn} Most már senki nem tudja aláírni.`,
       "",
-      "To give signers more time, open the envelope and set a new deadline. The signing link that was already sent will work again. If the document is no longer needed, void it.",
+      "Ha több időt adnál az aláíróknak, nyisd meg a dokumentumot, és állíts be új határidőt. A korábban kiküldött aláírási link ekkor újra működik. Ha már nincs szükség a dokumentumra, vond vissza.",
       ...(link ? ["", link] : []),
     ].join("\n"),
     to: envelope.ownerEmail,

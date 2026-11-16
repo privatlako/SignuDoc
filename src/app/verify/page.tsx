@@ -5,30 +5,30 @@ import { VerifyForm } from "@/components/verify/verify-form";
 
 export const metadata: Metadata = {
   description:
-    "Check that a signed PDF or audit certificate is exactly the file this site produced.",
-  title: "Verify a document",
+    "Ellenőrizd, hogy egy aláírt PDF vagy hitelesítési igazolás pontosan az a fájl-e, amelyet ez az oldal készített.",
+  title: "Dokumentum ellenőrzése",
 };
 
 export default function VerifyPage() {
   return (
     <PublicDocumentShell
-      description="Check that a signed PDF or audit certificate is exactly the file this site produced when signing finished. Any change to the file, however small, gives a different fingerprint."
-      title="Verify a document"
+      description="Ellenőrizd, hogy egy aláírt PDF vagy hitelesítési igazolás pontosan az a fájl-e, amelyet ez az oldal az aláírás lezárulásakor készített. A fájl bármilyen apró módosítása más ujjlenyomatot ad."
+      title="Dokumentum ellenőrzése"
     >
       <div className="mx-auto w-full max-w-[52rem] space-y-8">
         <VerifyForm />
         <section className="space-y-3">
           <h2 className="text-xl font-extrabold tracking-[-0.02em] text-(--fg)">
-            Checking the seal in a PDF reader
+            Az elektronikus bélyegző ellenőrzése PDF-olvasóban
           </h2>
           <p>
-            Finished documents and certificates also carry a digital seal. Open
-            the file in Adobe Acrobat Reader or another PDF reader and look at
-            its signature panel. The reader says whether the document has been
-            changed since it was sealed. Unless the organization has installed a
-            certificate from a certificate authority, the reader will also say
-            the signer&apos;s identity is unknown; that is expected and does not
-            affect the check for changes.
+            A lezárt dokumentumokon és igazolásokon elektronikus bélyegző is
+            van. Nyisd meg a fájlt az Adobe Acrobat Readerben vagy egy másik
+            PDF-olvasóban, és nézd meg az aláírások panelt. Az olvasó jelzi,
+            hogy a dokumentum változott-e a lezárás óta. Ha a szervezet nem
+            telepített hitelesítésszolgáltatótól származó tanúsítványt, az
+            olvasó azt is jelzi, hogy az aláíró személyazonossága ismeretlen. Ez
+            várható, és nem befolyásolja a módosítások ellenőrzését.
           </p>
         </section>
       </div>

@@ -12,17 +12,18 @@ type Method = SigningVerificationState["required"][number];
 
 const METHOD_COPY: Record<Method, { helper: string; label: string }> = {
   access_code: {
-    helper: "The sender gave you this code separately, for example by phone.",
-    label: "Access code",
+    helper: "Ezt a kódot a küldő külön adta meg neked, például telefonon.",
+    label: "Hozzáférési kód",
   },
   account: {
     helper:
-      "This document is signed with your own account here. Enter the password you sign in with.",
-    label: "Password",
+      "Ezt a dokumentumot a saját fiókoddal írod alá. Add meg a jelszót, amellyel be szoktál jelentkezni.",
+    label: "Jelszó",
   },
   email_code: {
-    helper: "We email a 6-digit code to the address this document was sent to.",
-    label: "Code from your email",
+    helper:
+      "Egy 6 jegyű kódot küldünk arra az e-mail-címre, ahová ezt a dokumentumot kaptad.",
+    label: "Az e-mailben kapott kód",
   },
 };
 
@@ -39,7 +40,7 @@ export function SignerVerificationScreen({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(
     state.emailCodeSentAt && method === "email_code"
-      ? `A code was sent to ${state.maskedEmail}.`
+      ? `Elküldtük a kódot ide: ${state.maskedEmail}.`
       : null,
   );
   const [isChecking, setIsChecking] = useState(false);
@@ -60,15 +61,15 @@ export function SignerVerificationScreen({
       } | null;
 
       if (!response.ok) {
-        setError(payload?.error ?? "The code could not be sent right now.");
+        setError(payload?.error ?? "Most nem sikerült elküldeni a kódot.");
         return;
       }
 
       setNotice(
-        `A code was sent to ${payload?.maskedEmail ?? state.maskedEmail}.`,
+        `Elküldtük a kódot ide: ${payload?.maskedEmail ?? state.maskedEmail}.`,
       );
     } catch {
-      setError("The code could not be sent right now.");
+      setError("Most nem sikerült elküldeni a kódot.");
     } finally {
       setIsSending(false);
     }
@@ -94,7 +95,7 @@ export function SignerVerificationScreen({
       } | null;
 
       if (!response.ok) {
-        setError(payload?.error ?? "The code could not be checked right now.");
+        setError(payload?.error ?? "Most nem sikerült ellenőrizni a kódot.");
         return;
       }
 
@@ -102,7 +103,7 @@ export function SignerVerificationScreen({
       // document.
       window.location.reload();
     } catch {
-      setError("The code could not be checked right now.");
+      setError("Most nem sikerült ellenőrizni a kódot.");
     } finally {
       setIsChecking(false);
     }
@@ -130,21 +131,21 @@ export function SignerVerificationScreen({
             <ShieldCheckIcon className="size-6" strokeWidth={2.2} />
           </span>
           <h1 className="mt-6 text-[clamp(1.625rem,4vw,2rem)] font-extrabold leading-tight tracking-[-0.03em] text-(--fg)">
-            Confirm it&apos;s you
+            Igazold, hogy te vagy az
           </h1>
           <p className="mt-3 text-base leading-7 text-(--secondary)">
-            {state.senderName} asked for a check before you open &ldquo;
-            {state.envelopeTitle}&rdquo;.
+            {state.senderName} ellenőrzést kért, mielőtt megnyitod ezt a
+            dokumentumot: „{state.envelopeTitle}”.
             {state.required.length > 1
-              ? ` Step ${String(step)} of ${String(state.required.length)}.`
+              ? ` ${String(step)}. lépés / ${String(state.required.length)}.`
               : ""}
           </p>
           <form className="mt-8 grid gap-5" onSubmit={handleSubmit}>
             {method === "account" ? (
               <FieldShell
                 autoComplete="username"
-                helper={`The address this document was sent to (${state.maskedEmail}).`}
-                label="Email address"
+                helper={`Az a cím, ahová ezt a dokumentumot kaptad (${state.maskedEmail}).`}
+                label="E-mail-cím"
                 name="signer-email"
                 onChange={(event) => setEmail(event.target.value)}
                 readOnly={false}
@@ -183,7 +184,7 @@ export function SignerVerificationScreen({
                 loading={isChecking}
                 type="submit"
               >
-                Continue
+                Tovább
               </ShellButton>
               {method === "email_code" ? (
                 <ShellButton
@@ -191,7 +192,7 @@ export function SignerVerificationScreen({
                   onClick={sendCode}
                   variant="secondary"
                 >
-                  {notice ? "Send a new code" : "Email me a code"}
+                  {notice ? "Új kód küldése" : "Kód küldése e-mailben"}
                 </ShellButton>
               ) : null}
             </div>

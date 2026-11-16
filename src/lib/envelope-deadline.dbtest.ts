@@ -13,7 +13,6 @@ import {
   openTestDatabase,
   recordAuditEventWhileWaitedOn,
 } from "./db/test-database.ts";
-import { formatDeadline } from "./envelope-deadline.ts";
 import { runEnvelopeSchedule } from "./envelope-schedule.ts";
 import { changeEnvelopeDeadline, EnvelopeMutationError } from "./envelopes.ts";
 import { ReminderMutationError, sendManualEnvelopeNudge } from "./reminders.ts";
@@ -23,6 +22,7 @@ import type {
   TransactionalEmailMessage,
 } from "./services/email.ts";
 import { issueSigningLink } from "./services/signing-links.ts";
+import { formatEmailDeadline } from "./services/signing-invitation-email.ts";
 import {
   createStorageService,
   type StorageService,
@@ -283,8 +283,11 @@ test("the daily job tells the sender once that a deadline passed", async () => {
   assert.equal(first.expiryNoticeFailures.length, 0);
   assert.equal(mine.length, 1);
   assert.equal(mine[0]?.template, "expiry_notice");
-  assert.equal(mine[0]?.subject, '"Lease" expired before everyone signed');
-  assert.match(mine[0]?.textBody ?? "", /still waiting on Riley Recipient \(/);
+  assert.equal(
+    mine[0]?.subject,
+    "Lejárt a határidő, mielőtt mindenki aláírta volna: „Lease”",
+  );
+  assert.match(mine[0]?.textBody ?? "", /Még Riley Recipient \(/);
   assert.match(
     mine[0]?.textBody ?? "",
     new RegExp(`/envelopes/${expired.envelopeId}$`),
@@ -578,7 +581,7 @@ test("a deadline moved while a signer submits reaches the next signer", async ()
   assert.equal(invitation?.template, "signing_invitation");
   assert.ok(
     invitation?.textBody.includes(
-      `This request expires on ${formatDeadline(newDeadline)}.`,
+      `Az aláírási kérés lejár: ${formatEmailDeadline(newDeadline)}.`,
     ),
   );
   assert.equal((await verifyAuditChain(envelopeId, database)).ok, true);

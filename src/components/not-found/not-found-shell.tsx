@@ -23,7 +23,9 @@ export function NotFoundShell({
   const resolvedInitialState = resolveNotFoundShellState(initialState);
   const authenticated = resolvedInitialState === "authenticated";
   const ctaHref = authenticated ? "/dashboard" : "/";
-  const ctaLabel = authenticated ? "Go to Dashboard" : "Go to Home";
+  const ctaLabel = authenticated
+    ? "Tovább az irányítópultra"
+    : "Vissza a kezdőlapra";
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
@@ -35,10 +37,10 @@ export function NotFoundShell({
           404
         </p>
         <h1 className="mt-4 text-[clamp(1.875rem,5vw,2.5rem)] font-extrabold leading-[1.08] tracking-[-0.035em] text-(--fg)">
-          Page not found
+          Az oldal nem található
         </h1>
         <p className="mx-auto mt-3 max-w-md text-base leading-7 text-(--secondary)">
-          The page you&apos;re looking for doesn&apos;t exist or has been moved.
+          A keresett oldal nem létezik, vagy máshová került.
         </p>
 
         <div className="mt-8 flex justify-center">

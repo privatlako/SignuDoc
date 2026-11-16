@@ -5,7 +5,7 @@ import { RenewDownloadButton } from "@/components/downloads/renew-download-butto
 
 export const metadata: Metadata = {
   robots: { follow: false, index: false },
-  title: "Download link expired",
+  title: "Lejárt letöltési link",
 };
 
 type ExpiredDownloadPageProps = {
@@ -19,8 +19,8 @@ export default async function ExpiredDownloadPage({
 
   return (
     <PublicDocumentShell
-      description="Download links work for a limited time. You can have new ones sent to the email address this document was sent to."
-      title="This download link has expired"
+      description="A letöltési linkek csak korlátozott ideig működnek. Újakat kérhetsz arra az e-mail-címre, amelyre a dokumentumot küldték."
+      title="Ez a letöltési link lejárt"
     >
       <div className="mx-auto w-full max-w-[52rem]">
         <RenewDownloadButton token={token} />

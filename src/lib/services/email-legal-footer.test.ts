@@ -28,21 +28,21 @@ test("the hosted service links to its own terms, privacy and contact pages", () 
     [
       "Hello",
       "",
-      "Terms of Service:",
+      "Felhasználási feltételek:",
       "https://sign.acme.com/terms",
       "",
-      "Privacy Policy:",
+      "Adatvédelmi tájékoztató:",
       "https://sign.acme.com/privacy",
       "",
-      "Contact:",
+      "Kapcsolat:",
       "https://sign.acme.com/contact",
     ].join("\n"),
   );
   assert.match(
     result.htmlBody,
-    /<a href="https:\/\/sign\.acme\.com\/terms">Terms of Service<\/a>/,
+    /<a href="https:\/\/sign\.acme\.com\/terms">Felhasználási feltételek<\/a>/,
   );
-  assert.doesNotMatch(result.textBody, /Sent by|Sent using/);
+  assert.doesNotMatch(result.textBody, /SignuDoc segítségével/);
 });
 
 test("a neutral install with nothing else set links its signer privacy notice and says who sent the message", () => {
@@ -53,10 +53,10 @@ test("a neutral install with nothing else set links its signer privacy notice an
     [
       "Hello",
       "",
-      "Privacy notice:",
+      "Adatkezelési tájékoztató:",
       "https://sign.acme.com/signer-privacy",
       "",
-      "Sent by Acme Corp using SignuDoc.",
+      "Ezt az üzenetet Acme Corp küldte a SignuDoc segítségével.",
     ].join("\n"),
   );
 });
@@ -78,15 +78,15 @@ test("a neutral install links to the organization's own pages and support addres
     [
       "Hello",
       "",
-      "Terms of Service:",
+      "Felhasználási feltételek:",
       "https://acme.com/terms",
       "",
-      "Privacy Policy:",
+      "Adatvédelmi tájékoztató:",
       "https://acme.com/privacy",
       "",
-      "Questions? Contact help@acme.com.",
+      "Kérdésed van? Írj ide: help@acme.com",
       "",
-      "Sent by Acme Corp using SignuDoc.",
+      "Ezt az üzenetet Acme Corp küldte a SignuDoc segítségével.",
     ].join("\n"),
   );
   assert.match(
@@ -102,7 +102,10 @@ test("an install that has not been named yet does not invent a name", () => {
     env,
   );
 
-  assert.match(result.textBody, /\n\nSent using SignuDoc\.$/);
+  assert.match(
+    result.textBody,
+    /\n\nEzt az üzenetet a SignuDoc segítségével küldtük\.$/,
+  );
   assert.doesNotMatch(result.textBody, /Acme/);
 });
 
@@ -117,11 +120,17 @@ test("the organization's name and links are escaped in the HTML part", () => {
     env,
   );
 
-  assert.match(result.htmlBody, /Sent by Harbour &amp; &lt;Finch&gt; using/);
+  assert.match(
+    result.htmlBody,
+    /Ezt az üzenetet Harbour &amp; &lt;Finch&gt; küldte/,
+  );
   assert.doesNotMatch(result.htmlBody, /<Finch>/);
   assert.doesNotMatch(result.htmlBody, /b="2"/);
   // The plain-text part is not HTML and carries the name as it is.
-  assert.match(result.textBody, /Sent by Harbour & <Finch> using SignuDoc\./);
+  assert.match(
+    result.textBody,
+    /Ezt az üzenetet Harbour & <Finch> küldte a SignuDoc segítségével\./,
+  );
 });
 
 test("a neutral install with no links does not need to know its own URL", () => {

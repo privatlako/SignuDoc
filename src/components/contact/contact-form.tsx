@@ -3,11 +3,7 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 
 import { FieldShell, ShellButton } from "@/components/shared/form-shell";
-import {
-  Field,
-  FieldError,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { contactFormSchema } from "@/lib/schemas/contact";
 
@@ -39,7 +35,7 @@ function readApiErrorMessage(payload: ContactApiPayload): string {
     return payload.error;
   }
 
-  return "Something went wrong. Please try again.";
+  return "Valami hiba történt. Próbáld újra.";
 }
 
 export function ContactForm() {
@@ -93,18 +89,18 @@ export function ContactForm() {
         const field = issue.path[0];
 
         if (field === "name") {
-          nextErrors.name = "Enter your name";
+          nextErrors.name = "Add meg a neved";
         }
 
         if (field === "email") {
-          nextErrors.email = "Enter a valid email address";
+          nextErrors.email = "Adj meg egy érvényes e-mail-címet";
         }
 
         if (field === "message") {
           nextErrors.message =
             issue.code === "too_big"
-              ? "Message must be 5000 characters or fewer"
-              : "Enter a message";
+              ? "Az üzenet legfeljebb 5000 karakter lehet"
+              : "Írd be az üzenetet";
         }
       }
 
@@ -155,10 +151,10 @@ export function ContactForm() {
       setValues(defaultValues);
       setErrors({});
       setSuccessMessage(
-        `Your message was sent. We’ll follow up at ${validationResult.data.email} if we need more detail.`,
+        `Elküldtük az üzenetedet. Ha további részletekre van szükségünk, a(z) ${validationResult.data.email} címen keresünk.`,
       );
     } catch {
-      setSubmitError("Something went wrong. Please try again.");
+      setSubmitError("Valami hiba történt. Próbáld újra.");
     } finally {
       setIsSubmitting(false);
     }
@@ -171,7 +167,7 @@ export function ContactForm() {
           aria-hidden="true"
           className="pointer-events-none absolute -left-[10000px] top-auto h-px w-px overflow-hidden"
         >
-          <label htmlFor="company">Company</label>
+          <label htmlFor="company">Cég</label>
           <input
             autoComplete="off"
             id="company"
@@ -183,15 +179,11 @@ export function ContactForm() {
         </div>
 
         {successMessage ? (
-          <div className="notice notice-success">
-            {successMessage}
-          </div>
+          <div className="notice notice-success">{successMessage}</div>
         ) : null}
 
         {submitError ? (
-          <div className="notice notice-danger">
-            {submitError}
-          </div>
+          <div className="notice notice-danger">{submitError}</div>
         ) : null}
 
         <div className="grid gap-5 sm:grid-cols-2">
@@ -199,10 +191,10 @@ export function ContactForm() {
             autoComplete="name"
             disabled={isSubmitting}
             error={errors.name}
-            label="Name"
+            label="Név"
             name="contact-name"
             onChange={handleChange("name")}
-            placeholder="Your name"
+            placeholder="A neved"
             readOnly={false}
             value={values.name}
           />
@@ -210,10 +202,10 @@ export function ContactForm() {
             autoComplete="email"
             disabled={isSubmitting}
             error={errors.email}
-            label="Email"
+            label="E-mail-cím"
             name="contact-email"
             onChange={handleChange("email")}
-            placeholder="you@example.com"
+            placeholder="te@pelda.hu"
             readOnly={false}
             type="email"
             value={values.email}
@@ -225,7 +217,7 @@ export function ContactForm() {
             className="text-[0.8125rem] font-semibold text-(--secondary)"
             htmlFor="contact-message"
           >
-            Message
+            Üzenet
           </FieldLabel>
           <Textarea
             aria-describedby="contact-message-description"
@@ -235,7 +227,7 @@ export function ContactForm() {
             id="contact-message"
             name="contact-message"
             onChange={handleChange("message")}
-            placeholder="Tell us what you need, and include any account email, sender name, document title, or link that helps us identify the request."
+            placeholder="Írd le, miben segíthetünk. Add meg a fiókhoz tartozó e-mail-címet, a küldő nevét, a dokumentum címét vagy linkjét, ha ezek segítenek beazonosítani a kérést."
             value={values.message}
           />
           {errors.message ? (
@@ -250,7 +242,7 @@ export function ContactForm() {
 
         <div className="flex pt-1 sm:justify-end">
           <ShellButton loading={isSubmitting} type="submit">
-            {isSubmitting ? "Sending..." : "Send message"}
+            {isSubmitting ? "Küldés…" : "Üzenet küldése"}
           </ShellButton>
         </div>
       </form>

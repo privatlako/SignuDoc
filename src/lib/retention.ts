@@ -15,6 +15,10 @@ import {
   type StorageService,
 } from "./services/storage.ts";
 import { createEmailService, type EmailService } from "./services/email.ts";
+import {
+  buildGreeting,
+  quoteTitle,
+} from "./services/signing-invitation-email.ts";
 import { readStoredSettings } from "./settings.ts";
 import { type EnvSource, isHostedMode, resolveAppUrl } from "./utils/env.ts";
 
@@ -760,8 +764,16 @@ async function listFinishedEnvelopesToHandle(
   );
 }
 
+const retentionDayFormatter = new Intl.DateTimeFormat("hu-HU", {
+  day: "numeric",
+  month: "long",
+  timeZone: "UTC",
+  year: "numeric",
+});
+
+/** "2027. január 15." */
 function formatDay(timestamp: number): string {
-  return new Date(timestamp * 1000).toISOString().slice(0, 10);
+  return retentionDayFormatter.format(new Date(timestamp * 1000));
 }
 
 async function warnBeforeRetentionDeletion(
@@ -776,14 +788,15 @@ async function warnBeforeRetentionDeletion(
 
   await emailService.send(
     {
-      subject: `"${envelope.title}" will be deleted on ${formatDay(deleteOn)}`,
+      subject: `Hamarosan törlődik: ${quoteTitle(envelope.title)} (${formatDay(deleteOn)})`,
       template: "retention_notice",
       textBody: [
-        `Hello ${envelope.ownerName},`,
+        buildGreeting(envelope.ownerName),
         "",
-        `Your organization keeps finished documents for a set time. "${envelope.title}" and its audit trail will be deleted on or after ${formatDay(deleteOn)}.`,
+        `A szervezeted a lezárt dokumentumokat csak egy meghatározott ideig őrzi meg. Ezt a dokumentumot és az eseménynaplóját hamarosan töröljük: ${quoteTitle(envelope.title)}.`,
+        `A törlés legkorábbi napja: ${formatDay(deleteOn)}`,
         "",
-        "Download the signed PDF and the certificate now if you need to keep them.",
+        "Ha meg szeretnéd tartani, most töltsd le az aláírt PDF-et és a hitelesítési igazolást.",
         ...(link ? ["", link] : []),
       ].join("\n"),
       to: envelope.ownerEmail,

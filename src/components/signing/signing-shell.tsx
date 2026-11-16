@@ -31,27 +31,27 @@ const tokenStateCopy: Record<
   { description: string; title: string }
 > = {
   error: {
-    title: "Something went wrong. Please try again.",
+    title: "Valami hiba történt. Próbáld újra.",
     description:
-      "We couldn't load this document right now. Reload the page or request a fresh signing link from the sender.",
+      "Most nem sikerült betölteni a dokumentumot. Töltsd újra az oldalt, vagy kérj új aláírási linket a küldőtől.",
   },
   expired: {
-    title: "This link has expired",
-    description: "Request a new signing link from the sender.",
+    title: "Ez a link lejárt",
+    description: "Kérj új aláírási linket a küldőtől.",
   },
   "already-signed": {
-    title: "You've already signed",
-    description: "You already completed your signature for this document.",
+    title: "Már aláírtad",
+    description: "Ezt a dokumentumot már aláírtad.",
   },
   voided: {
-    title: "This envelope has been voided",
+    title: "Ezt az aláírási kérést visszavonták",
     description:
-      "The sender cancelled this document. No further action is needed.",
+      "A küldő visszavonta ezt a dokumentumot. Nincs több teendőd vele.",
   },
   declined: {
-    title: "This envelope has been declined",
+    title: "Ezt az aláírási kérést elutasították",
     description:
-      "A signer declined this document. No further action is needed.",
+      "Egy aláíró elutasította ezt a dokumentumot. Nincs több teendőd vele.",
   },
 };
 

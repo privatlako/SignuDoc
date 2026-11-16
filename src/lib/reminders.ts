@@ -23,7 +23,11 @@ import {
   recordEmailSent,
 } from "./services/audit.ts";
 import { createEmailService, type EmailService } from "./services/email.ts";
-import { buildDeadlineLine } from "./services/signing-invitation-email.ts";
+import {
+  buildDeadlineLine,
+  buildGreeting,
+  quoteTitle,
+} from "./services/signing-invitation-email.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
 import {
   formatReminderAvailableAt,
@@ -212,32 +216,36 @@ function buildReminderEmail(input: {
   signingUrl: string;
 }) {
   const automatic = input.kind === "automatic";
+  const title = quoteTitle(input.envelopeTitle);
   const subject = automatic
-    ? `Reminder: ${input.senderName} is waiting for your signature on "${input.envelopeTitle}"`
-    : `${input.senderName} sent you a reminder to sign "${input.envelopeTitle}"`;
+    ? `Emlékeztető: ${title} még az aláírásodra vár`
+    : `${input.senderName} emlékeztet: ${title} még az aláírásodra vár`;
   const introLine = automatic
-    ? `${input.senderName} is still waiting for your signature on "${input.envelopeTitle}", sent through ${input.branding.productName}.`
-    : `${input.senderName} sent you a reminder to sign "${input.envelopeTitle}" through ${input.branding.productName}.`;
+    ? `Csak jelzem, hogy ez a dokumentum még az aláírásodra vár: ${title}. Küldő: ${input.senderName}.`
+    : `${input.senderName} emlékeztet, hogy ez a dokumentum még az aláírásodra vár: ${title}.`;
   const deadlineLine = buildDeadlineLine(input.expiresAt);
+  const noAccountLine = "Az aláíráshoz nem kell fiókot létrehoznod.";
+  const newestLinkLine =
+    "Ha közben újabb meghívót vagy emlékeztetőt kapsz, mindig a legfrissebb linket használd.";
   const textBody = [
-    `Hi ${input.signerName},`,
+    buildGreeting(input.signerName),
     "",
     introLine,
     "",
-    "Review and sign the document here:",
+    "Itt tudod megnézni és aláírni:",
     input.signingUrl,
     ...(deadlineLine ? ["", deadlineLine] : []),
     "",
-    `You do not need a ${input.branding.productName} account to sign.`,
-    "If you receive a newer invitation or reminder link, use the newest one.",
+    noAccountLine,
+    newestLinkLine,
   ].join("\n");
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.signerName)},</p>`,
+    `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
     `<p>${escapeHtml(introLine)}</p>`,
-    `<p><a href="${escapeHtml(input.signingUrl)}">Review and sign the document</a></p>`,
+    `<p><a href="${escapeHtml(input.signingUrl)}">Megnézem és aláírom</a></p>`,
     deadlineLine ? `<p>${escapeHtml(deadlineLine)}</p>` : "",
-    `<p>You do not need a ${escapeHtml(input.branding.productName)} account to sign.</p>`,
-    "<p>If you receive a newer invitation or reminder link, use the newest one.</p>",
+    `<p>${noAccountLine}</p>`,
+    `<p>${newestLinkLine}</p>`,
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {

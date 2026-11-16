@@ -28,7 +28,7 @@ export function RenewDownloadButton({ token }: { token: string }) {
       if (!response.ok || !payload?.maskedEmail) {
         setState({
           kind: "error",
-          message: payload?.error ?? "New links could not be sent right now.",
+          message: payload?.error ?? "Most nem sikerült új linkeket küldeni.",
         });
         return;
       }
@@ -37,7 +37,7 @@ export function RenewDownloadButton({ token }: { token: string }) {
     } catch {
       setState({
         kind: "error",
-        message: "New links could not be sent right now.",
+        message: "Most nem sikerült új linkeket küldeni.",
       });
     }
   }
@@ -46,13 +46,13 @@ export function RenewDownloadButton({ token }: { token: string }) {
     <div className="space-y-4">
       {state.kind === "sent" ? (
         <p role="status" className="notice notice-success">
-          New links are on their way to {state.maskedEmail}.
+          Az új linkeket elküldtük ide: {state.maskedEmail}.
         </p>
       ) : (
         <ShellButton loading={state.kind === "sending"} onClick={handleClick}>
           {state.kind === "sending"
-            ? "Sending..."
-            : "Email me new download links"}
+            ? "Küldés…"
+            : "Új letöltési linkeket kérek e-mailben"}
         </ShellButton>
       )}
       {state.kind === "error" ? (

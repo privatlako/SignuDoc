@@ -7,6 +7,10 @@ import { getBranding } from "./settings.ts";
 import { recordEmailSent } from "./services/audit.ts";
 import { createEmailService, type EmailService } from "./services/email.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
+import {
+  buildGreeting,
+  quoteTitle,
+} from "./services/signing-invitation-email.ts";
 import { RECIPIENT_DOWNLOAD_LINK_TTL_SECONDS } from "./types/domain.ts";
 import { escapeHtml } from "./utils/html.ts";
 
@@ -25,26 +29,29 @@ export async function sendFreshDownloadLinks(
   return renewRecipientDownloadLinks(token, {
     database,
     async sendLinks({ envelope, evidenceUrl, signedUrl, signer }) {
-      const subject = `New download links for "${envelope.title}"`;
+      const title = quoteTitle(envelope.title);
+      const subject = `Új letöltési linkek: ${title}`;
+      const introLine = `Itt vannak az új letöltési linkek ehhez a dokumentumhoz: ${title}. ${String(TTL_DAYS)} napig érvényesek.`;
+      const keepLine = "Töltsd le és őrizd meg a fájlokat: ez a te példányod.";
       const textBody = [
-        `Hi ${signer.name},`,
+        buildGreeting(signer.name),
         "",
-        `Here are new download links for "${envelope.title}" in ${branding.productName}. They work for ${String(TTL_DAYS)} days.`,
+        introLine,
         "",
-        ...(signedUrl ? [`Signed PDF: ${signedUrl}`] : []),
-        `Certificate: ${evidenceUrl}`,
+        ...(signedUrl ? [`Aláírt PDF: ${signedUrl}`] : []),
+        `Hitelesítési igazolás: ${evidenceUrl}`,
         "",
-        "Download and keep the files: they are your copy of the record.",
+        keepLine,
       ].join("\n");
       const htmlBody = [
-        `<p>Hi ${escapeHtml(signer.name)},</p>`,
-        `<p>Here are new download links for &ldquo;${escapeHtml(envelope.title)}&rdquo; in ${escapeHtml(branding.productName)}. They work for ${String(TTL_DAYS)} days.</p>`,
+        `<p>${escapeHtml(buildGreeting(signer.name))}</p>`,
+        `<p>${escapeHtml(introLine)}</p>`,
         "<p>",
         signedUrl
-          ? `<a href="${escapeHtml(signedUrl)}">Download signed PDF</a><br />`
+          ? `<a href="${escapeHtml(signedUrl)}">Aláírt PDF letöltése</a><br />`
           : "",
-        `<a href="${escapeHtml(evidenceUrl)}">Download certificate</a></p>`,
-        "<p>Download and keep the files: they are your copy of the record.</p>",
+        `<a href="${escapeHtml(evidenceUrl)}">Hitelesítési igazolás letöltése</a></p>`,
+        `<p>${keepLine}</p>`,
       ].join("");
       const body = withUserEmailLegalFooter({ htmlBody, textBody }, branding);
       const delivery = await emailService.send({

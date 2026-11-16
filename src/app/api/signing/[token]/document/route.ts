@@ -97,7 +97,7 @@ export async function GET(
 
     return NextResponse.json(
       {
-        error: "Unable to load this document.",
+        error: "Most nem sikerült betölteni a dokumentumot.",
       },
       {
         headers: {

@@ -121,7 +121,7 @@ test("a draft keeps half-finished choices, and sending waits until they can be a
   assert.equal(reviewed?.canSend, false);
   assert.match(
     reviewed?.disabledReason ?? "",
-    /dropdown for Riley Recipient needs at least two choices/,
+    /Riley Recipient egyik legördülő listájában legalább két lehetőség kell/,
   );
   await assert.rejects(
     sendDraftEnvelope(
@@ -133,7 +133,7 @@ test("a draft keeps half-finished choices, and sending waits until they can be a
     (error: unknown) =>
       error instanceof EnvelopeMutationError &&
       error.statusCode === 400 &&
-      /dropdown/.test(error.message),
+      /legördülő/.test(error.message),
   );
 
   // With the dropdown filled in, the lone radio button is what is left.
@@ -147,7 +147,7 @@ test("a draft keeps half-finished choices, and sending waits until they can be a
   assert.equal(reviewed?.canSend, false);
   assert.match(
     reviewed?.disabledReason ?? "",
-    /radio button for Casey Second is on its own/,
+    /Casey Second egyik választógombja egyedül áll/,
   );
 
   await save([

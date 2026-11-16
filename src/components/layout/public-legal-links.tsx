@@ -45,7 +45,10 @@ export function PublicLegalFooter({
               {
                 external: true,
                 href: branding.termsUrl,
-                label: labelVariant === "long" ? "Terms of Service" : "Terms",
+                label:
+                  labelVariant === "long"
+                    ? "Felhasználási feltételek"
+                    : "Feltételek",
               },
             ]
           : []),
@@ -55,12 +58,18 @@ export function PublicLegalFooter({
           ? {
               external: true,
               href: branding.privacyUrl,
-              label: labelVariant === "long" ? "Privacy Policy" : "Privacy",
+              label:
+                labelVariant === "long"
+                  ? "Adatvédelmi tájékoztató"
+                  : "Adatvédelem",
             }
           : {
               external: false,
               href: "/signer-privacy",
-              label: labelVariant === "long" ? "Privacy notice" : "Privacy",
+              label:
+                labelVariant === "long"
+                  ? "Adatkezelési tájékoztató"
+                  : "Adatvédelem",
             },
       ];
 
@@ -68,7 +77,7 @@ export function PublicLegalFooter({
   links.push({
     external: false,
     href: PERMITTED_USE_PATH,
-    label: labelVariant === "long" ? "What this is for" : "E-signatures",
+    label: labelVariant === "long" ? "Mire használható" : "E-aláírás",
   });
 
   return (
@@ -81,7 +90,7 @@ export function PublicLegalFooter({
 
           {links.length > 0 ? (
             <nav
-              aria-label="Footer"
+              aria-label="Lábléc"
               className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
             >
               {links.map((link) =>
