@@ -9,6 +9,13 @@ import { type EmailTemplateKind } from "../types/domain.ts";
 import { getEnv, isLocalDeployment, type EnvSource } from "../utils/env.ts";
 import { buildEmailAddresses, type EmailAddresses } from "./email-addresses.ts";
 import { assertServiceConfig } from "./service-config.ts";
+import {
+  createToSendClient,
+  parseAddress,
+  TOSEND_MAX_ATTACHMENT_BYTES,
+  type ToSendClient,
+  type ToSendEmail,
+} from "./tosend.ts";
 
 // The addresses mail is sent from and replied to are not needed here: they
 // come from RESEND_FROM_EMAIL and SUPPORT_EMAIL when those are set, and from
@@ -18,7 +25,7 @@ const EMAIL_ENV_KEYS = ["RESEND_API_KEY"] as const;
 const DEFAULT_CAPTURE_DIR = ".data/outbox";
 const DEFAULT_CAPTURE_SENDER_ADDRESS = "dev@signudoc.localhost";
 
-export type EmailDriver = "capture" | "resend";
+export type EmailDriver = "capture" | "resend" | "tosend";
 
 export type EmailAttachment = {
   content: Uint8Array;
@@ -33,12 +40,23 @@ export type EmailAttachment = {
  */
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
+function maxAttachmentBytes(env: EnvSource = process.env): number {
+  try {
+    return resolveEmailDriver(env) === "tosend"
+      ? TOSEND_MAX_ATTACHMENT_BYTES
+      : MAX_ATTACHMENT_BYTES;
+  } catch {
+    return MAX_ATTACHMENT_BYTES;
+  }
+}
+
 export function fitsAsAttachments(
   attachments: readonly EmailAttachment[],
+  env: EnvSource = process.env,
 ): boolean {
   return (
     attachments.reduce((total, item) => total + item.content.byteLength, 0) <=
-    MAX_ATTACHMENT_BYTES
+    maxAttachmentBytes(env)
   );
 }
 
@@ -68,6 +86,8 @@ type CreateEmailServiceOptions = {
   /** Replaced in tests, where there is no database to read settings from. */
   resolveAddresses?: () => Promise<EmailAddresses>;
   resendClient?: Resend;
+  /** Replaced in tests, so that nothing is sent. */
+  toSendClient?: ToSendClient;
   /** Replaced in tests, so that they do not really wait. */
   wait?: (milliseconds: number) => Promise<void>;
 };
@@ -186,15 +206,19 @@ export function resolveEmailDriver(env: EnvSource = process.env): EmailDriver {
   const configuredDriver = env.EMAIL_DRIVER?.trim().toLowerCase();
 
   if (!configuredDriver) {
-    return "resend";
+    return env.TOSEND_API_KEY?.trim() ? "tosend" : "resend";
   }
 
-  if (configuredDriver === "capture" || configuredDriver === "resend") {
+  if (
+    configuredDriver === "capture" ||
+    configuredDriver === "resend" ||
+    configuredDriver === "tosend"
+  ) {
     return configuredDriver;
   }
 
   throw new Error(
-    `Unknown EMAIL_DRIVER "${configuredDriver}". Use "resend" or "capture".`,
+    `Unknown EMAIL_DRIVER "${configuredDriver}". Use "resend", "tosend" or "capture".`,
   );
 }
 
@@ -296,14 +320,104 @@ export async function resolveEmailAddresses(
     : buildEmailAddresses(settings);
 }
 
+function buildToSendPayload(
+  message: TransactionalEmailMessage,
+  config: EmailAddresses,
+): ToSendEmail {
+  const replyTo = message.replyTo ?? config.supportAddress ?? undefined;
+
+  return {
+    ...(message.attachments?.length
+      ? {
+          attachments: message.attachments.map((attachment) => ({
+            content: Buffer.from(attachment.content).toString("base64"),
+            name: attachment.filename,
+            type: attachment.contentType,
+          })),
+        }
+      : {}),
+    from: parseAddress(config.senderAddress),
+    headers: { "X-SignuDoc-Template": message.template },
+    ...(message.htmlBody ? { html: message.htmlBody } : {}),
+    ...(replyTo ? { reply_to: replyTo } : {}),
+    subject: message.subject,
+    text: message.textBody,
+    to: [{ email: message.to }],
+  };
+}
+
+function createToSendEmailService(
+  client: ToSendClient,
+  resolveAddresses: () => Promise<EmailAddresses>,
+): EmailService {
+  return {
+    async send(message, options) {
+      const config = await resolveAddresses();
+      const messageId = await client.send(
+        buildToSendPayload(message, config),
+        options?.idempotencyKey,
+      );
+
+      return { accepted: [message.to], messageId, rejected: [] };
+    },
+
+    async sendBatch(messages, options) {
+      if (messages.length === 0) {
+        return [];
+      }
+
+      if (messages.some((message) => message.attachments?.length)) {
+        throw new Error("Messages with attachments must be sent one by one.");
+      }
+
+      const config = await resolveAddresses();
+      const results = await client.sendBatch(
+        messages.map((message) => buildToSendPayload(message, config)),
+        options?.idempotencyKey,
+      );
+
+      return messages.map((message, index) => {
+        const result = results[index];
+
+        return result && result.error === undefined
+          ? {
+              accepted: [message.to],
+              messageId: result.messageId,
+              rejected: [],
+            }
+          : { accepted: [], rejected: [message.to] };
+      });
+    },
+  };
+}
+
 export function createEmailService({
   env = process.env,
   resolveAddresses = () => resolveEmailAddresses(env),
   resendClient,
+  toSendClient,
   wait = waitFor,
 }: CreateEmailServiceOptions = {}): EmailService {
   if (!resendClient && resolveEmailDriver(env) === "capture") {
     return createCaptureEmailService(env, resolveAddresses);
+  }
+
+  if (toSendClient || (!resendClient && resolveEmailDriver(env) === "tosend")) {
+    if (!toSendClient) {
+      assertServiceConfig("email", ["TOSEND_API_KEY"], env);
+    }
+
+    return createToSendEmailService(
+      toSendClient ??
+        createToSendClient({
+          apiKey: env.TOSEND_API_KEY!.trim(),
+          ...(env.TOSEND_API_URL?.trim()
+            ? { apiUrl: env.TOSEND_API_URL.trim() }
+            : {}),
+          wait,
+        }),
+      resolveAddresses,
+    );
   }
 
   if (!resendClient) {

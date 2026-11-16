@@ -597,6 +597,11 @@ function EmailSetupPanel() {
             Open Resend
           </ShellButton>
         ) : null}
+        {status?.state === "tosend" ? (
+          <ShellButton href="https://dash.tosend.com/app" variant="ghost">
+            Open toSend
+          </ShellButton>
+        ) : null}
       </div>
 
       {testResult ? (
@@ -727,6 +732,23 @@ function describeEmailStatus(status: EmailStatus): {
         ready: true,
         title: "Email is working",
       };
+    case "tosend":
+      return status.ready
+        ? {
+            lines: [
+              `Emails are sent through toSend from ${status.senderAddress}.`,
+            ],
+            ready: true,
+            title: "Email is working",
+          }
+        : {
+            lines: [
+              `Emails are sent through toSend from ${status.senderAddress}. Make sure ${status.domain} is verified in the toSend dashboard.`,
+              "Then send yourself a test email. If it arrives, email is working.",
+            ],
+            ready: false,
+            title: "Send a test email",
+          };
     case "error":
       return {
         lines: [

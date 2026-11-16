@@ -1,0 +1,111 @@
+# SignuDoc on a VPS behind an existing Traefik (the Hostinger n8n template's
+# "root" project, whose Docker network is root_default and whose certificate
+# resolver is mytlschallenge).
+#
+# Variables (set in the project's environment):
+#   SIGNUDOC_HOST        public host name, e.g. szerzodes.homilla.hu
+#   POSTGRES_PASSWORD    database password
+#   BETTER_AUTH_SECRET   openssl rand -hex 32
+#   CRON_SECRET          openssl rand -hex 32
+#   SETUP_TOKEN          secret asked for on the first-run setup page
+#   TOSEND_API_KEY       toSend API key
+#   SIGNUDOC_IMAGE       optional, defaults to ghcr.io/privatlako/signudoc:latest
+
+services:
+  app:
+    image: ${SIGNUDOC_IMAGE:-ghcr.io/privatlako/signudoc:latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_URL: https://${SIGNUDOC_HOST}
+      DATABASE_URL: postgres://signudoc:${POSTGRES_PASSWORD}@db:5432/signudoc
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      CRON_SECRET: ${CRON_SECRET}
+      SETUP_TOKEN: ${SETUP_TOKEN}
+      EMAIL_DRIVER: tosend
+      TOSEND_API_KEY: ${TOSEND_API_KEY}
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_DIR: /data/storage
+    volumes:
+      - signudoc_files:/data
+    networks:
+      - default
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=root_default
+      - traefik.http.routers.signudoc.rule=Host(`${SIGNUDOC_HOST}`)
+      - traefik.http.routers.signudoc.entrypoints=web,websecure
+      - traefik.http.routers.signudoc.tls=true
+      - traefik.http.routers.signudoc.tls.certresolver=mytlschallenge
+      - traefik.http.services.signudoc.loadbalancer.server.port=3000
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: signudoc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: signudoc
+    volumes:
+      - signudoc_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signudoc -d signudoc"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # Daily reminders and cleanup (what Vercel's cron does on Vercel).
+  cron:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      CRON_SECRET: ${CRON_SECRET}
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        sleep 300
+        while true; do
+          curl -fsS -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/internal/retention || true
+          sleep 86400
+        done
+
+  # Nightly backup: database dump and signed files, last 14 days kept.
+  backup:
+    image: postgres:17
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - signudoc_files:/files:ro
+      - signudoc_backups:/backups
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        while true; do
+          stamp=$$(date +%Y%m%d-%H%M)
+          pg_dump -h db -U signudoc -d signudoc -Fc -f /backups/db-$$stamp.dump \
+            && tar -czf /backups/files-$$stamp.tar.gz -C /files . \
+            && echo "backup $$stamp done"
+          find /backups -type f -mtime +14 -delete
+          sleep 86400
+        done
+
+volumes:
+  signudoc_db:
+  signudoc_files:
+  signudoc_backups:
+
+networks:
+  traefik:
+    name: root_default
+    external: true

@@ -63,6 +63,16 @@ export type EmailStatus =
       senderAddress: string;
     }
   | { state: "ready"; domain: string; senderAddress: string }
+  /**
+   * toSend is the provider. Its domains are verified in the toSend
+   * dashboard; a test email that arrives is what marks email as working.
+   */
+  | {
+      state: "tosend";
+      domain: string;
+      ready: boolean;
+      senderAddress: string;
+    }
   | { state: "error"; message: string; senderAddress: string };
 
 /** The parts of the Resend SDK used here. Replaced by a fake in tests. */
@@ -384,6 +394,35 @@ async function inspectEmail({
       domainId: null,
       markReady: noop,
       status: { state: "capture" },
+    };
+  }
+
+  if (!domainsClient && resolveEmailDriver(env) === "tosend") {
+    const resolvedSettings = settings ?? (await getSettings(env));
+    const senderAddress = extractEmailAddress(
+      buildEmailAddresses(resolvedSettings).senderAddress,
+    );
+    const domain = getAddressDomain(senderAddress);
+
+    if (!domain || isResendTestSender(senderAddress)) {
+      return {
+        client: null,
+        domainId: null,
+        markReady: noop,
+        status: { senderAddress, state: "test_sender" },
+      };
+    }
+
+    return {
+      client: null,
+      domainId: null,
+      markReady: noop,
+      status: {
+        domain,
+        ready: resolvedSettings.emailReadyAt !== null,
+        senderAddress,
+        state: "tosend",
+      },
     };
   }
 
