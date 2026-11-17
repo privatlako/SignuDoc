@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { error: "Unable to create the draft envelope." },
+      { error: "Nem sikerült létrehozni a piszkozatot." },
       { status: 500 },
     );
   } finally {
@@ -111,7 +111,7 @@ type DraftRequest = {
   title: string;
 };
 
-function invalidRequest(message = "Invalid envelope request.") {
+function invalidRequest(message = "Érvénytelen kérés.") {
   return NextResponse.json({ error: message }, { status: 400 });
 }
 
@@ -129,7 +129,7 @@ async function readFormRequest(
   }
 
   if (!(uploadedFile instanceof File)) {
-    return invalidRequest("A PDF file is required.");
+    return invalidRequest("Tölts fel egy PDF-fájlt.");
   }
 
   return {
@@ -157,7 +157,9 @@ async function readDirectUploadRequest(
   userId: string,
 ): Promise<DraftRequest | Response> {
   if (!supportsDirectUploads()) {
-    return invalidRequest("Direct uploads are not available on this install.");
+    return invalidRequest(
+      "Ezen a telepítésen nem érhető el a közvetlen feltöltés.",
+    );
   }
 
   const parsedRequest = directUploadRequestSchema.safeParse(
@@ -177,7 +179,7 @@ async function readDirectUploadRequest(
   // Checked here as well as on read, so that nothing outside the user's
   // own pending folder can ever be handed to cleanUp.
   if (!isPendingUploadKey(uploadKey, userId)) {
-    return invalidRequest("Invalid upload reference.");
+    return invalidRequest("Érvénytelen feltöltési hivatkozás.");
   }
 
   // Created on first use, inside the caller's error handling.

@@ -194,10 +194,10 @@ test("a template keeps the document, the fields and the order, and no one's name
       createdAtLabel: (await listTemplatesForUser(userId, database))[0]!
         .createdAtLabel,
       // The two radio buttons are one question.
-      fieldCountLabel: "5 fields",
+      fieldCountLabel: "5 mező",
       id: template.id,
       name: "Residential lease",
-      pageCountLabel: "2 pages",
+      pageCountLabel: "2 oldal",
       roleNames: ["Tenant", "Landlord"],
     },
   ]);

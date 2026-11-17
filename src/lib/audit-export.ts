@@ -74,7 +74,7 @@ export async function exportEnvelopeAuditCsv(
   );
 
   if (!envelope) {
-    throw new AuditExportError("Envelope not found.", 404);
+    throw new AuditExportError("Nem található a szerződés.", 404);
   }
 
   const rows = await queryMany<{

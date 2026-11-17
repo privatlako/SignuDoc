@@ -98,7 +98,7 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { error: "Unable to void this envelope." },
+      { error: "Nem sikerült visszavonni a szerződést." },
       {
         headers: {
           "cache-control": "private, no-store",

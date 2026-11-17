@@ -303,7 +303,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(
-      page.getByRole("heading", { name: "No documents yet" }),
+      page.getByRole("heading", { name: "Még nincs szerződésed" }),
     ).toBeVisible();
 
     // An ordinary account gets none of the administrator's controls.
@@ -357,10 +357,14 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     const pdfPath = await writeSamplePdf(testInfo.outputPath("sample.pdf"));
 
     await page.goto("/envelopes/new");
-    await page.getByLabel("Envelope title").fill(ENVELOPE_TITLE);
-    await page.getByLabel("Upload PDF").setInputFiles(pdfPath);
+    await page
+      .getByLabel("Szerződés címe", { exact: true })
+      .fill(ENVELOPE_TITLE);
+    await page
+      .getByLabel("PDF feltöltése", { exact: true })
+      .setInputFiles(pdfPath);
     await expect(page.getByText("sample.pdf")).toBeVisible();
-    await page.getByRole("button", { name: "Next ->" }).click();
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/envelopes\/[^/]+\/signers$/);
 
     envelopeId = /\/envelopes\/([^/]+)\/signers$/.exec(page.url())?.[1] ?? "";
@@ -368,26 +372,30 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
   });
 
   await test.step("add a signer", async () => {
-    await page.getByLabel("Signer 1 name").fill("Riley Recipient");
-    await page.getByLabel("Signer 1 email").fill(signerEmail);
+    await page.getByLabel("1. aláíró neve").fill("Riley Recipient");
+    await page.getByLabel("1. aláíró e-mail-címe").fill(signerEmail);
     // Someone who gets the finished document without signing it.
-    await page.getByRole("button", { name: "+ Add a copy recipient" }).click();
-    await page.getByLabel("Copy recipient 1 name").fill("Casey Copy");
-    await page.getByLabel("Copy recipient 1 email").fill(copyEmail);
+    await page
+      .getByRole("button", { name: "+ Másolat címzettjének hozzáadása" })
+      .click();
+    await page.getByLabel("1. másolat címzettjének neve").fill("Casey Copy");
+    await page
+      .getByLabel("1. másolat címzettjének e-mail-címe")
+      .fill(copyEmail);
 
     // One extra check per signer. Each choice is saved, read back, and
     // replaced by the next one; the recipient later signs with no check,
     // which shows the server dropped the earlier ones.
-    const accessCode = page.getByLabel("Signer 1 access code");
+    const accessCode = page.getByLabel("1. aláíró hozzáférési kódja");
     const choice = (label: string) =>
-      page.getByLabel(`Signer 1 check: ${label}`);
-    const none = choice("No extra check");
+      page.getByLabel(`1. aláíró ellenőrzése: ${label}`);
+    const none = choice("Nincs külön ellenőrzés");
     const emailCode = choice(
-      "Email them a one-time code when they open the link",
+      "Egyszer használható kódot kap e-mailben, amikor megnyitja a linket",
     );
-    const ownCode = choice("Ask for an access code you give them yourself");
+    const ownCode = choice("Hozzáférési kódot kér, amelyet te adsz át neki");
     const saveAndReopen = async () => {
-      await page.getByRole("button", { name: "Next →" }).click();
+      await page.getByRole("button", { name: "Tovább →" }).click();
       await expect(page).toHaveURL(/\/prepare$/);
       await page.goto(`/envelopes/${envelopeId}/signers`);
     };
@@ -399,13 +407,13 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     await expect(accessCode).toBeVisible();
     // Picking an access code without typing one blocks the next step.
     await expect(
-      page.getByText("Type the code you will give them"),
+      page.getByText("Írd be a kódot, amelyet átadsz neki"),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Next →" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Tovább →" })).toBeDisabled();
     await accessCode.fill("4444");
     await saveAndReopen();
     await expect(ownCode).toBeChecked();
-    await expect(page.getByText("(a code is set;")).toBeVisible();
+    await expect(page.getByText("(már van kód;")).toBeVisible();
 
     await emailCode.check();
     await expect(accessCode).toHaveCount(0);
@@ -416,17 +424,17 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     await none.check();
     await saveAndReopen();
     await expect(none).toBeChecked();
-    await page.getByRole("button", { name: "Next →" }).click();
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/prepare$/);
   });
 
   await test.step("place a signature field on the rendered page", async () => {
     await expect(
-      page.getByRole("img", { name: "Rendered PDF page 1" }),
+      page.getByRole("img", { name: "A PDF 1. oldala" }),
     ).toBeVisible();
-    await page.getByRole("button", { exact: true, name: "Signature" }).click();
+    await page.getByRole("button", { exact: true, name: "Aláírás" }).click();
 
-    const placementTarget = page.getByLabel("Place Signature on page 1");
+    const placementTarget = page.getByLabel("Aláírás elhelyezése, 1. oldal");
     const box = await placementTarget.boundingBox();
 
     expect(box).not.toBeNull();
@@ -434,57 +442,57 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       position: { x: box!.width * 0.3, y: box!.height * 0.7 },
     });
     await expect(
-      page.getByRole("button", { name: "Riley Recipient · Sign" }),
+      page.getByRole("button", { name: "Riley Recipient · Aláírás" }),
     ).toBeVisible();
-    await expect(page.getByText("Signature ready")).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText("Saved");
+    await expect(page.getByText("Van aláírásmező")).toBeVisible();
+    await expect(page.getByRole("status")).toHaveText("Mentve");
 
     // One of each field the signer answers by typing a number or choosing.
     const placeField = async (tool: string, x: number, y: number) => {
       await page.getByRole("button", { exact: true, name: tool }).click();
-      await page.getByLabel(`Place ${tool} on page 1`).click({
+      await page.getByLabel(`${tool} elhelyezése, 1. oldal`).click({
         position: { x: box!.width * x, y: box!.height * y },
       });
     };
 
-    await placeField("Number", 0.25, 0.3);
-    await placeField("Dropdown", 0.5, 0.3);
+    await placeField("Szám", 0.25, 0.3);
+    await placeField("Legördülő lista", 0.5, 0.3);
 
     // Until a dropdown has choices the draft is saved but cannot go on.
-    await expect(page.getByRole("button", { name: "Next →" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Tovább →" })).toBeDisabled();
     await page
-      .getByRole("textbox", { name: "Choices" })
+      .getByRole("textbox", { name: "Választási lehetőségek" })
       .fill("Monthly\nYearly");
 
     // The field editor is on the page twice, for narrow and for wide
     // windows. The one that was not typed in shows what was saved, so
     // typing in it after the window changes width cannot undo the choices.
     await page.setViewportSize({ height: 900, width: 800 });
-    await expect(page.getByRole("textbox", { name: "Choices" })).toHaveValue(
-      "Monthly\nYearly",
-    );
+    await expect(
+      page.getByRole("textbox", { name: "Választási lehetőségek" }),
+    ).toHaveValue("Monthly\nYearly");
     await page.setViewportSize({ height: 900, width: 1440 });
-    await expect(page.getByRole("textbox", { name: "Choices" })).toHaveValue(
-      "Monthly\nYearly",
-    );
+    await expect(
+      page.getByRole("textbox", { name: "Választási lehetőségek" }),
+    ).toHaveValue("Monthly\nYearly");
 
-    await placeField("Radio button", 0.25, 0.4);
+    await placeField("Választógomb", 0.25, 0.4);
     await page
-      .getByRole("textbox", { name: "What this button means" })
+      .getByRole("textbox", { name: "Mit jelent ez a gomb" })
       .fill("Yes");
     await page
-      .getByRole("button", { name: "+ Add a button to this group" })
+      .getByRole("button", { name: "+ Újabb gomb a csoportba" })
       .click();
     await page
-      .getByRole("textbox", { name: "What this button means" })
+      .getByRole("textbox", { name: "Mit jelent ez a gomb" })
       .fill("No");
     await page.setViewportSize({ height: 900, width: 800 });
     await expect(
-      page.getByRole("textbox", { name: "What this button means" }),
+      page.getByRole("textbox", { name: "Mit jelent ez a gomb" }),
     ).toHaveValue("No");
     await page.setViewportSize({ height: 900, width: 1440 });
-    await expect(page.getByRole("button", { name: "Next →" })).toBeEnabled();
-    await page.getByRole("button", { name: "Next →" }).click();
+    await expect(page.getByRole("button", { name: "Tovább →" })).toBeEnabled();
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/review$/);
   });
 
@@ -493,21 +501,21 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       page.getByRole("heading", { name: ENVELOPE_TITLE }),
     ).toBeVisible();
     // The sender decides how long signers get and how often to nudge them.
-    await page.getByLabel("Signing deadline").selectOption("7");
-    await page.getByLabel("Automatic reminders").selectOption("2");
-    await page.getByRole("button", { name: "Send envelope" }).click();
+    await page.getByLabel("Aláírási határidő").selectOption("7");
+    await page.getByLabel("Automatikus emlékeztető").selectOption("2");
+    await page.getByRole("button", { name: "Elküldés", exact: true }).click();
 
     const confirmation = page.getByRole("dialog", {
-      name: "Send this envelope?",
+      name: "Elküldöd a szerződést?",
     });
 
     await confirmation.getByRole("checkbox").check();
-    await confirmation.getByRole("button", { name: "Send now" }).click();
+    await confirmation.getByRole("button", { name: "Elküldés most" }).click();
 
     await expect(page).toHaveURL(new RegExp(`/envelopes/${envelopeId}$`));
-    await expect(page.getByText(/^Expires .+\.$/)).toBeVisible();
+    await expect(page.getByText(/^Határidő: .+\.$/)).toBeVisible();
     await expect(
-      page.getByText("Automatic reminders: every 2 days."),
+      page.getByText("Automatikus emlékeztető: 2 naponta."),
     ).toBeVisible();
     await expect(page.getByText("Casey Copy")).toBeVisible();
   });
@@ -555,7 +563,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     await consent.getByRole("button", { name: "Elfogadom, tovább" }).click();
     await expect(consent).toBeHidden();
     await expect(
-      recipientPage.getByRole("img", { name: "Rendered PDF page 1" }),
+      recipientPage.getByRole("img", { name: "A PDF 1. oldala" }),
     ).toBeVisible();
     expect(await readAccentColor(recipientPage)).toBe(BRAND_COLOR);
     // The signature, the dropdown and the radio group. The number is
@@ -645,9 +653,16 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       to: senderEmail,
     });
     await page.goto(`/envelopes/${envelopeId}`);
-    await expect(page.getByText("Completed", { exact: true })).toBeVisible();
+    // The envelope's own status, beside its title. The signers carry the
+    // same word on their own pills.
     await expect(
-      page.getByRole("button", { name: "Download signed PDF" }),
+      page
+        .getByRole("heading", { level: 1, name: ENVELOPE_TITLE })
+        .locator("xpath=following-sibling::div[1]")
+        .getByText("Aláírva", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Aláírt PDF letöltése" }),
     ).toBeVisible();
 
     for (const type of ["signed", "evidence"]) {
@@ -716,18 +731,18 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
 
   await test.step("the document is saved as a template and used for the next one", async () => {
     await page.goto(`/envelopes/${envelopeId}`);
-    await page.getByRole("button", { name: "Save as template" }).click();
+    await page.getByRole("button", { name: "Mentés sablonként" }).click();
 
-    const saveDialog = page.getByRole("dialog", { name: "Save as a template" });
+    const saveDialog = page.getByRole("dialog", { name: "Mentés sablonként" });
 
-    await saveDialog.getByLabel("Template name").fill("Works agreement");
+    await saveDialog.getByLabel("Sablon neve").fill("Works agreement");
     await saveDialog
-      .getByRole("textbox", { name: /^Signer 1/ })
+      .getByRole("textbox", { name: /^1\. aláíró/ })
       .fill("Contractor");
-    await saveDialog.getByRole("button", { name: "Save template" }).click();
-    await expect(page.getByText("Saved as the template")).toBeVisible();
+    await saveDialog.getByRole("button", { name: "Sablon mentése" }).click();
+    await expect(page.getByText("Elmentve sablonként")).toBeVisible();
 
-    await page.getByRole("link", { name: "View templates" }).click();
+    await page.getByRole("link", { name: "Sablonok megtekintése" }).click();
     await expect(page).toHaveURL(/\/templates$/);
     await expect(
       page.getByRole("heading", { name: "Works agreement" }),
@@ -736,12 +751,14 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     await expect(page.getByText("1. Contractor")).toBeVisible();
     await expect(page.getByText("Riley Recipient")).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Use template" }).click();
+    await page.getByRole("link", { name: "Sablon használata" }).click();
     await expect(page).toHaveURL(/\/templates\/[^/]+\/use$/);
-    await page.getByLabel("Envelope title").fill("Works agreement, phase 2");
-    await page.getByLabel("Contractor name").fill("Sasha Second");
-    await page.getByLabel("Contractor email").fill(secondSignerEmail);
-    await page.getByRole("button", { name: "Create draft" }).click();
+    await page
+      .getByLabel("Szerződés címe", { exact: true })
+      .fill("Works agreement, phase 2");
+    await page.getByLabel("Contractor neve").fill("Sasha Second");
+    await page.getByLabel("Contractor e-mail-címe").fill(secondSignerEmail);
+    await page.getByRole("button", { name: "Piszkozat létrehozása" }).click();
 
     // A new draft with the same fields, on the person named this time,
     // one click from being sent.
@@ -751,9 +768,9 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       page.getByRole("heading", { name: "Works agreement, phase 2" }),
     ).toBeVisible();
     await expect(page.getByText("Sasha Second")).toBeVisible();
-    await expect(page.getByText("(4 fields)")).toBeVisible();
+    await expect(page.getByText("(4 mező)")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Send envelope" }),
+      page.getByRole("button", { name: "Elküldés", exact: true }),
     ).toBeEnabled();
   });
 
@@ -913,54 +930,58 @@ test("in Part 11 mode a verified account signs, with its password and a stated m
     const pdfPath = await writeSamplePdf(testInfo.outputPath("batch.pdf"));
 
     await page.goto("/envelopes/new");
-    await page.getByLabel("Envelope title").fill("Batch record 42");
-    await page.getByLabel("Upload PDF").setInputFiles(pdfPath);
-    await page.getByRole("button", { name: "Next ->" }).click();
+    await page
+      .getByLabel("Szerződés címe", { exact: true })
+      .fill("Batch record 42");
+    await page
+      .getByLabel("PDF feltöltése", { exact: true })
+      .setInputFiles(pdfPath);
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/envelopes\/[^/]+\/signers$/);
     envelopeId = /\/envelopes\/([^/]+)\/signers$/.exec(page.url())?.[1] ?? "";
 
-    await page.getByLabel("Signer 1 name").fill(signerName);
-    await page.getByLabel("Signer 1 email").fill(signerEmail);
+    await page.getByLabel("1. aláíró neve").fill(signerName);
+    await page.getByLabel("1. aláíró e-mail-címe").fill(signerEmail);
     // No meaning, no way on.
-    await expect(page.getByRole("button", { name: "Next →" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Tovább →" })).toBeDisabled();
     await page
-      .getByLabel("Signer 1 signature meaning")
+      .getByLabel("1. aláíró aláírásának jelentése")
       .selectOption("approval");
     await expect(
       page.getByText("Jóváhagyom ezt a dokumentumot."),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Next →" }).click();
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/prepare$/);
 
-    await page.getByRole("button", { exact: true, name: "Signature" }).click();
+    await page.getByRole("button", { exact: true, name: "Aláírás" }).click();
 
-    const placementTarget = page.getByLabel("Place Signature on page 1");
+    const placementTarget = page.getByLabel("Aláírás elhelyezése, 1. oldal");
     const box = await placementTarget.boundingBox();
 
     await placementTarget.click({
       position: { x: box!.width * 0.3, y: box!.height * 0.6 },
     });
-    await expect(page.getByRole("status")).toHaveText("Saved");
-    await page.getByRole("button", { name: "Next →" }).click();
+    await expect(page.getByRole("status")).toHaveText("Mentve");
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/review$/);
   });
 
   async function trySend() {
-    await page.getByRole("button", { name: "Send envelope" }).click();
+    await page.getByRole("button", { name: "Elküldés", exact: true }).click();
 
     const confirmation = page.getByRole("dialog", {
-      name: "Send this envelope?",
+      name: "Elküldöd a szerződést?",
     });
 
     await confirmation.getByRole("checkbox").check();
-    await confirmation.getByRole("button", { name: "Send now" }).click();
+    await confirmation.getByRole("button", { name: "Elküldés most" }).click();
   }
 
   await test.step("it is not sent until an administrator confirms who the signer is", async () => {
     await trySend();
     await expect(
       page.getByText(
-        `An administrator has to confirm ${signerName}'s identity under Settings, People before they can sign.`,
+        `Mielőtt ${signerName} aláírhatna, egy adminisztrátornak meg kell erősítenie a személyazonosságát (Settings, People).`,
       ),
     ).toBeVisible();
 
@@ -1100,7 +1121,7 @@ test("a signer signs with a qualified signature in their own name, through the s
   const runId = String(Date.now());
   const signerEmail = `qualified+${runId}@example.com`;
   const signerName = "Quinn Qualified";
-  const signatureType = "Qualified electronic signatures through eID Easy";
+  const signatureType = "Minősített elektronikus aláírás (eID Easy)";
   const database = new pg.Client({ connectionString: e2eDatabaseUrl });
   let adminEmail = "";
 
@@ -1130,42 +1151,46 @@ test("a signer signs with a qualified signature in their own name, through the s
     await expect(page).toHaveURL(/\/dashboard$/);
 
     await page.goto("/envelopes/new");
-    await page.getByLabel("Envelope title").fill("Supply agreement");
-    await page.getByLabel("Upload PDF").setInputFiles(pdfPath);
-    await page.getByRole("button", { name: "Next ->" }).click();
+    await page
+      .getByLabel("Szerződés címe", { exact: true })
+      .fill("Supply agreement");
+    await page
+      .getByLabel("PDF feltöltése", { exact: true })
+      .setInputFiles(pdfPath);
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/envelopes\/[^/]+\/signers$/);
     envelopeId = /\/envelopes\/([^/]+)\/signers$/.exec(page.url())?.[1] ?? "";
 
-    await page.getByLabel("Signer 1 name").fill(signerName);
-    await page.getByLabel("Signer 1 email").fill(signerEmail);
-    await page.getByRole("button", { name: "Next →" }).click();
+    await page.getByLabel("1. aláíró neve").fill(signerName);
+    await page.getByLabel("1. aláíró e-mail-címe").fill(signerEmail);
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/prepare$/);
 
-    await page.getByRole("button", { exact: true, name: "Signature" }).click();
+    await page.getByRole("button", { exact: true, name: "Aláírás" }).click();
 
-    const placementTarget = page.getByLabel("Place Signature on page 1");
+    const placementTarget = page.getByLabel("Aláírás elhelyezése, 1. oldal");
     const box = await placementTarget.boundingBox();
 
     await placementTarget.click({
       position: { x: box!.width * 0.3, y: box!.height * 0.6 },
     });
-    await expect(page.getByRole("status")).toHaveText("Saved");
-    await page.getByRole("button", { name: "Next →" }).click();
+    await expect(page.getByRole("status")).toHaveText("Mentve");
+    await page.getByRole("button", { name: "Tovább →" }).click();
     await expect(page).toHaveURL(/\/review$/);
 
-    await page.getByLabel("Signature type").selectOption("qualified");
-    await expect(page.getByText(/this is not legal advice/)).toBeVisible();
-    await page.getByRole("button", { name: "Send envelope" }).click();
+    await page.getByLabel("Aláírás típusa").selectOption("qualified");
+    await expect(page.getByText(/ez nem jogi tanácsadás/)).toBeVisible();
+    await page.getByRole("button", { name: "Elküldés", exact: true }).click();
 
     const confirmation = page.getByRole("dialog", {
-      name: "Send this envelope?",
+      name: "Elküldöd a szerződést?",
     });
 
     await expect(
-      confirmation.getByText(`Signature type: ${signatureType}.`),
+      confirmation.getByText(`Aláírás típusa: ${signatureType}.`),
     ).toBeVisible();
     await confirmation.getByRole("checkbox").check();
-    await confirmation.getByRole("button", { name: "Send now" }).click();
+    await confirmation.getByRole("button", { name: "Elküldés most" }).click();
     await expect(page).toHaveURL(new RegExp(`/envelopes/${envelopeId}$`));
     await expect(page.getByText(signatureType)).toBeVisible();
   });
@@ -1242,7 +1267,7 @@ test("a signer signs with a qualified signature in their own name, through the s
     await page.goto(`/envelopes/${envelopeId}`);
     await expect(
       page.getByText(
-        `Signed by ${signerName} with a qualified electronic signature through eID Easy`,
+        `${signerName} aláírta minősített elektronikus aláírással (eID Easy)`,
       ),
     ).toBeVisible();
   });

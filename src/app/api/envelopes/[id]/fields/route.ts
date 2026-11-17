@@ -44,7 +44,7 @@ export async function PUT(
       const issue = error.issues[0];
 
       return NextResponse.json(
-        { error: issue?.message ?? "Invalid field update request." },
+        { error: issue?.message ?? "Érvénytelen kérés a mezők módosítására." },
         { status: 400 },
       );
     }
@@ -65,7 +65,7 @@ export async function PUT(
     });
 
     return NextResponse.json(
-      { error: "Unable to update this draft field list." },
+      { error: "Nem sikerült menteni a piszkozat mezőit." },
       { status: 500 },
     );
   }

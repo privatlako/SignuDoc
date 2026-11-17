@@ -56,27 +56,27 @@ test("a send is refused for each missing Part 11 condition, in order", () => {
 
   assert.match(
     describePart11SignerProblem(signer, undefined) ?? "",
-    /needs an account/,
+    /csak akkor írhat alá, ha van fiókja/,
   );
   assert.match(
     describePart11SignerProblem(signer, { ...ready, emailVerified: false }) ??
       "",
-    /not confirmed their email/,
+    /még nem erősítette meg az e-mail-címét/,
   );
   assert.match(
     describePart11SignerProblem(signer, {
       ...ready,
       identityVerifiedAt: null,
     }) ?? "",
-    /confirm Ada's identity/,
+    /Mielőtt Ada aláírhatna, egy adminisztrátornak meg kell erősítenie/,
   );
   assert.match(
     describePart11SignerProblem(signer, { ...ready, signingLockedAt: 5 }) ?? "",
-    /locked for signing/,
+    /zárolva van az aláírás/,
   );
   assert.match(
     describePart11SignerProblem(signer, ready) ?? "",
-    /Choose what Ada's signature means/,
+    /Válaszd ki, mit jelent Ada aláírása/,
   );
   assert.equal(
     describePart11SignerProblem(

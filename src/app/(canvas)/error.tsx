@@ -11,17 +11,17 @@ export default function CanvasError({
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <StatusPanel
-        description="Something went wrong while opening this document. Please try again."
+        description="Valami hiba történt a dokumentum megnyitásakor. Próbáld újra."
         footer={
           <button
             className="btn-quiet min-h-11 px-5"
             onClick={reset}
             type="button"
           >
-            Reload canvas
+            Újratöltés
           </button>
         }
-        title="We couldn't open this document."
+        title="Nem sikerült megnyitni a dokumentumot."
         tone="error"
       />
     </div>

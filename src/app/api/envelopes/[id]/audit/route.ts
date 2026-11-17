@@ -52,7 +52,7 @@ export async function GET(
     });
 
     return NextResponse.json(
-      { error: "The audit trail could not be exported." },
+      { error: "Nem sikerült exportálni az eseménynaplót." },
       { status: 500 },
     );
   }

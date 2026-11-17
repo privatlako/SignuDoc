@@ -7,7 +7,10 @@ import {
   sendManualEnvelopeNudge,
 } from "@/lib/reminders";
 import { logRouteError } from "@/lib/security/logging";
-import { applyRateLimit, buildRateLimitKey } from "@/lib/security/route-controls";
+import {
+  applyRateLimit,
+  buildRateLimitKey,
+} from "@/lib/security/route-controls";
 import {
   getClientIpAddress,
   getRequestPathname,
@@ -97,7 +100,7 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { error: "Unable to send a reminder." },
+      { error: "Nem sikerült elküldeni az emlékeztetőt." },
       {
         headers: {
           "cache-control": "private, no-store",

@@ -167,8 +167,8 @@ test("a draft keeps half-finished choices, and sending waits until they can be a
   assert.deepEqual(
     reviewed?.signers.map((signer) => signer.fieldSummaries),
     [
-      ["Signature", "Number", "Dropdown"],
-      ["Signature", "Radio group"],
+      ["Aláírás", "Szám", "Legördülő lista"],
+      ["Aláírás", "Választógomb csoport"],
     ],
   );
 
@@ -180,7 +180,7 @@ test("a draft keeps half-finished choices, and sending waits until they can be a
 
   assert.deepEqual(
     detail?.signers.map((signer) => signer.metaLabel),
-    ["3 fields assigned", "2 fields assigned"],
+    ["3 hozzárendelt mező", "2 hozzárendelt mező"],
   );
 
   // What was saved comes back to the editor as it was.

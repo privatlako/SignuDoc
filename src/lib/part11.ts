@@ -104,23 +104,23 @@ export function describePart11SignerProblem(
   account: Part11SignerAccount | undefined,
 ): string | null {
   if (!account) {
-    return `${signer.name} (${signer.email}) needs an account on this site before they can sign. Part 11 mode only lets people sign with their own account.`;
+    return `${signer.name} (${signer.email}) csak akkor írhat alá, ha van fiókja ezen az oldalon. Part 11 módban mindenki csak a saját fiókjával írhat alá.`;
   }
 
   if (!account.emailVerified) {
-    return `${signer.name} has not confirmed their email address yet.`;
+    return `${signer.name} még nem erősítette meg az e-mail-címét.`;
   }
 
   if (account.identityVerifiedAt === null) {
-    return `An administrator has to confirm ${signer.name}'s identity under Settings, People before they can sign.`;
+    return `Mielőtt ${signer.name} aláírhatna, egy adminisztrátornak meg kell erősítenie a személyazonosságát (Settings, People).`;
   }
 
   if (account.signingLockedAt !== null) {
-    return `${signer.name}'s account is locked for signing after too many wrong passwords. An administrator can unlock it under Settings, People.`;
+    return `${signer.name} fiókjában túl sok hibás jelszó miatt zárolva van az aláírás. Egy adminisztrátor feloldhatja (Settings, People).`;
   }
 
   if (!signer.signatureMeaning) {
-    return `Choose what ${signer.name}'s signature means (approval, review, responsibility or authorship).`;
+    return `Válaszd ki, mit jelent ${signer.name} aláírása (jóváhagyás, felülvizsgálat, felelősségvállalás vagy szerzőség).`;
   }
 
   return null;

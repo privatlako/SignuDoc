@@ -11,31 +11,39 @@ import {
   idSchema,
   nameSchema,
   optionalTrimmedString,
+  recipientEmailSchema,
+  recipientNameSchema,
   unixTimestampSchema,
 } from "./common.ts";
 
 export const signerStatusSchema = z.enum(signerStatuses);
 export const duplicateSignerEmailMessage =
-  "Each signer must have a unique email address.";
+  "Minden aláírónak más e-mail-cím kell.";
 export const duplicateCopyRecipientEmailMessage =
-  "This address is already a signer or a copy recipient.";
+  "Ez a cím már szerepel aláíróként vagy másolat címzettjeként.";
 
 /** Someone who receives the finished document without signing it. */
 export const copyRecipientSchema = z.object({
   id: idSchema.optional(),
-  name: nameSchema,
-  email: emailSchema,
+  name: recipientNameSchema,
+  email: recipientEmailSchema,
 });
 
 export const draftSignerSchema = z.object({
   id: idSchema.optional(),
   envelopeId: idSchema.optional(),
-  name: nameSchema,
-  email: emailSchema,
+  name: recipientNameSchema,
+  email: recipientEmailSchema,
   signOrder: z.number().int().positive().optional(),
   // Extra checks before signing. accessCode: a string sets it, null removes
   // it, and leaving it out keeps the code already saved.
-  accessCode: z.string().trim().min(4).max(64).nullable().optional(),
+  accessCode: z
+    .string()
+    .trim()
+    .min(4, "A hozzáférési kód legalább 4 karakter legyen.")
+    .max(64, "A hozzáférési kód legfeljebb 64 karakter lehet.")
+    .nullable()
+    .optional(),
   requireEmailCode: z.boolean().optional(),
   // What the signature means, for Part 11 envelopes. Null clears it, and
   // leaving it out keeps the one already saved.
@@ -44,8 +52,11 @@ export const draftSignerSchema = z.object({
 
 export const signerListSchema = z
   .array(draftSignerSchema)
-  .min(1)
-  .max(MAX_SIGNERS_PER_ENVELOPE)
+  .min(1, "Adj hozzá legalább egy aláírót.")
+  .max(
+    MAX_SIGNERS_PER_ENVELOPE,
+    `Legfeljebb ${String(MAX_SIGNERS_PER_ENVELOPE)} aláírót adhatsz hozzá.`,
+  )
   .superRefine((signers, ctx) => {
     const emails = new Set<string>();
     const signOrders = new Set<number>();
@@ -70,7 +81,7 @@ export const signerListSchema = z
       if (signOrders.has(signer.signOrder)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Each signer must have a unique routing order",
+          message: "Minden aláírónak más helye legyen az aláírási sorrendben.",
           path: [index, "signOrder"],
         });
       }
@@ -84,7 +95,10 @@ export const replaceSignersSchema = z
     // Left out keeps the copy recipients already saved.
     copyRecipients: z
       .array(copyRecipientSchema)
-      .max(MAX_COPY_RECIPIENTS_PER_ENVELOPE)
+      .max(
+        MAX_COPY_RECIPIENTS_PER_ENVELOPE,
+        `Legfeljebb ${String(MAX_COPY_RECIPIENTS_PER_ENVELOPE)} másolat címzettjét adhatsz hozzá.`,
+      )
       .optional(),
     signers: signerListSchema,
   })

@@ -71,7 +71,7 @@ export function AppShell({
           <div className="flex min-w-0 items-center gap-7">
             <Brand href="/" />
             <nav
-              aria-label="Workspace"
+              aria-label="Munkaterület"
               className="hidden items-center gap-1 md:flex"
             >
               {primaryNavItems.map((item) => (
@@ -87,7 +87,7 @@ export function AppShell({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                aria-label={`Account menu for ${user.name}`}
+                aria-label={`Fiókmenü: ${user.name}`}
                 className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ffd9c2] text-[0.8125rem] font-bold text-[#7a3412] transition hover:ring-4 hover:ring-[rgba(28,29,43,0.06)]"
                 type="button"
               >
@@ -105,7 +105,7 @@ export function AppShell({
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings">Settings</Link>
+                <Link href="/settings">Beállítások</Link>
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={isSigningOut}
@@ -121,13 +121,13 @@ export function AppShell({
                 }}
                 variant="destructive"
               >
-                {isSigningOut ? "Signing out..." : "Sign out"}
+                {isSigningOut ? "Kijelentkezés…" : "Kijelentkezés"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <nav
-            aria-label="Workspace"
+            aria-label="Munkaterület"
             className="-mx-1 flex w-full items-center gap-1 overflow-x-auto px-1 pb-1 md:hidden"
           >
             {primaryNavItems.map((item) => (
@@ -149,15 +149,17 @@ export function AppShell({
               role="status"
             >
               <p className="text-sm leading-6 text-(--fg)">
-                <span className="font-bold">Email is not set up yet.</span>{" "}
-                Until it is, signers and new users will not receive messages
-                from this site.
+                <span className="font-bold">
+                  Az e-mail-küldés még nincs beállítva.
+                </span>{" "}
+                Addig az aláírók és az új felhasználók nem kapnak üzenetet erről
+                az oldalról.
               </p>
               <Link
                 className="shrink-0 text-sm font-bold text-(--warning) underline underline-offset-4"
                 href="/settings#organization"
               >
-                Finish email setup
+                E-mail beállítása
               </Link>
             </div>
           ) : null}

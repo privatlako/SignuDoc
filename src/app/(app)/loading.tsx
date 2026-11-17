@@ -1,6 +1,6 @@
 export default function AppLoading() {
   return (
-    <div aria-label="Loading page" className="space-y-5">
+    <div aria-label="Az oldal betöltése" className="space-y-5">
       <section className="panel px-6 py-7 sm:px-8">
         <div className="space-y-3">
           <div className="h-9 w-56 animate-pulse rounded-full bg-[#eeeff4]" />

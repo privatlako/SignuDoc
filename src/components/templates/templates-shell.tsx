@@ -22,7 +22,7 @@ type TemplatesShellProps = {
 };
 
 const pageDescription =
-  "Documents you send often, with their fields and signing order already in place.";
+  "A gyakran küldött szerződéseid, a mezőkkel és az aláírási sorrenddel együtt.";
 
 export function TemplatesShell({
   initialState,
@@ -54,14 +54,14 @@ export function TemplatesShell({
           error?: string;
         } | null;
 
-        setDeleteError(payload?.error ?? "Unable to delete this template.");
+        setDeleteError(payload?.error ?? "Nem sikerült törölni a sablont.");
         return;
       }
 
       setPendingDelete(null);
       router.refresh();
     } catch {
-      setDeleteError("Unable to delete this template.");
+      setDeleteError("Nem sikerült törölni a sablont.");
     } finally {
       setIsDeleting(false);
     }
@@ -70,11 +70,11 @@ export function TemplatesShell({
   if (initialState === "error") {
     return (
       <div className="space-y-5">
-        <PageHeader description={pageDescription} title="Templates" />
+        <PageHeader description={pageDescription} title="Sablonok" />
         <StatusPanel
-          action={{ href: "/templates", label: "Retry" }}
-          description="We couldn't load your templates. Try again in a moment."
-          title="Couldn't load templates"
+          action={{ href: "/templates", label: "Újra" }}
+          description="Nem sikerült betölteni a sablonjaidat. Próbáld újra egy kicsit később."
+          title="Nem sikerült betölteni a sablonokat"
           tone="error"
         />
       </div>
@@ -83,7 +83,7 @@ export function TemplatesShell({
 
   return (
     <div className="space-y-5">
-      <PageHeader description={pageDescription} title="Templates" />
+      <PageHeader description={pageDescription} title="Sablonok" />
 
       {templates.length === 0 ? (
         <section
@@ -97,14 +97,15 @@ export function TemplatesShell({
             </span>
             <div className="space-y-2">
               <h2 className="text-2xl font-extrabold tracking-[-0.03em] text-(--fg)">
-                No templates yet
+                Még nincs sablonod
               </h2>
               <p className="text-[0.9375rem] leading-6 text-(--secondary)">
-                Open any document you have prepared or sent and choose Save as
-                template. Next time, you only name the people who sign.
+                Nyiss meg egy előkészített vagy elküldött szerződést, és válaszd
+                a Mentés sablonként lehetőséget. Legközelebb már csak az
+                aláírókat kell megadnod.
               </p>
             </div>
-            <ShellButton href="/dashboard">Go to documents</ShellButton>
+            <ShellButton href="/dashboard">Ugrás a szerződésekhez</ShellButton>
           </div>
         </section>
       ) : (
@@ -125,10 +126,10 @@ export function TemplatesShell({
                   </h2>
                   <p className="text-sm leading-6 text-(--secondary)">
                     {template.pageCountLabel} · {template.fieldCountLabel} ·
-                    Saved {template.createdAtLabel}
+                    Mentve: {template.createdAtLabel}
                   </p>
                   <ul
-                    aria-label={`Signers in ${template.name}`}
+                    aria-label={`Aláírók – ${template.name}`}
                     className="flex flex-wrap gap-2"
                   >
                     {template.roleNames.map((roleName, index) => (
@@ -143,7 +144,7 @@ export function TemplatesShell({
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <button
-                    aria-label={`Delete the template ${template.name}`}
+                    aria-label={`Sablon törlése: ${template.name}`}
                     className="btn-quiet btn-quiet-danger min-h-11 px-4"
                     onClick={() => {
                       setDeleteError(null);
@@ -151,13 +152,13 @@ export function TemplatesShell({
                     }}
                     type="button"
                   >
-                    Delete
+                    Törlés
                   </button>
                   <ShellButton
                     className="min-h-11"
                     href={`/templates/${template.id}/use`}
                   >
-                    Use template
+                    Sablon használata
                   </ShellButton>
                 </div>
               </li>
@@ -178,14 +179,11 @@ export function TemplatesShell({
           <DialogContent className="max-w-md sm:p-8" showCloseButton={false}>
             <div className="space-y-4">
               <DialogHeader className="space-y-3">
-                <DialogTitle>Delete this template?</DialogTitle>
+                <DialogTitle>Törlöd a sablont?</DialogTitle>
                 <DialogDescription asChild>
                   <div className="space-y-2 text-sm leading-6 text-(--secondary)">
-                    <p>
-                      &ldquo;{pendingDelete.name}&rdquo; will be removed for
-                      good.
-                    </p>
-                    <p>Documents you already made from it are not affected.</p>
+                    <p>„{pendingDelete.name}” véglegesen törlődik.</p>
+                    <p>A belőle már létrehozott szerződéseket ez nem érinti.</p>
                   </div>
                 </DialogDescription>
               </DialogHeader>
@@ -202,14 +200,14 @@ export function TemplatesShell({
                   onClick={() => setPendingDelete(null)}
                   variant="secondary"
                 >
-                  Cancel
+                  Mégse
                 </ShellButton>
                 <ShellButton
                   loading={isDeleting}
                   onClick={handleConfirmDelete}
                   variant="danger"
                 >
-                  {isDeleting ? "Deleting..." : "Delete template"}
+                  {isDeleting ? "Törlés…" : "Sablon törlése"}
                 </ShellButton>
               </div>
             </div>

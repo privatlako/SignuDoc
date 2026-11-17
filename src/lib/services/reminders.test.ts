@@ -44,8 +44,8 @@ test("a signer who was never written to gets no reminder", () => {
 });
 
 test("an interval is named the way a person would say it", () => {
-  assert.equal(formatReminderInterval(null), "Off");
-  assert.equal(formatReminderInterval(1), "Every day");
-  assert.equal(formatReminderInterval(3), "Every 3 days");
-  assert.equal(formatReminderInterval(7), "Every week");
+  assert.equal(formatReminderInterval(null), "Kikapcsolva");
+  assert.equal(formatReminderInterval(1), "Minden nap");
+  assert.equal(formatReminderInterval(3), "3 naponta");
+  assert.equal(formatReminderInterval(7), "Hetente");
 });

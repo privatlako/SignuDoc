@@ -42,7 +42,7 @@ import {
 export const MAX_TEMPLATES_PER_USER = 100;
 
 const UNUSABLE_TEMPLATE_MESSAGE =
-  "This template can no longer be used. Delete it, then save the document as a template again.";
+  "Ez a sablon már nem használható. Töröld, majd mentsd el újra a szerződést sablonként.";
 
 export class TemplateError extends Error {
   readonly statusCode: number;
@@ -72,7 +72,7 @@ async function assertRoomForTemplate(
 
   if ((existing?.total ?? 0) >= MAX_TEMPLATES_PER_USER) {
     throw new TemplateError(
-      `You have ${String(MAX_TEMPLATES_PER_USER)} templates, which is the most an account can keep. Delete one to save another.`,
+      `Már ${String(MAX_TEMPLATES_PER_USER)} sablonod van, ennél többet egy fiók nem tárolhat. Törölj egyet, hogy újat menthess.`,
       409,
     );
   }
@@ -129,15 +129,16 @@ const TEMPLATE_COLUMNS = `
   created_at AS "createdAt"
 `;
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
+const dateFormatter = new Intl.DateTimeFormat("hu-HU", {
   day: "numeric",
   month: "short",
   timeZone: "UTC",
   year: "numeric",
 });
 
-function countLabel(count: number, singular: string): string {
-  return `${String(count)} ${count === 1 ? singular : `${singular}s`}`;
+// Hungarian keeps the noun singular after a number: "3 oldal".
+function countLabel(count: number, noun: string): string {
+  return `${String(count)} ${noun}`;
 }
 
 // A list must still open when one template's stored contents cannot be
@@ -210,10 +211,10 @@ export async function listTemplatesForUser(
 
   return rows.map((row) => ({
     createdAtLabel: dateFormatter.format(new Date(row.createdAt * 1000)),
-    fieldCountLabel: countLabel(countFields(row.fields), "field"),
+    fieldCountLabel: countLabel(countFields(row.fields), "mező"),
     id: row.id,
     name: row.name,
-    pageCountLabel: countLabel(row.pageCount, "page"),
+    pageCountLabel: countLabel(row.pageCount, "oldal"),
     roleNames: readRoleNames(row.roles),
   }));
 }
@@ -236,10 +237,10 @@ export async function getUseTemplateDataForUser(
   }
 
   return {
-    fieldCountLabel: countLabel(countFields(row.fields), "field"),
+    fieldCountLabel: countLabel(countFields(row.fields), "mező"),
     id: row.id,
     name: row.name,
-    pageCountLabel: countLabel(row.pageCount, "page"),
+    pageCountLabel: countLabel(row.pageCount, "oldal"),
     roles: roles.data,
   };
 }
@@ -265,7 +266,7 @@ export async function saveEnvelopeAsTemplate(
   });
 
   if (!envelope) {
-    throw new TemplateError("Envelope not found.", 404);
+    throw new TemplateError("A szerződés nem található.", 404);
   }
 
   const signers = [...envelope.signers].sort(
@@ -274,18 +275,18 @@ export async function saveEnvelopeAsTemplate(
 
   if (signers.length === 0) {
     throw new TemplateError(
-      "Add at least one signer before saving this as a template.",
+      "Adj hozzá legalább egy aláírót, mielőtt sablonként mented.",
       400,
     );
   }
 
   const roleNames =
     parsedInput.roleNames ??
-    signers.map((_, index) => `Signer ${String(index + 1)}`);
+    signers.map((_, index) => `${String(index + 1)}. aláíró`);
 
   if (roleNames.length !== signers.length) {
     throw new TemplateError(
-      "The signers of this envelope have changed. Reload the page and try again.",
+      "A szerződés aláírói időközben megváltoztak. Töltsd újra az oldalt, és próbáld újra.",
       409,
     );
   }
@@ -336,7 +337,7 @@ export async function saveEnvelopeAsTemplate(
   } catch (error) {
     if (error instanceof EnvelopeDocumentAccessError) {
       throw new TemplateError(
-        "This envelope's document is no longer available, so it cannot be saved as a template.",
+        "A szerződés dokumentuma már nem érhető el, ezért nem menthető sablonként.",
         error.statusCode,
       );
     }
@@ -420,7 +421,7 @@ export async function createDraftFromTemplate(
   const template = await getTemplateRow(userId, templateId, database);
 
   if (!template) {
-    throw new TemplateError("Template not found.", 404);
+    throw new TemplateError("A sablon nem található.", 404);
   }
 
   const roles = templateRolesSchema.safeParse(template.roles);
@@ -438,7 +439,7 @@ export async function createDraftFromTemplate(
 
   if (parsedInput.signers.length !== roles.data.length) {
     throw new TemplateError(
-      "Name one person for each signer in this template.",
+      "Adj meg egy személyt a sablon minden aláírójához.",
       400,
     );
   }
@@ -534,7 +535,7 @@ export async function deleteTemplate(
   );
 
   if (!template) {
-    throw new TemplateError("Template not found.", 404);
+    throw new TemplateError("A sablon nem található.", 404);
   }
 
   // The document goes first and the template only once it is gone. If
@@ -551,7 +552,7 @@ export async function deleteTemplate(
     );
 
     throw new TemplateError(
-      "The template's document could not be deleted, so the template was kept. Try again in a moment.",
+      "A sablon dokumentumát nem sikerült törölni, ezért a sablon megmaradt. Próbáld újra egy kicsit később.",
       503,
     );
   }

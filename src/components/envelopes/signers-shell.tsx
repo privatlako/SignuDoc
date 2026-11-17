@@ -25,9 +25,14 @@ import {
 } from "@/lib/types/domain";
 import { getSignerPalette } from "./signer-palette";
 
-const envelopeSteps = ["Upload", "Signers", "Place fields", "Review"];
+const envelopeSteps = [
+  "Feltöltés",
+  "Aláírók",
+  "Mezők elhelyezése",
+  "Ellenőrzés",
+];
 const validEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const genericSubmitError = "Something went wrong. Please try again.";
+const genericSubmitError = "Valami hiba történt. Próbáld újra.";
 
 type SignersShellProps = {
   envelopeId: string;
@@ -111,13 +116,13 @@ const SIGNER_CHECK_CHOICES: readonly {
   label: string;
   value: SignerCheckChoice;
 }[] = [
-  { label: "No extra check", value: "none" },
+  { label: "Nincs külön ellenőrzés", value: "none" },
   {
-    label: "Email them a one-time code when they open the link",
+    label: "Egyszer használható kódot kap e-mailben, amikor megnyitja a linket",
     value: "email_code",
   },
   {
-    label: "Ask for an access code you give them yourself",
+    label: "Hozzáférési kódot kér, amelyet te adsz át neki",
     value: "access_code",
   },
 ];
@@ -182,14 +187,14 @@ function buildCopyRecipientErrors(
     const normalizedEmail = recipient.email.trim().toLowerCase();
 
     if (recipient.name.trim().length === 0) {
-      errors.name = "Name is required";
+      errors.name = "A név megadása kötelező";
     }
 
     if (
       normalizedEmail.length === 0 ||
       !validEmailPattern.test(normalizedEmail)
     ) {
-      errors.email = "Enter a valid email address";
+      errors.email = "Adj meg egy érvényes e-mail-címet";
     } else if (taken.has(normalizedEmail)) {
       errors.email = duplicateCopyRecipientEmailMessage;
     }
@@ -222,14 +227,14 @@ function buildSignerErrors(signers: readonly ShellSigner[]) {
     const normalizedEmail = signer.email.trim().toLowerCase();
 
     if (normalizedName.length === 0) {
-      signerErrors.name = "Name is required";
+      signerErrors.name = "A név megadása kötelező";
     }
 
     if (
       normalizedEmail.length === 0 ||
       !validEmailPattern.test(normalizedEmail)
     ) {
-      signerErrors.email = "Enter a valid email address";
+      signerErrors.email = "Adj meg egy érvényes e-mail-címet";
     } else if (emailCounts[normalizedEmail] > 1) {
       signerErrors.email = duplicateSignerEmailMessage;
     }
@@ -238,12 +243,12 @@ function buildSignerErrors(signers: readonly ShellSigner[]) {
     const keepsSavedCode = signer.hasAccessCode && !signer.removeAccessCode;
 
     if (signer.wantsAccessCode && accessCode.length === 0 && !keepsSavedCode) {
-      signerErrors.accessCode = "Type the code you will give them";
+      signerErrors.accessCode = "Írd be a kódot, amelyet átadsz neki";
     } else if (
       accessCode.length > 0 &&
       (accessCode.length < 4 || accessCode.length > 64)
     ) {
-      signerErrors.accessCode = "Use 4 to 64 characters";
+      signerErrors.accessCode = "4–64 karakter lehet";
     }
 
     errorsBySignerId[signer.localId] = signerErrors;
@@ -385,10 +390,11 @@ function SignerCard({
         };
   const palette = getSignerPalette(index);
   const order = index + 1;
+  const previousOrder = order - 1;
   const routeLabel =
     order === 1
-      ? "Receives the invitation immediately after send."
-      : `Receives the document after Signer ${order - 1} finishes.`;
+      ? "Az elküldés után azonnal megkapja a meghívót."
+      : `${previousOrder === 1 || previousOrder === 5 ? "Az" : "A"} ${previousOrder}. aláíró után kapja meg a dokumentumot.`;
 
   return (
     <li className="well p-4 sm:p-5">
@@ -407,7 +413,7 @@ function SignerCard({
                 className="size-2 rounded-full"
                 style={{ backgroundColor: palette.color }}
               />
-              Signer {order}
+              {order}. aláíró
             </span>
             <p className="text-[0.8125rem] leading-5 text-(--secondary)">
               {routeLabel}
@@ -416,33 +422,33 @@ function SignerCard({
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              aria-label={`Move signer ${order} earlier`}
+              aria-label={`${order}. aláíró előrébb`}
               className="btn-quiet"
               disabled={disabled || !canMoveEarlier}
               onClick={() => onMove("earlier")}
               type="button"
             >
               <ChevronLeftIcon aria-hidden="true" className="-ml-1 size-4" />
-              Earlier
+              Előrébb
             </button>
             <button
-              aria-label={`Move signer ${order} later`}
+              aria-label={`${order}. aláíró hátrébb`}
               className="btn-quiet"
               disabled={disabled || !canMoveLater}
               onClick={() => onMove("later")}
               type="button"
             >
-              Later
+              Hátrébb
               <ChevronRightIcon aria-hidden="true" className="-mr-1 size-4" />
             </button>
             <button
-              aria-label={`Remove signer ${order}`}
+              aria-label={`${order}. aláíró eltávolítása`}
               className="btn-quiet btn-quiet-danger"
               disabled={disabled || !canRemove}
               onClick={onRemove}
               type="button"
             >
-              Remove
+              Eltávolítás
             </button>
           </div>
         </div>
@@ -450,18 +456,18 @@ function SignerCard({
         <div className="grid gap-x-4 gap-y-1 md:grid-cols-2">
           <label className="grid auto-rows-min gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              Name
+              Név
             </span>
             <input
               aria-invalid={nameError ? true : undefined}
-              aria-label={`Signer ${order} name`}
+              aria-label={`${order}. aláíró neve`}
               className="field-input"
               disabled={disabled}
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
                 onChange("name", event.target.value)
               }
               onBlur={() => onBlur("name")}
-              placeholder="Jane Smith"
+              placeholder="Kovács Anna"
               type="text"
               value={signer.name}
             />
@@ -478,18 +484,18 @@ function SignerCard({
 
           <label className="grid auto-rows-min gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              Email
+              E-mail-cím
             </span>
             <input
               aria-invalid={emailError ? true : undefined}
-              aria-label={`Signer ${order} email`}
+              aria-label={`${order}. aláíró e-mail-címe`}
               className="field-input"
               disabled={disabled}
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
                 onChange("email", event.target.value)
               }
               onBlur={() => onBlur("email")}
-              placeholder="jane@company.com"
+              placeholder="anna@ceg.hu"
               type="email"
               value={signer.email}
             />
@@ -508,17 +514,17 @@ function SignerCard({
         {part11Mode ? (
           <label className="grid gap-2 rounded-2xl bg-white p-4 text-sm text-(--fg) sm:p-5">
             <span className="font-bold text-(--fg)">
-              What this signature means
+              Mit jelent ez az aláírás
             </span>
             <span className="text-[0.8125rem] leading-5 text-(--secondary)">
-              Part 11 mode is on. The meaning is printed beside the signature
-              with the signer&apos;s name and the time. The signer needs an
-              account here with a confirmed email address, and an administrator
-              must have confirmed who they are.
+              A Part 11 mód be van kapcsolva. A jelentés az aláírás mellé kerül,
+              az aláíró nevével és az időponttal együtt. Az aláírónak itt kell
+              fiókkal rendelkeznie megerősített e-mail-címmel, és egy
+              adminisztrátornak meg kell erősítenie a személyazonosságát.
             </span>
             <select
               aria-invalid={!signer.signatureMeaning ? true : undefined}
-              aria-label={`Signer ${order} signature meaning`}
+              aria-label={`${order}. aláíró aláírásának jelentése`}
               className="field-input"
               disabled={disabled}
               onChange={(event: ChangeEvent<HTMLSelectElement>) =>
@@ -532,7 +538,7 @@ function SignerCard({
               }
               value={signer.signatureMeaning ?? ""}
             >
-              <option value="">Choose a meaning</option>
+              <option value="">Válassz jelentést</option>
               {signatureMeanings.map((meaning) => (
                 <option key={meaning} value={meaning}>
                   {SIGNATURE_MEANING_DETAILS[meaning].label}
@@ -548,26 +554,30 @@ function SignerCard({
         ) : null}
 
         <fieldset className="grid gap-3 rounded-2xl bg-white p-4 text-sm text-(--fg) sm:p-5">
-          <legend className="sr-only">Extra check before signing</legend>
+          <legend className="sr-only">Külön ellenőrzés aláírás előtt</legend>
           <p className="font-bold text-(--fg)">
-            Extra check before signing{" "}
-            <span className="font-normal text-(--secondary)">(optional)</span>
+            Külön ellenőrzés aláírás előtt{" "}
+            <span className="font-normal text-(--secondary)">
+              (nem kötelező)
+            </span>
           </p>
           <p className="text-[0.8125rem] leading-5 text-(--secondary)">
-            By default anyone holding the emailed link can sign. Pick a check
-            when the signer&apos;s identity matters.
+            Alapesetben bárki aláírhat, akinél ott van az e-mailben küldött
+            link. Válassz ellenőrzést, ha fontos, hogy valóban az aláíró írja
+            alá.
           </p>
           {checkChoice === "both" ? (
             <p className="text-[0.8125rem] leading-5 text-(--secondary)">
-              This signer has both an emailed code and an access code, so they
-              must pass both. Picking one option below removes the other.
+              Ennél az aláírónál e-mailes kód és hozzáférési kód is be van
+              állítva, ezért mindkettőt meg kell adnia. Ha lent választasz
+              egyet, a másik törlődik.
             </p>
           ) : null}
           <div className="grid gap-2" role="radiogroup">
             {SIGNER_CHECK_CHOICES.map((choice) => (
               <label className="flex items-start gap-3" key={choice.value}>
                 <input
-                  aria-label={`Signer ${order} check: ${choice.label}`}
+                  aria-label={`${order}. aláíró ellenőrzése: ${choice.label}`}
                   checked={checkChoice === choice.value}
                   className="mt-0.5 size-4.5 shrink-0 cursor-pointer accent-(--accent)"
                   disabled={disabled}
@@ -583,14 +593,14 @@ function SignerCard({
           {signer.wantsAccessCode ? (
             <label className="grid gap-2">
               <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-                Access code you will give them yourself, for example by phone
+                Hozzáférési kód, amelyet te adsz át neki, például telefonon
                 {keepsSavedCode
-                  ? " (a code is set; type a new one to change it)"
+                  ? " (már van kód; a módosításhoz írj be újat)"
                   : ""}
               </span>
               <input
                 aria-invalid={accessCodeError ? true : undefined}
-                aria-label={`Signer ${order} access code`}
+                aria-label={`${order}. aláíró hozzáférési kódja`}
                 autoComplete="off"
                 className="field-input"
                 disabled={disabled}
@@ -598,9 +608,7 @@ function SignerCard({
                 onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   onChecksChange({ accessCode: event.target.value })
                 }
-                placeholder={
-                  keepsSavedCode ? "••••••" : "At least 4 characters"
-                }
+                placeholder={keepsSavedCode ? "••••••" : "Legalább 4 karakter"}
                 type="text"
                 value={signer.accessCode}
               />
@@ -645,33 +653,33 @@ function CopyRecipientCard({
     <li className="well p-4 sm:p-5">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <span className="pill pill-neutral">Copy {position}</span>
+          <span className="pill pill-neutral">{position}. másolat</span>
           <button
-            aria-label={`Remove copy recipient ${position}`}
+            aria-label={`${position}. másolat címzettjének eltávolítása`}
             className="btn-quiet btn-quiet-danger"
             disabled={disabled}
             onClick={onRemove}
             type="button"
           >
-            Remove
+            Eltávolítás
           </button>
         </div>
 
         <div className="grid gap-x-4 gap-y-1 md:grid-cols-2">
           <label className="grid auto-rows-min gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              Name
+              Név
             </span>
             <input
               aria-invalid={nameError ? true : undefined}
-              aria-label={`Copy recipient ${position} name`}
+              aria-label={`${position}. másolat címzettjének neve`}
               className="field-input"
               disabled={disabled}
               onBlur={() => onBlur("name")}
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
                 onChange("name", event.target.value)
               }
-              placeholder="Alex Jones"
+              placeholder="Nagy Péter"
               type="text"
               value={recipient.name}
             />
@@ -688,18 +696,18 @@ function CopyRecipientCard({
 
           <label className="grid auto-rows-min gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              Email
+              E-mail-cím
             </span>
             <input
               aria-invalid={emailError ? true : undefined}
-              aria-label={`Copy recipient ${position} email`}
+              aria-label={`${position}. másolat címzettjének e-mail-címe`}
               className="field-input"
               disabled={disabled}
               onBlur={() => onBlur("email")}
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
                 onChange("email", event.target.value)
               }
-              placeholder="alex@company.com"
+              placeholder="peter@ceg.hu"
               type="email"
               value={recipient.email}
             />
@@ -941,17 +949,17 @@ export function SignersShell({
     return (
       <div className="space-y-5">
         <PageHeader
-          description="Step 2 of 4 - Add signers"
-          title="New envelope"
+          description="2/4. lépés – Aláírók hozzáadása"
+          title="Új szerződés"
         />
         <StepIndicator current={2} steps={envelopeSteps} />
         <StatusPanel
           action={{
             href: `/envelopes/${envelopeId}/signers`,
-            label: "Retry",
+            label: "Újra",
           }}
-          description="We couldn't load this draft's signer list. Try again and confirm the upload step completed successfully."
-          title="Couldn't load signer setup"
+          description="Nem sikerült betölteni a piszkozat aláíróit. Próbáld újra, és ellenőrizd, hogy a feltöltés rendben lezajlott-e."
+          title="Nem sikerült betölteni az aláírókat"
           tone="error"
         />
       </div>
@@ -961,8 +969,8 @@ export function SignersShell({
   return (
     <div className="space-y-5">
       <PageHeader
-        description="Step 2 of 4 - Add signers"
-        title="New envelope"
+        description="2/4. lépés – Aláírók hozzáadása"
+        title="Új szerződés"
       />
 
       <StepIndicator current={2} steps={envelopeSteps} />
@@ -975,10 +983,10 @@ export function SignersShell({
         <div className="space-y-5">
           <div className="space-y-1">
             <h2 className="text-lg font-extrabold text-(--fg)">
-              Signers will receive the document in this order.
+              Az aláírók ebben a sorrendben kapják meg a dokumentumot.
             </h2>
             <p className="text-sm leading-6 text-(--secondary)">
-              Up to 10 signers per document.
+              Dokumentumonként legfeljebb 10 aláíró.
             </p>
           </div>
 
@@ -1036,11 +1044,11 @@ export function SignersShell({
               onClick={handleAddSigner}
               type="button"
             >
-              + Add another signer
+              + Újabb aláíró
             </button>
             {!canAddSigner ? (
               <p className="text-[0.8125rem] font-semibold text-(--tertiary)">
-                Maximum reached
+                Elérted a maximumot
               </p>
             ) : null}
           </div>
@@ -1048,14 +1056,14 @@ export function SignersShell({
           <div className="space-y-3 pt-3">
             <div className="space-y-1">
               <h2 className="text-lg font-extrabold text-(--fg)">
-                Send a copy to{" "}
+                Másolatot kap{" "}
                 <span className="text-sm font-normal text-(--secondary)">
-                  (optional)
+                  (nem kötelező)
                 </span>
               </h2>
               <p className="text-sm leading-6 text-(--secondary)">
-                These people do not sign. They receive the finished document and
-                its certificate once everyone has signed.
+                Ők nem írnak alá. A kész dokumentumot és a tanúsítványt kapják
+                meg, amikor már mindenki aláírt.
               </p>
             </div>
 
@@ -1105,11 +1113,11 @@ export function SignersShell({
                 onClick={handleAddCopyRecipient}
                 type="button"
               >
-                + Add a copy recipient
+                + Másolat címzettjének hozzáadása
               </button>
               {!canAddCopyRecipient ? (
                 <p className="text-[0.8125rem] font-semibold text-(--tertiary)">
-                  Maximum reached
+                  Elérted a maximumot
                 </p>
               ) : null}
             </div>
@@ -1117,14 +1125,14 @@ export function SignersShell({
 
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
             <ShellButton href="/envelopes/new" variant="secondary">
-              ← Back
+              ← Vissza
             </ShellButton>
             <ShellButton
               disabled={!canContinue}
               loading={isSubmitting}
               onClick={handleContinue}
             >
-              Next →
+              Tovább →
             </ShellButton>
           </div>
         </div>

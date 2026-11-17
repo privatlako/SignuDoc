@@ -55,7 +55,7 @@ export async function POST(request: Request, context: UseTemplateRouteContext) {
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: error.issues[0]?.message ?? "Invalid template request." },
+        { error: error.issues[0]?.message ?? "Érvénytelen sablonkérés." },
         { status: 400 },
       );
     }
@@ -83,7 +83,7 @@ export async function POST(request: Request, context: UseTemplateRouteContext) {
     });
 
     return NextResponse.json(
-      { error: "Unable to start an envelope from this template." },
+      { error: "Nem sikerült szerződést indítani ebből a sablonból." },
       { status: 500 },
     );
   }

@@ -281,7 +281,7 @@ function getAutomaticReminderObstacle(
   now: number,
 ): string | null {
   if (envelope.reminderIntervalDays === null) {
-    return "Automatic reminders are off for this envelope.";
+    return "Ennél a szerződésnél ki van kapcsolva az automatikus emlékeztető.";
   }
 
   return isAutomaticReminderDue(
@@ -293,7 +293,7 @@ function getAutomaticReminderObstacle(
     now,
   )
     ? null
-    : "This envelope's next reminder is not due yet.";
+    : "Ennél a szerződésnél még nem esedékes a következő emlékeztető.";
 }
 
 async function persistReminder(
@@ -306,12 +306,12 @@ async function persistReminder(
   const envelope = await getReminderEnvelope(envelopeId, userId, database);
 
   if (!envelope) {
-    throw new ReminderMutationError("This envelope is unavailable.", 404);
+    throw new ReminderMutationError("Ez a szerződés nem érhető el.", 404);
   }
 
   if (envelope.status !== "sent") {
     throw new ReminderMutationError(
-      "Only sent envelopes can receive reminders.",
+      "Emlékeztetőt csak aláírásra váró szerződéshez küldhetsz.",
       409,
     );
   }
@@ -320,14 +320,14 @@ async function persistReminder(
 
   if (!signer) {
     throw new ReminderMutationError(
-      "This envelope is no longer waiting on a signer.",
+      "Ez a szerződés már nem vár aláíróra.",
       409,
     );
   }
 
   if (isEnvelopeExpired(envelope, dispatchedAt)) {
     throw new ReminderMutationError(
-      `This request expired on ${formatDeadline(envelope.expiresAt!)}. Set a new deadline before sending a reminder.`,
+      `Ennek a szerződésnek lejárt a határideje (${formatDeadline(envelope.expiresAt!)}). Emlékeztető küldése előtt állíts be új határidőt.`,
       409,
     );
   }
@@ -349,12 +349,12 @@ async function persistReminder(
     );
 
     if (!persistedEnvelope) {
-      throw new ReminderMutationError("This envelope is unavailable.", 404);
+      throw new ReminderMutationError("Ez a szerződés nem érhető el.", 404);
     }
 
     if (persistedEnvelope.status !== "sent") {
       throw new ReminderMutationError(
-        "Only sent envelopes can receive reminders.",
+        "Emlékeztetőt csak aláírásra váró szerződéshez küldhetsz.",
         409,
       );
     }
@@ -363,7 +363,7 @@ async function persistReminder(
     // here on it cannot be: the envelope's row is locked.
     if (persistedEnvelope.expiresAt !== envelope.expiresAt) {
       throw new ReminderMutationError(
-        "This envelope's deadline just changed. Try again.",
+        "A szerződés határideje épp most módosult. Próbáld újra.",
         409,
       );
     }
@@ -372,7 +372,7 @@ async function persistReminder(
 
     if (!persistedSigner) {
       throw new ReminderMutationError(
-        "This envelope is no longer waiting on a signer.",
+        "Ez a szerződés már nem vár aláíróra.",
         409,
       );
     }
@@ -394,7 +394,7 @@ async function persistReminder(
 
       if (nextAvailableAt > dispatchedAt) {
         throw new ReminderMutationError(
-          `You can send another reminder after ${formatReminderAvailableAt(nextAvailableAt)}.`,
+          `Újabb emlékeztetőt ${formatReminderAvailableAt(nextAvailableAt)} után küldhetsz.`,
           429,
           {
             nextAvailableAt,
@@ -440,7 +440,7 @@ async function persistReminder(
 
     if (signerUpdate.rowCount !== 1) {
       throw new ReminderMutationError(
-        "This envelope is no longer waiting on a signer.",
+        "Ez a szerződés már nem vár aláíróra.",
         409,
       );
     }

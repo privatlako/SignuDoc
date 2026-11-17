@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   if (!supportsDirectUploads()) {
     return NextResponse.json(
-      { error: "Direct uploads are not available on this install." },
+      { error: "A közvetlen feltöltés ezen a telepítésen nem érhető el." },
       { status: 404 },
     );
   }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { error: "Unable to start the upload." },
+      { error: "Nem sikerült elindítani a feltöltést." },
       { status: 500 },
     );
   }

@@ -399,7 +399,7 @@ test("the sender can choose a provider's signature only when the install has one
       (error: unknown) =>
         error instanceof EnvelopeMutationError &&
         error.statusCode === 400 &&
-        /no signing provider/.test(error.message),
+        /nincs aláírásszolgáltató/.test(error.message),
     );
   } finally {
     setEnv({ EIDEASY_CLIENT_ID: STAND_IN_CLIENT.id });
@@ -562,13 +562,13 @@ test("two signers sign with qualified signatures, each in a revision of their ow
 
   assert.equal(
     detail?.signatureTypeLabel,
-    "Qualified electronic signatures through eID Easy",
+    "Minősített elektronikus aláírás (eID Easy)",
   );
   assert.ok(
     detail?.timeline.some(
       (item) =>
         item.description ===
-        "Signed by Riley Recipient with a qualified electronic signature through eID Easy",
+        "Riley Recipient aláírta minősített elektronikus aláírással (eID Easy)",
     ),
     JSON.stringify(detail?.timeline.map((item) => item.description)),
   );

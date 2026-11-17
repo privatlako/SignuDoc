@@ -79,7 +79,7 @@ export async function readPendingUpload({
   userId: string;
 }): Promise<Uint8Array> {
   if (!isPendingUploadKey(key, userId)) {
-    throw new PendingUploadError("Invalid upload reference.");
+    throw new PendingUploadError("Érvénytelen feltöltési hivatkozás.");
   }
 
   try {
@@ -95,7 +95,7 @@ export async function readPendingUpload({
   } catch (error) {
     if (error instanceof StorageObjectNotFoundError) {
       throw new PendingUploadError(
-        "The uploaded file was not found. Please upload it again.",
+        "Nem találjuk a feltöltött fájlt. Töltsd fel újra.",
       );
     }
 

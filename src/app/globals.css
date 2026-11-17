@@ -44,14 +44,14 @@
 }
 
 /*
- * Soft Studio. A pale blue-grey page, white rounded cards that sit on it
+ * Soft Studio, in Homilla's warm tones. A warm off-white page (#F3F0EB), white rounded cards that sit on it
  * without borders, one violet for anything the person can act on, and
  * status shown as tinted pills. Red is kept for errors and for actions that
  * cannot be undone.
  */
 :root {
-  --page: #f3f4f8;
-  --bg: #f3f4f8;
+  --page: #f3f0eb;
+  --bg: #f3f0eb;
   --paper: #ffffff;
   --paper-raised: #ffffff;
   --fg: #1c1d2b;
@@ -76,15 +76,15 @@
   --success-soft: #e3f6ec;
   --warning: #8a5300;
   --warning-soft: #fdf1d8;
-  --surface: #f6f6fa;
-  --surface-strong: #e6e7ee;
+  --surface: #f8f6f2;
+  --surface-strong: #e9e4dc;
   --shell-surface: #ffffff;
-  --border: #e6e7ee;
-  --border-strong: #cfd0dc;
-  --border-hover: #b4b6c6;
+  --border: #e8e2d9;
+  --border-strong: #d6cec3;
+  --border-hover: #bdb3a6;
   --hover: rgba(28, 29, 43, 0.05);
-  --shell-wash: #f3f4f8;
-  --canvas-wash: #e9eaf1;
+  --shell-wash: #f3f0eb;
+  --canvas-wash: #ebe6de;
   --shadow-soft: 0 18px 40px rgba(28, 29, 43, 0.12);
   --shadow-card: 0 2px 6px rgba(28, 29, 43, 0.04);
   --shadow-lift: 0 10px 30px rgba(28, 29, 43, 0.08);

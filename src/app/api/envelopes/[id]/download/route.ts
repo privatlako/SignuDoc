@@ -56,7 +56,7 @@ export async function GET(
       const issue = error.issues[0];
 
       return NextResponse.json(
-        { error: issue?.message ?? "Invalid download request." },
+        { error: issue?.message ?? "Érvénytelen letöltési kérés." },
         { status: 400 },
       );
     }
@@ -82,7 +82,7 @@ export async function GET(
     });
 
     return NextResponse.json(
-      { error: "Unable to start this download." },
+      { error: "Nem sikerült elindítani a letöltést." },
       {
         headers: {
           "cache-control": "private, no-store",

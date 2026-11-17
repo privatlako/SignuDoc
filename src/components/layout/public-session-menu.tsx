@@ -55,7 +55,7 @@ export function PublicSessionMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          aria-label="Open account menu"
+          aria-label="Fiókmenü megnyitása"
           className={cn(
             "inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[#ffd9c2] text-[0.8125rem] font-bold text-[#7a3412] transition hover:ring-4 hover:ring-[rgba(28,29,43,0.06)]",
             buttonClassName,
@@ -81,7 +81,7 @@ export function PublicSessionMenu({
         <DropdownMenuItem asChild>
           <Link href="/dashboard" prefetch>
             <LayoutDashboard className="size-4" />
-            Dashboard
+            Áttekintés
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -93,7 +93,7 @@ export function PublicSessionMenu({
           variant="destructive"
         >
           <LogOut className="size-4" />
-          {isSigningOut ? "Signing out..." : "Log out"}
+          {isSigningOut ? "Kijelentkezés…" : "Kijelentkezés"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

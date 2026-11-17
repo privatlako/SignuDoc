@@ -285,14 +285,14 @@ export type DashboardEnvelopeListItem = {
 };
 
 type ReviewFieldSummary =
-  | "Checkbox"
-  | "Date"
-  | "Dropdown"
-  | "Initials"
-  | "Number"
-  | "Radio group"
-  | "Signature"
-  | "Text";
+  | "Jelölőnégyzet"
+  | "Aláírás dátuma"
+  | "Legördülő lista"
+  | "Szignó"
+  | "Szám"
+  | "Választógomb csoport"
+  | "Aláírás"
+  | "Szöveg";
 
 export type ReviewSignerSummary = {
   email: string;
@@ -396,7 +396,7 @@ export type EnvelopeDetailData = {
   part11: boolean;
   /**
    * How signers sign, when not with SignuDoc's own simple signature: for
-   * example "Qualified electronic signatures through eID Easy".
+   * example "Minősített elektronikus aláírás (eID Easy)".
    */
   signatureTypeLabel: string | null;
   signers: readonly EnvelopeDetailSignerView[];
@@ -452,14 +452,14 @@ const FIELD_TYPE_SUMMARY_LABELS: Record<
   FieldRecord["type"],
   ReviewFieldSummary
 > = {
-  checkbox: "Checkbox",
-  date: "Date",
-  dropdown: "Dropdown",
-  initials: "Initials",
-  number: "Number",
-  radio: "Radio group",
-  signature: "Signature",
-  text: "Text",
+  checkbox: "Jelölőnégyzet",
+  date: "Aláírás dátuma",
+  dropdown: "Legördülő lista",
+  initials: "Szignó",
+  number: "Szám",
+  radio: "Választógomb csoport",
+  signature: "Aláírás",
+  text: "Szöveg",
 };
 
 const FIELD_TYPE_SORT_ORDER: Record<FieldRecord["type"], number> = {
@@ -495,26 +495,27 @@ const TIMELINE_TONE_MAP: Record<
   voided: "danger",
 };
 
-const shortDateFormatter = new Intl.DateTimeFormat("en-US", {
+// Dates on the sender's screens: Hungarian, in Budapest time.
+const shortDateFormatter = new Intl.DateTimeFormat("hu-HU", {
   day: "numeric",
   month: "short",
-  timeZone: "UTC",
+  timeZone: "Europe/Budapest",
   year: "numeric",
 });
 
-const longDateFormatter = new Intl.DateTimeFormat("en-US", {
+const longDateFormatter = new Intl.DateTimeFormat("hu-HU", {
   day: "numeric",
   month: "long",
-  timeZone: "UTC",
+  timeZone: "Europe/Budapest",
   year: "numeric",
 });
 
-const timelineDateFormatter = new Intl.DateTimeFormat("en-US", {
+const timelineDateFormatter = new Intl.DateTimeFormat("hu-HU", {
   day: "numeric",
-  hour: "numeric",
+  hour: "2-digit",
   minute: "2-digit",
   month: "short",
-  timeZone: "UTC",
+  timeZone: "Europe/Budapest",
 });
 
 export async function createDraftEnvelope(
@@ -727,28 +728,35 @@ function buildInClausePlaceholders(length: number, startAt = 1): string {
   ).join(", ");
 }
 
-function pluralize(count: number, singular: string, plural = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : plural}`;
+/** Intl puts narrow and non-breaking spaces in Hungarian dates. */
+function withPlainSpaces(text: string): string {
+  return text.replace(/[\u00a0\u202f]/g, " ");
 }
 
+/** "2026. nov. 17." */
 function formatShortDate(timestamp: number): string {
-  return shortDateFormatter.format(new Date(timestamp * 1000));
+  return withPlainSpaces(shortDateFormatter.format(new Date(timestamp * 1000)));
 }
 
+/** "2026. november 17." */
 function formatLongDate(timestamp: number): string {
-  return longDateFormatter.format(new Date(timestamp * 1000));
+  return withPlainSpaces(longDateFormatter.format(new Date(timestamp * 1000)));
 }
 
+/** "nov. 17. 14:30" */
 function formatTimelineTimestamp(timestamp: number): string {
-  return timelineDateFormatter.format(new Date(timestamp * 1000));
+  return withPlainSpaces(
+    timelineDateFormatter.format(new Date(timestamp * 1000)),
+  );
 }
 
+/** "1,2 MB", with a Hungarian decimal comma. */
 function formatFileSize(sizeBytes: number): string {
   if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
+    return `${(sizeBytes / 1024).toFixed(1).replace(".", ",")} KB`;
   }
 
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
 }
 
 export async function getEnvelopeByIdForUser(
@@ -1038,7 +1046,7 @@ function buildDashboardContextLine(
 ): string {
   if (envelope.status === "completed") {
     const sentTo = signers.map((signer) => signer.email).join(", ");
-    return sentTo.length > 0 ? `Sent to: ${sentTo}` : "Sent to: —";
+    return sentTo.length > 0 ? `Aláírók: ${sentTo}` : "Aláírók: —";
   }
 
   if (envelope.status === "sent") {
@@ -1047,32 +1055,32 @@ function buildDashboardContextLine(
       signers.find((signer) => signer.status === "pending");
 
     if (isEnvelopeExpired(envelope, Math.floor(Date.now() / 1000))) {
-      return `Expired ${formatShortDate(envelope.expiresAt!)} · was waiting on: ${currentSigner?.email ?? "—"}`;
+      return `Lejárt: ${formatShortDate(envelope.expiresAt!)} · aláírásra várt: ${currentSigner?.email ?? "—"}`;
     }
 
-    return `Waiting on: ${currentSigner?.email ?? "—"}`;
+    return `Aláírásra vár: ${currentSigner?.email ?? "—"}`;
   }
 
   if (envelope.status === "declined") {
     const declinedSigner = signers.find(
       (signer) => signer.status === "declined",
     );
-    return `Declined by: ${declinedSigner?.email ?? "—"}`;
+    return `Elutasította: ${declinedSigner?.email ?? "—"}`;
   }
 
   if (envelope.status === "voided") {
-    return `Voided on ${formatShortDate(envelope.voidedAt ?? envelope.updatedAt)}`;
+    return `Visszavonva: ${formatShortDate(envelope.voidedAt ?? envelope.updatedAt)}`;
   }
 
-  return `${pluralize(signers.length, "signer")} · ${pluralize(fields.length, "field")} placed`;
+  return `${String(signers.length)} aláíró · ${String(fields.length)} elhelyezett mező`;
 }
 
 const dashboardStatusLabels: Record<EnvelopeRecord["status"], string> = {
-  completed: "Completed",
-  declined: "Declined",
-  draft: "Draft",
-  sent: "Sent",
-  voided: "Voided",
+  completed: "Aláírva",
+  declined: "Elutasítva",
+  draft: "Piszkozat",
+  sent: "Aláírásra vár",
+  voided: "Visszavonva",
 };
 
 function buildDashboardStatusLabel(
@@ -1080,16 +1088,17 @@ function buildDashboardStatusLabel(
   signers: readonly PersistedSignerRecord[],
 ): string {
   if (isEnvelopeExpired(envelope, Math.floor(Date.now() / 1000))) {
-    return "Expired";
+    return "Lejárt";
   }
 
-  // With one signer "Sent" says it all. With several, say how many are done.
+  // With one signer "Aláírásra vár" says it all. With several, say how many
+  // are done.
   if (envelope.status === "sent" && signers.length > 1) {
     const signedCount = signers.filter(
       (signer) => signer.status === "signed",
     ).length;
 
-    return `${String(signedCount)} of ${String(signers.length)} signed`;
+    return `${String(signers.length)} aláíróból ${String(signedCount)} aláírt`;
   }
 
   return dashboardStatusLabels[envelope.status];
@@ -1206,8 +1215,14 @@ function buildVoidNotificationEmail(input: {
 }
 
 const SIGNATURE_LEVEL_NAMES = {
-  advanced: "advanced electronic signature",
-  qualified: "qualified electronic signature",
+  advanced: "fokozott biztonságú elektronikus aláírás",
+  qualified: "minősített elektronikus aláírás",
+} as const;
+
+/** The same names with "-val/-vel": "minősített elektronikus aláírással". */
+const SIGNATURE_LEVEL_WITH = {
+  advanced: "fokozott biztonságú elektronikus aláírással",
+  qualified: "minősített elektronikus aláírással",
 } as const;
 
 function providerName(id: string | null | undefined): string | null {
@@ -1231,10 +1246,10 @@ function describeSignatureType(envelope: EnvelopeRecord): string | null {
   const name = SIGNATURE_LEVEL_NAMES[level];
   const through = providerName(envelope.signatureProvider);
 
-  return `${name[0]!.toUpperCase()}${name.slice(1)}s${through ? ` through ${through}` : ""}`;
+  return `${name[0]!.toUpperCase()}${name.slice(1)}${through ? ` (${through})` : ""}`;
 }
 
-/** "with a qualified electronic signature through eID Easy", or null. */
+/** "minősített elektronikus aláírással (eID Easy)", or null. */
 function describeProviderSignature(metadata: unknown): string | null {
   if (typeof metadata !== "object" || metadata === null) {
     return null;
@@ -1256,8 +1271,8 @@ function describeProviderSignature(metadata: unknown): string | null {
     return null;
   }
 
-  return `with ${level === "advanced" ? "an" : "a"} ${SIGNATURE_LEVEL_NAMES[level]}${
-    typeof provider === "string" ? ` through ${provider}` : ""
+  return `${SIGNATURE_LEVEL_WITH[level]}${
+    typeof provider === "string" ? ` (${provider})` : ""
   }`;
 }
 
@@ -1275,56 +1290,56 @@ function buildTimelineDescription(event: AuditEventRecord): string {
     event.metadata.reason.trim().length > 0
       ? event.metadata.reason.trim()
       : null;
-  const targetLabel = signerName ?? event.actorEmail ?? signerEmail ?? "signer";
+  const targetLabel = signerName ?? event.actorEmail ?? signerEmail ?? "aláíró";
 
   switch (event.event) {
     case "created":
-      return "Envelope created";
+      return "Szerződés létrehozva";
     case "sent":
-      return `Sent to ${targetLabel}`;
+      return `Elküldve: ${targetLabel}`;
     case "viewed":
-      return `Viewed by ${targetLabel}`;
+      return `${targetLabel} megnyitotta`;
     case "signed":
       return typeof event.metadata?.part11 === "object" &&
         event.metadata.part11 !== null &&
         "meaning" in event.metadata.part11 &&
         typeof event.metadata.part11.meaning === "string"
-        ? `Signed by ${targetLabel} (${signatureMeaningLabel(parseSignatureMeaning(event.metadata.part11.meaning)) ?? event.metadata.part11.meaning}, password given again)`
+        ? `${targetLabel} aláírta (${signatureMeaningLabel(parseSignatureMeaning(event.metadata.part11.meaning)) ?? event.metadata.part11.meaning}, a jelszó újbóli megadásával)`
         : describeProviderSignature(event.metadata)
-          ? `Signed by ${targetLabel} ${describeProviderSignature(event.metadata)!}`
-          : `Signed by ${targetLabel}`;
+          ? `${targetLabel} aláírta ${describeProviderSignature(event.metadata)!}`
+          : `${targetLabel} aláírta`;
     case "declined":
       return declineReason
-        ? `Declined by ${targetLabel} — ${declineReason}`
-        : `Declined by ${targetLabel}`;
+        ? `${targetLabel} elutasította — ${declineReason}`
+        : `${targetLabel} elutasította`;
     case "reminded_manual":
-      return `Manual reminder sent to ${targetLabel}`;
+      return `Kézi emlékeztető elküldve: ${targetLabel}`;
     case "reminded_auto":
-      return `Automatic reminder sent to ${targetLabel}`;
+      return `Automatikus emlékeztető elküldve: ${targetLabel}`;
     case "consented":
-      return `${targetLabel} agreed to use electronic records and signatures`;
+      return `${targetLabel} elfogadta az elektronikus dokumentumok és aláírások használatát`;
     case "verified":
-      return `${targetLabel} confirmed their identity`;
+      return `${targetLabel} megerősítette a személyazonosságát`;
     case "verification_failed":
-      return `Wrong identity code entered for ${targetLabel}`;
+      return `Hibás azonosító kódot adtak meg: ${targetLabel}`;
     case "email_sent":
       return typeof event.metadata?.recipient === "string"
-        ? `Email accepted for delivery to ${event.metadata.recipient}`
-        : "Email accepted for delivery";
+        ? `E-mail átadva kézbesítésre: ${event.metadata.recipient}`
+        : "E-mail átadva kézbesítésre";
     case "completed":
-      return "Final signed PDF and certificate generated";
+      return "Elkészült az aláírt PDF és a hitelesítési igazolás";
     case "voided":
       return declineReason
-        ? `Envelope voided by sender — ${declineReason}`
-        : "Envelope voided by sender";
+        ? `A küldő visszavonta a szerződést — ${declineReason}`
+        : "A küldő visszavonta a szerződést";
     case "reauthentication_failed":
-      return `Wrong password given while signing for ${targetLabel}`;
+      return `Hibás jelszót adtak meg aláíráskor: ${targetLabel}`;
     case "deadline_changed":
       return typeof event.metadata?.expiresAt === "number"
-        ? `Deadline set to ${formatDeadline(event.metadata.expiresAt)}`
-        : "Deadline changed";
+        ? `Új határidő: ${formatDeadline(event.metadata.expiresAt)}`
+        : "Határidő módosítva";
     case "expired":
-      return "Deadline passed before everyone signed";
+      return "Lejárt a határidő, mielőtt mindenki aláírta volna";
     default:
       return event.event;
   }
@@ -1336,31 +1351,31 @@ function buildDetailSignerStatusLabel(
   previousSignerName?: string,
 ): string | undefined {
   if (signer.status === "signed" && signer.signedAt) {
-    return `Signed ${formatShortDate(signer.signedAt)}`;
+    return `Aláírta: ${formatShortDate(signer.signedAt)}`;
   }
 
   if (signer.status === "declined" && signer.declinedAt) {
-    return `Declined ${formatShortDate(signer.declinedAt)}`;
+    return `Elutasította: ${formatShortDate(signer.declinedAt)}`;
   }
 
   if (signer.status === "notified") {
     const sentAt = signer.lastNotifiedAt ?? signer.turnStartedAt;
     if (envelope.status === "voided") {
       return sentAt
-        ? `Notified ${formatShortDate(sentAt)}`
-        : "Notified before void";
+        ? `Értesítve: ${formatShortDate(sentAt)}`
+        : "Értesítve a visszavonás előtt";
     }
 
-    return sentAt ? `Sent ${formatShortDate(sentAt)}` : undefined;
+    return sentAt ? `Elküldve: ${formatShortDate(sentAt)}` : undefined;
   }
 
   if (envelope.status === "draft") {
     return previousSignerName
-      ? `Ready to notify after ${previousSignerName}`
-      : "Ready to notify after send";
+      ? `${previousSignerName} után kap értesítést`
+      : "A küldéskor kap értesítést";
   }
 
-  return "No notification sent";
+  return "Még nem kapott értesítést";
 }
 
 function buildDetailSignerMetaLabel(
@@ -1369,30 +1384,30 @@ function buildDetailSignerMetaLabel(
   assignedFieldCount: number,
 ): string {
   if (envelope.status === "voided" && signer.status === "notified") {
-    return "Last notified signer before void";
+    return "Utoljára értesített aláíró a visszavonás előtt";
   }
 
   if (signer.status === "declined" && signer.declineReason) {
-    return `Decline reason: ${signer.declineReason}`;
+    return `Az elutasítás oka: ${signer.declineReason}`;
   }
 
   if (envelope.status === "declined" && signer.status === "pending") {
-    return "Skipped after decline";
+    return "Az elutasítás miatt kimaradt";
   }
 
   if (envelope.status === "voided" && signer.status === "pending") {
-    return "Not reached before void";
+    return "A visszavonás előtt nem került rá sor";
   }
 
   if (signer.status === "signed") {
-    return `${pluralize(assignedFieldCount, "field")} completed`;
+    return `${String(assignedFieldCount)} mező kitöltve`;
   }
 
   if (signer.status === "notified") {
-    return "Current signer";
+    return "Most ő következik";
   }
 
-  return `${pluralize(assignedFieldCount, "field")} assigned`;
+  return `${String(assignedFieldCount)} hozzárendelt mező`;
 }
 
 export async function listEnvelopesForUser(
@@ -1659,7 +1674,7 @@ export async function getDraftEnvelopeDocumentForUser(
   const envelope = await getEnvelopeByIdForUser(userId, envelopeId, database);
 
   if (!envelope) {
-    throw new EnvelopeDocumentAccessError("Envelope not found.", 404);
+    throw new EnvelopeDocumentAccessError("A szerződés nem található.", 404);
   }
 
   try {
@@ -1677,7 +1692,10 @@ export async function getDraftEnvelopeDocumentForUser(
       (error instanceof Error &&
         (error.name === "NoSuchKey" || error.name === "NotFound"))
     ) {
-      throw new EnvelopeDocumentAccessError("Source PDF is unavailable.", 404);
+      throw new EnvelopeDocumentAccessError(
+        "Az eredeti PDF nem érhető el.",
+        404,
+      );
     }
 
     throw error;
@@ -1711,7 +1729,7 @@ export async function saveEnvelopeThumbnailForUser(
   const envelope = await getEnvelopeByIdForUser(userId, envelopeId, database);
 
   if (!envelope) {
-    throw new EnvelopeDocumentAccessError("Envelope not found.", 404);
+    throw new EnvelopeDocumentAccessError("A szerződés nem található.", 404);
   }
 
   const key = buildEnvelopeThumbnailKey({
@@ -1742,7 +1760,7 @@ export async function saveEnvelopeThumbnailForUser(
   if (!envelopeAfterWrite) {
     await storageService.deleteObject(key);
 
-    throw new EnvelopeDocumentAccessError("Envelope not found.", 404);
+    throw new EnvelopeDocumentAccessError("A szerződés nem található.", 404);
   }
 }
 
@@ -1773,7 +1791,7 @@ export async function getEnvelopeThumbnailForUser(
   const envelope = await getEnvelopeByIdForUser(userId, envelopeId, database);
 
   if (!envelope) {
-    throw new EnvelopeDocumentAccessError("Envelope not found.", 404);
+    throw new EnvelopeDocumentAccessError("A szerződés nem található.", 404);
   }
 
   const etag = buildThumbnailEtag(envelope.id);
@@ -1795,7 +1813,7 @@ export async function getEnvelopeThumbnailForUser(
   } catch (error) {
     if (error instanceof StorageObjectNotFoundError) {
       throw new EnvelopeDocumentAccessError(
-        "This document has no thumbnail yet.",
+        "Ehhez a dokumentumhoz még nincs előnézeti kép.",
         404,
       );
     }
@@ -1878,7 +1896,7 @@ export async function getReviewEnvelopeDataForUser(
     signingProvider: provider && !part11Mode ? { name: provider.name } : null,
     copyRecipients,
     disabledReason: missingSignatureSigner
-      ? `Every signer must have at least one Signature field before sending. ${missingSignatureSigner.name} is missing one.`
+      ? `Küldés előtt minden aláírónak kell legalább egy aláírásmező. ${missingSignatureSigner.name} még nem kapott ilyet.`
       : choiceProblem,
     envelopeId,
     filename: envelope.sourcePdfFilename,
@@ -1943,10 +1961,7 @@ async function lockDraftEnvelope(
   );
 
   if (locked.rowCount !== 1) {
-    throw new EnvelopeMutationError(
-      "Only draft envelopes can be updated.",
-      409,
-    );
+    throw new EnvelopeMutationError("Csak piszkozatot módosíthatsz.", 409);
   }
 }
 
@@ -1959,11 +1974,11 @@ export async function sendDraftEnvelope(
   const envelope = await getEnvelopeByIdForUser(userId, envelopeId, database);
 
   if (!envelope) {
-    throw new EnvelopeMutationError("Envelope not found.", 404);
+    throw new EnvelopeMutationError("A szerződés nem található.", 404);
   }
 
   if (envelope.status !== "draft") {
-    throw new EnvelopeMutationError("Only draft envelopes can be sent.", 409);
+    throw new EnvelopeMutationError("Csak piszkozatot küldhetsz el.", 409);
   }
 
   const checkedParties = await readDraftParties(envelopeId, database);
@@ -1971,7 +1986,7 @@ export async function sendDraftEnvelope(
 
   if (signers.length === 0 || fields.length === 0) {
     throw new EnvelopeMutationError(
-      "Add signers and place fields before sending this envelope.",
+      "Küldés előtt adj hozzá aláírókat, és helyezd el a mezőket.",
       400,
     );
   }
@@ -1980,7 +1995,7 @@ export async function sendDraftEnvelope(
 
   if (fields.some((field) => !signerIds.has(field.signerId))) {
     throw new EnvelopeMutationError(
-      "Each field must be assigned to an existing signer on this envelope.",
+      "Minden mezőt a szerződés egyik aláírójához kell rendelni.",
       400,
     );
   }
@@ -1992,7 +2007,7 @@ export async function sendDraftEnvelope(
 
   if (missingSignatureSigner) {
     throw new EnvelopeMutationError(
-      `Every signer must have at least one Signature field before sending. ${missingSignatureSigner.name} is missing one.`,
+      `Küldés előtt minden aláírónak kell legalább egy aláírásmező. ${missingSignatureSigner.name} még nem kapott ilyet.`,
       400,
     );
   }
@@ -2017,14 +2032,14 @@ export async function sendDraftEnvelope(
   if (signatureLevel !== "simple") {
     if (!signingProvider) {
       throw new EnvelopeMutationError(
-        "This install has no signing provider for advanced or qualified signatures.",
+        "Ebben a telepítésben nincs aláírásszolgáltató fokozott biztonságú vagy minősített aláíráshoz.",
         400,
       );
     }
 
     if (part11) {
       throw new EnvelopeMutationError(
-        "Part 11 mode signs with the signers' accounts. Send with simple signatures.",
+        "Part 11 módban az aláírók a saját fiókjukkal írnak alá. Egyszerű aláírással küldd el.",
         400,
       );
     }
@@ -2052,7 +2067,7 @@ export async function sendDraftEnvelope(
 
       if (problem || !account) {
         throw new EnvelopeMutationError(
-          problem ?? "A signer cannot sign in Part 11 mode.",
+          problem ?? "Az egyik aláíró nem tud aláírni Part 11 módban.",
           400,
         );
       }
@@ -2064,10 +2079,7 @@ export async function sendDraftEnvelope(
   const firstSigner = signers[0];
 
   if (!firstSigner) {
-    throw new EnvelopeMutationError(
-      "Add signers before sending this envelope.",
-      400,
-    );
+    throw new EnvelopeMutationError("Küldés előtt adj hozzá aláírókat.", 400);
   }
 
   const emailService = createEmailService();
@@ -2076,7 +2088,7 @@ export async function sendDraftEnvelope(
 
   if (!sourcePdfHead.exists) {
     throw new EnvelopeMutationError(
-      "The source document for this envelope could not be found.",
+      "Nem található a szerződés eredeti dokumentuma.",
       500,
     );
   }
@@ -2116,10 +2128,7 @@ export async function sendDraftEnvelope(
       );
 
       if (updatedEnvelope.rowCount !== 1) {
-        throw new EnvelopeMutationError(
-          "This envelope has already been sent.",
-          409,
-        );
+        throw new EnvelopeMutationError("Ezt a szerződést már elküldted.", 409);
       }
 
       // The signers and fields were read and checked before this
@@ -2133,7 +2142,7 @@ export async function sendDraftEnvelope(
         JSON.stringify(checkedParties)
       ) {
         throw new EnvelopeMutationError(
-          "This envelope was changed while it was being sent. Check it and send it again.",
+          "A szerződés küldés közben módosult. Nézd át, és küldd el újra.",
           409,
         );
       }
@@ -2188,7 +2197,7 @@ export async function sendDraftEnvelope(
 
           if (bound.rowCount !== 1) {
             throw new EnvelopeMutationError(
-              "This envelope was changed while it was being sent. Check it and send it again.",
+              "A szerződés küldés közben módosult. Nézd át, és küldd el újra.",
               409,
             );
           }
@@ -2221,7 +2230,7 @@ export async function sendDraftEnvelope(
 
       if (updatedSigner.rowCount !== 1) {
         throw new EnvelopeMutationError(
-          "Unable to activate the first signer for this envelope.",
+          "Nem sikerült elindítani az aláírást az első aláírónál.",
           500,
         );
       }
@@ -2406,12 +2415,12 @@ export async function changeEnvelopeDeadline(
     );
 
     if (!current) {
-      throw new EnvelopeMutationError("Envelope not found.", 404);
+      throw new EnvelopeMutationError("A szerződés nem található.", 404);
     }
 
     if (current.status !== "sent") {
       throw new EnvelopeMutationError(
-        "Only an envelope that is out for signature has a deadline to change.",
+        "Határidőt csak aláírásra váró szerződésnél módosíthatsz.",
         409,
       );
     }
@@ -2484,10 +2493,10 @@ export async function changeEnvelopeReminders(
 
     throw envelope
       ? new EnvelopeMutationError(
-          "Reminders can only be changed while an envelope is out for signature.",
+          "Az emlékeztetőket csak aláírásra váró szerződésnél módosíthatod.",
           409,
         )
-      : new EnvelopeMutationError("Envelope not found.", 404);
+      : new EnvelopeMutationError("A szerződés nem található.", 404);
   }
 
   return changeRemindersResponseSchema.parse({
@@ -2505,18 +2514,21 @@ export async function voidSentEnvelope(
   const envelope = await getEnvelopeByIdForUser(userId, envelopeId, database);
 
   if (!envelope) {
-    throw new EnvelopeMutationError("Envelope not found.", 404);
+    throw new EnvelopeMutationError("A szerződés nem található.", 404);
   }
 
   if (envelope.status !== "sent") {
-    throw new EnvelopeMutationError("Only sent envelopes can be voided.", 409);
+    throw new EnvelopeMutationError(
+      "Csak aláírásra váró szerződést vonhatsz vissza.",
+      409,
+    );
   }
 
   const reason = input.reason?.trim().slice(0, 1000) || null;
 
   if (envelope.part11 && !reason) {
     throw new EnvelopeMutationError(
-      "Give a reason for voiding. Part 11 records keep it in the audit trail.",
+      "Add meg a visszavonás okát. Part 11 módban ez bekerül az eseménynaplóba.",
       400,
     );
   }
@@ -2533,7 +2545,7 @@ export async function voidSentEnvelope(
 
   if (!sourcePdfHead.exists) {
     throw new EnvelopeMutationError(
-      "The source document for this envelope could not be found.",
+      "Nem található a szerződés eredeti dokumentuma.",
       500,
     );
   }
@@ -2649,12 +2661,12 @@ export async function voidSentEnvelope(
       );
 
       if (!persistedEnvelope) {
-        throw new EnvelopeMutationError("Envelope not found.", 404);
+        throw new EnvelopeMutationError("A szerződés nem található.", 404);
       }
 
       if (persistedEnvelope.status !== "sent") {
         throw new EnvelopeMutationError(
-          "Only sent envelopes can be voided.",
+          "Csak aláírásra váró szerződést vonhatsz vissza.",
           409,
         );
       }
@@ -2686,7 +2698,7 @@ export async function voidSentEnvelope(
 
       if (updatedEnvelope.rowCount !== 1) {
         throw new EnvelopeMutationError(
-          "This envelope can no longer be voided.",
+          "Ezt a szerződést már nem lehet visszavonni.",
           409,
         );
       }
@@ -2786,14 +2798,11 @@ export async function replaceDraftEnvelopeFields(
   const envelope = await getEnvelopeByIdForUser(userId, envelopeId, database);
 
   if (!envelope) {
-    throw new EnvelopeMutationError("Envelope not found.", 404);
+    throw new EnvelopeMutationError("A szerződés nem található.", 404);
   }
 
   if (envelope.status !== "draft") {
-    throw new EnvelopeMutationError(
-      "Only draft envelopes can be updated.",
-      409,
-    );
+    throw new EnvelopeMutationError("Csak piszkozatot módosíthatsz.", 409);
   }
 
   const [signers, pages, existingFieldsByEnvelope] = await Promise.all([
@@ -2814,14 +2823,14 @@ export async function replaceDraftEnvelopeFields(
 
     if (!signerIds.has(parsedField.signerId)) {
       throw new EnvelopeMutationError(
-        "Each field must be assigned to an existing signer on this envelope.",
+        "Minden mezőt a szerződés egyik aláírójához kell rendelni.",
         400,
       );
     }
 
     if (!pageNumbers.has(parsedField.page)) {
       throw new EnvelopeMutationError(
-        "Each field must be placed on an existing page in this document.",
+        "Minden mezőnek a dokumentum egy létező oldalán kell lennie.",
         400,
       );
     }
@@ -2829,7 +2838,10 @@ export async function replaceDraftEnvelopeFields(
     const fieldId = parsedField.id ?? randomUUID();
 
     if (usedFieldIds.has(fieldId)) {
-      throw new EnvelopeMutationError("Each field must be unique.", 400);
+      throw new EnvelopeMutationError(
+        "Minden mező csak egyszer szerepelhet.",
+        400,
+      );
     }
 
     usedFieldIds.add(fieldId);
@@ -2933,14 +2945,11 @@ export async function replaceDraftEnvelopeSigners(
   const envelope = await getEnvelopeByIdForUser(userId, envelopeId, database);
 
   if (!envelope) {
-    throw new EnvelopeMutationError("Envelope not found.", 404);
+    throw new EnvelopeMutationError("A szerződés nem található.", 404);
   }
 
   if (envelope.status !== "draft") {
-    throw new EnvelopeMutationError(
-      "Only draft envelopes can be updated.",
-      409,
-    );
+    throw new EnvelopeMutationError("Csak piszkozatot módosíthatsz.", 409);
   }
 
   const existingSigners = await listSignersForEnvelopeId(envelopeId, database);
@@ -2964,7 +2973,7 @@ export async function replaceDraftEnvelopeSigners(
     // Two rows of one request claiming to be the same saved recipient.
     if (usedCopyRecipientIds.has(persistedId)) {
       throw new EnvelopeMutationError(
-        "Each copy recipient must be unique.",
+        "Minden másolat címzettje csak egyszer szerepelhet.",
         400,
       );
     }
@@ -3002,7 +3011,10 @@ export async function replaceDraftEnvelopeSigners(
       signer.id && existingSignerIds.has(signer.id) ? signer.id : randomUUID();
 
     if (usedSignerIds.has(persistedSignerId)) {
-      throw new EnvelopeMutationError("Each signer must be unique.", 400);
+      throw new EnvelopeMutationError(
+        "Minden aláíró csak egyszer szerepelhet.",
+        400,
+      );
     }
 
     usedSignerIds.add(persistedSignerId);
@@ -3197,14 +3209,11 @@ export async function deleteDraftEnvelope(
   const envelope = await getEnvelopeByIdForUser(userId, envelopeId, database);
 
   if (!envelope) {
-    throw new EnvelopeMutationError("Envelope not found.", 404);
+    throw new EnvelopeMutationError("A szerződés nem található.", 404);
   }
 
   if (envelope.status !== "draft") {
-    throw new EnvelopeMutationError(
-      "Only draft envelopes can be deleted.",
-      409,
-    );
+    throw new EnvelopeMutationError("Csak piszkozatot törölhetsz.", 409);
   }
 
   const deleteResult = await database.query(
@@ -3217,7 +3226,7 @@ export async function deleteDraftEnvelope(
 
   if (deleteResult.rowCount !== 1) {
     throw new EnvelopeMutationError(
-      "This draft envelope can no longer be deleted.",
+      "Ezt a piszkozatot már nem lehet törölni.",
       409,
     );
   }

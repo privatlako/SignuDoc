@@ -29,7 +29,7 @@ export function CanvasShell({
   stepLabel,
   title,
 }: CanvasShellProps) {
-  const nextButtonLabel = nextLoading ? "Loading..." : (nextLabel ?? "Next");
+  const nextButtonLabel = nextLoading ? "Betöltés…" : (nextLabel ?? "Tovább");
 
   return (
     <div className="min-h-screen bg-(--page)">

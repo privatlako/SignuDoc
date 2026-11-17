@@ -274,7 +274,7 @@ test("one saved copy recipient named twice is refused, and nothing is lost", asy
     (error: unknown) =>
       error instanceof EnvelopeMutationError &&
       error.statusCode === 400 &&
-      /copy recipient/i.test(error.message),
+      /másolat címzettje/i.test(error.message),
   );
   assert.deepEqual(
     await listCopyRecipientsForEnvelopeId(envelopeId, database),

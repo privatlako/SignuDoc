@@ -234,7 +234,7 @@ export function PdfPageCanvas({
 
   return (
     <div
-      aria-label={`Rendered PDF page ${pageNumber}`}
+      aria-label={`A PDF ${pageNumber}. oldala`}
       className="absolute inset-0 flex items-center justify-center"
       role="img"
     >
@@ -249,13 +249,13 @@ export function PdfPageCanvas({
           <div className="well max-w-[320px] px-5 py-4">
             <p className="text-sm font-bold text-(--fg)">
               {renderState === "error"
-                ? "We couldn't render this PDF page."
-                : "Rendering document page..."}
+                ? "Nem sikerült megjeleníteni a PDF oldalát."
+                : "A dokumentum oldalának betöltése…"}
             </p>
             <p className="mt-1.5 text-sm leading-6 text-(--secondary)">
               {renderState === "error"
-                ? "Reload the page or try this draft again in a moment."
-                : "Preparing the source PDF so placed fields stay aligned with the stored page size."}
+                ? "Töltsd újra az oldalt, vagy próbáld újra kicsit később."
+                : "Előkészítjük a PDF-et, hogy a mezők a helyükön maradjanak."}
             </p>
           </div>
         </div>

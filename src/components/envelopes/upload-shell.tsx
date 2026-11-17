@@ -26,7 +26,12 @@ import {
 import { assertPdfPreviewRenderable } from "@/lib/pdfjs-client";
 import { type CreateEnvelopeResponse } from "@/lib/schemas/envelope";
 
-const envelopeSteps = ["Upload", "Signers", "Place fields", "Review"];
+const envelopeSteps = [
+  "Feltöltés",
+  "Aláírók",
+  "Mezők elhelyezése",
+  "Ellenőrzés",
+];
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 
 type UploadErrorCode = "invalid-type" | "preview-unavailable" | "too-large";
@@ -38,11 +43,13 @@ type UploadSummary = {
 };
 
 const errorMessageMap: Record<UploadErrorCode, string> = {
-  "invalid-type": "Only PDF files are supported. Please upload a valid PDF.",
+  "invalid-type": "Csak PDF-fájlt tölthetsz fel. Válassz egy érvényes PDF-et.",
   "preview-unavailable":
-    "We couldn't render this PDF in the editor. Please export it as a standard PDF and try again.",
-  "too-large": "This file exceeds the 20 MB limit.",
+    "Ezt a PDF-et nem tudjuk megjeleníteni a szerkesztőben. Mentsd el szabványos PDF-ként, és próbáld újra.",
+  "too-large": "A fájl nagyobb a megengedett 20 MB-nál.",
 };
+
+const genericErrorMessage = "Valami hiba történt. Próbáld újra.";
 
 const knownTitleSuggestions: Record<string, string> = {
   "nda-clientbravo-2026.pdf": "NDA - Client Bravo",
@@ -54,7 +61,7 @@ function formatFileSize(sizeInBytes: number) {
   const sizeInMegabytes = sizeInBytes / (1024 * 1024);
 
   if (sizeInMegabytes >= 1) {
-    return `${sizeInMegabytes.toFixed(1)} MB`;
+    return `${sizeInMegabytes.toFixed(1).replace(".", ",")} MB`;
   }
 
   return `${Math.max(1, Math.round(sizeInBytes / 1024))} KB`;
@@ -131,11 +138,11 @@ function UploadShellLayout({
       <PageHeader
         action={
           <Link className="btn-quiet min-h-11 px-4" href="/templates">
-            Start from a template
+            Indítás sablonból
           </Link>
         }
-        description="Step 1 of 4 - Upload document"
-        title="New envelope"
+        description="1. lépés a 4-ből – PDF feltöltése"
+        title="Új szerződés"
       />
 
       <StepIndicator current={1} steps={envelopeSteps} />
@@ -147,16 +154,16 @@ function UploadShellLayout({
       >
         <div className="space-y-6">
           <FieldShell
-            label="Envelope title"
+            label="Szerződés címe"
             onChange={onTitleChange}
-            placeholder="e.g., NDA - Client Bravo"
+            placeholder="pl. Bérleti szerződés – Kiss Anna"
             readOnly={false}
             value={title}
           />
 
           <div
             aria-busy={isBusy}
-            aria-label="Document upload dropzone"
+            aria-label="Feltöltési terület"
             className={cn(
               "cursor-pointer rounded-[1.25rem] border-2 border-dashed px-6 py-10 text-center transition sm:px-10 sm:py-12",
               dropzoneClasses,
@@ -173,7 +180,7 @@ function UploadShellLayout({
               {isBusy ? (
                 <>
                   <div
-                    aria-label="Upload progress"
+                    aria-label="Feltöltés állapota"
                     className="h-2 w-full max-w-sm overflow-hidden rounded-full bg-white"
                     role="progressbar"
                   >
@@ -181,10 +188,10 @@ function UploadShellLayout({
                   </div>
                   <div className="space-y-1.5">
                     <p className="text-lg font-bold tracking-[-0.02em] text-(--fg)">
-                      Uploading...
+                      Feltöltés…
                     </p>
                     <p className="text-sm leading-6 text-(--secondary)">
-                      Validating the PDF before you continue to signer setup.
+                      Ellenőrizzük a PDF-et, mielőtt továbblépsz az aláírókhoz.
                     </p>
                   </div>
                 </>
@@ -199,17 +206,17 @@ function UploadShellLayout({
                   </span>
                   <div className="space-y-1.5">
                     <p className="text-lg font-bold tracking-[-0.02em] text-(--fg)">
-                      Drag and drop your PDF here
+                      Húzd ide a PDF-et
                     </p>
                     <p className="text-sm text-(--secondary)">
-                      or{" "}
+                      vagy{" "}
                       <span className="font-bold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4">
-                        click to browse
+                        kattints a tallózáshoz
                       </span>
                     </p>
                   </div>
                   <p className="text-[0.8125rem] font-medium text-(--tertiary)">
-                    PDF only - 20 MB max
+                    Csak PDF, legfeljebb 20 MB
                   </p>
                 </>
               )}
@@ -258,7 +265,7 @@ function UploadShellLayout({
                 type="button"
                 variant="outline"
               >
-                Remove
+                Eltávolítás
               </Button>
             </section>
           ) : null}
@@ -269,7 +276,7 @@ function UploadShellLayout({
               loading={isSubmitting}
               onClick={onContinue}
             >
-              Next -&gt;
+              Tovább →
             </ShellButton>
           </div>
         </div>
@@ -395,8 +402,8 @@ export function UploadShell({ directUploadPrefix = null }: UploadShellProps) {
         data: null,
         error:
           payload && typeof payload === "object" && "error" in payload
-            ? (payload.error ?? "Something went wrong. Please try again.")
-            : "Something went wrong. Please try again.",
+            ? (payload.error ?? genericErrorMessage)
+            : genericErrorMessage,
       };
     }
 
@@ -518,9 +525,7 @@ export function UploadShell({ directUploadPrefix = null }: UploadShellProps) {
       const payload = await parseResponse<CreateEnvelopeResponse>(response);
 
       if (!payload.data || payload.error) {
-        setErrorMessage(
-          payload.error ?? "Something went wrong. Please try again.",
-        );
+        setErrorMessage(payload.error ?? genericErrorMessage);
 
         if (response.status === 400) {
           setSummary(null);
@@ -555,7 +560,7 @@ export function UploadShell({ directUploadPrefix = null }: UploadShellProps) {
         router.push(redirectPath);
       });
     } catch {
-      setErrorMessage("Something went wrong. Please try again.");
+      setErrorMessage(genericErrorMessage);
       setIsCreatingDraft(false);
     }
   }
@@ -584,7 +589,7 @@ export function UploadShell({ directUploadPrefix = null }: UploadShellProps) {
     >
       <input
         accept=".pdf,application/pdf"
-        aria-label="Upload PDF"
+        aria-label="PDF feltöltése"
         className="sr-only"
         onChange={handleInputChange}
         ref={fileInputRef}

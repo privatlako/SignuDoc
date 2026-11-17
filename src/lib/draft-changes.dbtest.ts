@@ -311,7 +311,7 @@ test("an envelope is not sent without a signer who was erased while it was being
     "draft",
     "the envelope went out without the erased signer",
   );
-  assert.ok(refusedWith(409, /changed while it was being sent/)(outcome));
+  assert.ok(refusedWith(409, /küldés közben módosult/)(outcome));
   assert.deepEqual(await signersOf(draft.envelopeId), [
     { email: draft.rileyEmail, id: draft.riley, status: "pending" },
   ]);
@@ -340,7 +340,7 @@ test("fields saved for a draft do not land on an envelope that was sent meanwhil
         () => markSent(draft.envelopeId),
       ),
     ),
-    refusedWith(409, /Only draft envelopes/),
+    refusedWith(409, /Csak piszkozatot/),
   );
 
   // What the signers were sent is untouched.
@@ -366,7 +366,7 @@ test("signers saved for a draft do not land on an envelope that was sent meanwhi
         () => markSent(draft.envelopeId),
       ),
     ),
-    refusedWith(409, /Only draft envelopes/),
+    refusedWith(409, /Csak piszkozatot/),
   );
 
   assert.deepEqual(

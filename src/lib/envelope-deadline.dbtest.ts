@@ -259,7 +259,7 @@ test("a reminder is refused once the deadline has passed", async () => {
     (error: unknown) => {
       assert.ok(error instanceof ReminderMutationError);
       assert.equal(error.statusCode, 409);
-      assert.match(error.message, /^This request expired on /);
+      assert.match(error.message, /^Ennek a szerződésnek lejárt a határideje /);
       return true;
     },
   );

@@ -59,7 +59,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Choose reminders between 1 and 30 days apart, or turn them off.",
+          "Válassz 1 és 30 nap közötti gyakoriságot, vagy kapcsold ki az emlékeztetőt.",
       },
       { headers: noStore, status: 400 },
     );
@@ -91,7 +91,7 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { error: "Unable to change the reminders." },
+      { error: "Nem sikerült módosítani az emlékeztetőket." },
       { headers: noStore, status: 500 },
     );
   }

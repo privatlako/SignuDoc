@@ -16,6 +16,13 @@ import {
 } from "./common.ts";
 
 export const fieldTypeSchema = z.enum(fieldTypes);
+
+// The fields a signer can never skip, named for the "always required" error.
+const ALWAYS_REQUIRED_FIELD_NAMES: Record<string, string> = {
+  date: "Az aláírás dátuma mező",
+  initials: "A szignómező",
+  signature: "Az aláírásmező",
+};
 export const fieldInputMethodSchema = z.enum(fieldInputMethods);
 
 export const MAX_DRAWN_SIGNATURE_BYTES = 256 * 1024;
@@ -49,7 +56,7 @@ export const fieldPlacementSchema = z
     if (field.options !== undefined && field.type !== "dropdown") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Only dropdown fields have choices",
+        message: "Választási lehetőségei csak a legördülő listának lehetnek.",
         path: ["options"],
       });
     }
@@ -60,7 +67,7 @@ export const fieldPlacementSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Each choice in a dropdown must be different",
+        message: "A legördülő lista lehetőségei legyenek különbözők.",
         path: ["options"],
       });
     }
@@ -70,8 +77,8 @@ export const fieldPlacementSchema = z
         code: z.ZodIssueCode.custom,
         message:
           field.type === "radio"
-            ? "A radio button must belong to a group"
-            : "Only radio buttons belong to a group",
+            ? "A választógombnak egy csoporthoz kell tartoznia."
+            : "Csoporthoz csak választógomb tartozhat.",
         path: ["groupId"],
       });
     }
@@ -79,7 +86,7 @@ export const fieldPlacementSchema = z
     if (field.x + field.width > 1.000001) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Field width extends beyond the page bounds",
+        message: "A mező szélessége túlnyúlik az oldal szélén.",
         path: ["width"],
       });
     }
@@ -87,7 +94,7 @@ export const fieldPlacementSchema = z
     if (field.y + field.height > 1.000001) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Field height extends beyond the page bounds",
+        message: "A mező magassága túlnyúlik az oldal szélén.",
         path: ["height"],
       });
     }
@@ -100,7 +107,7 @@ export const fieldPlacementSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `${field.type} fields are always required`,
+        message: `${ALWAYS_REQUIRED_FIELD_NAMES[field.type]} mindig kötelező.`,
         path: ["required"],
       });
     }
@@ -141,7 +148,7 @@ export const fieldPlacementListSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message:
-            "The buttons in a radio group must have the same signer and be required or optional together",
+            "Egy választógomb csoport gombjai ugyanahhoz az aláíróhoz tartoznak, és csak együtt lehetnek kötelezők vagy opcionálisak.",
           path: [index, "groupId"],
         });
       }
@@ -149,7 +156,7 @@ export const fieldPlacementListSchema = z
       if (group.count === MAX_RADIO_GROUP_BUTTONS + 1) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `A radio group can have at most ${String(MAX_RADIO_GROUP_BUTTONS)} buttons`,
+          message: `Egy választógomb csoportban legfeljebb ${String(MAX_RADIO_GROUP_BUTTONS)} gomb lehet.`,
           path: [index, "groupId"],
         });
       }
@@ -198,7 +205,7 @@ const drawnSignatureSubmissionSchema = z.object({
     .min(1)
     .max(
       MAX_DRAWN_SIGNATURE_DATA_URL_LENGTH,
-      "Drawn signature image data is too large.",
+      "A rajzolt aláírás képe túl nagy.",
     ),
 });
 

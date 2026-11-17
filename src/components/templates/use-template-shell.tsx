@@ -26,7 +26,7 @@ type PersonErrors = {
 };
 
 const validEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const genericError = "Something went wrong. Please try again.";
+const genericError = "Valami hiba történt. Próbáld újra.";
 
 function findErrors(people: readonly Person[]): PersonErrors[] {
   const emailCounts = new Map<string, number>();
@@ -44,11 +44,11 @@ function findErrors(people: readonly Person[]): PersonErrors[] {
     const email = person.email.trim().toLowerCase();
 
     if (person.name.trim().length === 0) {
-      errors.name = "Name is required";
+      errors.name = "Add meg a nevet";
     }
 
     if (!validEmailPattern.test(email)) {
-      errors.email = "Enter a valid email address";
+      errors.email = "Adj meg egy érvényes e-mail-címet";
     } else if ((emailCounts.get(email) ?? 0) > 1) {
       errors.email = duplicateSignerEmailMessage;
     }
@@ -73,14 +73,14 @@ export function UseTemplateShell({
   if (!template) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Use a template" />
+        <PageHeader title="Sablon használata" />
         <StatusPanel
-          action={{ href: "/templates", label: "Back to templates" }}
+          action={{ href: "/templates", label: "Vissza a sablonokhoz" }}
           description={
             errorMessage ??
-            "We couldn't load this template. Try again in a moment."
+            "Nem sikerült betölteni a sablont. Próbáld újra egy kicsit később."
           }
-          title="This template can't be used"
+          title="Ez a sablon nem használható"
           tone="error"
         />
       </div>
@@ -89,7 +89,7 @@ export function UseTemplateShell({
 
   const errors = findErrors(people);
   const titleError =
-    title.trim().length === 0 ? "Give the envelope a title" : undefined;
+    title.trim().length === 0 ? "Adj címet a szerződésnek" : undefined;
   const canSubmit =
     !titleError && errors.every((error) => !error.name && !error.email);
 
@@ -142,7 +142,7 @@ export function UseTemplateShell({
     <div className="space-y-5">
       <PageHeader
         description={`${template.name} · ${template.pageCountLabel} · ${template.fieldCountLabel}`}
-        title="Use a template"
+        title="Sablon használata"
       />
 
       <form
@@ -154,7 +154,7 @@ export function UseTemplateShell({
       >
         <label className="grid max-w-xl gap-1.5">
           <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-            Envelope title
+            Szerződés címe
           </span>
           <input
             aria-invalid={showErrors && titleError ? true : undefined}
@@ -181,11 +181,11 @@ export function UseTemplateShell({
         <div className="space-y-3">
           <div className="space-y-1">
             <h2 className="text-lg font-extrabold text-(--fg)">
-              Who is signing this time?
+              Kik írják alá most?
             </h2>
             <p className="text-sm leading-6 text-(--secondary)">
-              They receive the document in this order. The fields are already
-              placed for each of them.
+              Ebben a sorrendben kapják meg a szerződést. A mezők mindegyiküknek
+              már a helyükön vannak.
             </p>
           </div>
 
@@ -216,18 +216,18 @@ export function UseTemplateShell({
                   <div className="mt-3 grid gap-x-4 gap-y-3 md:grid-cols-2">
                     <label className="grid auto-rows-min gap-1.5">
                       <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-                        Name
+                        Név
                       </span>
                       <input
                         aria-invalid={nameError ? true : undefined}
-                        aria-label={`${role.name} name`}
+                        aria-label={`${role.name} neve`}
                         className="field-input"
                         disabled={isSubmitting}
                         maxLength={120}
                         onChange={(event) =>
                           updatePerson(index, { name: event.target.value })
                         }
-                        placeholder="Jane Smith"
+                        placeholder="Kiss Anna"
                         type="text"
                         value={person.name}
                       />
@@ -243,18 +243,18 @@ export function UseTemplateShell({
 
                     <label className="grid auto-rows-min gap-1.5">
                       <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-                        Email
+                        E-mail-cím
                       </span>
                       <input
                         aria-invalid={emailError ? true : undefined}
-                        aria-label={`${role.name} email`}
+                        aria-label={`${role.name} e-mail-címe`}
                         className="field-input"
                         disabled={isSubmitting}
                         maxLength={320}
                         onChange={(event) =>
                           updatePerson(index, { email: event.target.value })
                         }
-                        placeholder="jane@company.com"
+                        placeholder="anna@ceg.hu"
                         type="email"
                         value={person.email}
                       />
@@ -275,9 +275,9 @@ export function UseTemplateShell({
         </div>
 
         <p className="text-sm leading-6 text-(--secondary)">
-          Nothing is sent yet. You will see the review step next, where you can
-          still change the fields, add people who get a copy, or add an extra
-          check before signing.
+          Még semmi nem megy ki. A következő lépés az ellenőrzés: ott még
+          módosíthatod a mezőket, hozzáadhatsz másolatot kapó címzetteket, vagy
+          beállíthatsz egy extra ellenőrzést az aláírás előtt.
         </p>
 
         {submitError ? (
@@ -292,10 +292,10 @@ export function UseTemplateShell({
             href="/templates"
             variant="secondary"
           >
-            Cancel
+            Mégse
           </ShellButton>
           <ShellButton loading={isSubmitting} type="submit">
-            {isSubmitting ? "Creating..." : "Create draft"}
+            {isSubmitting ? "Létrehozás…" : "Piszkozat létrehozása"}
           </ShellButton>
         </div>
       </form>

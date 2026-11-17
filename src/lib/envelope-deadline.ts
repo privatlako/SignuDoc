@@ -19,7 +19,7 @@ export class EnvelopeDeadlinePassedError extends Error {
 
   constructor(expiresAt: number) {
     super(
-      `This request expired on ${formatDeadline(expiresAt)}. Set a new deadline first.`,
+      `Ennek a szerződésnek lejárt a határideje (${formatDeadline(expiresAt)}). Előbb állíts be új határidőt.`,
     );
     this.name = "EnvelopeDeadlinePassedError";
     this.expiresAt = expiresAt;
@@ -93,18 +93,18 @@ export function nextSignerLinkExpiresAt(
     : turnStartsAt + SIGNING_LINK_TTL_SECONDS;
 }
 
-const deadlineFormatter = new Intl.DateTimeFormat("en-US", {
+const deadlineFormatter = new Intl.DateTimeFormat("hu-HU", {
   day: "numeric",
-  hour: "numeric",
+  hour: "2-digit",
   minute: "2-digit",
   month: "long",
-  timeZone: "UTC",
+  timeZone: "Europe/Budapest",
   year: "numeric",
 });
 
-/** "December 12, 2026 at 9:20 PM UTC" */
+/** A deadline as the sender sees it, in Budapest time: "2027. január 15. 09:00". */
 export function formatDeadline(unixTimestamp: number): string {
-  return `${deadlineFormatter
+  return deadlineFormatter
     .format(new Date(unixTimestamp * 1000))
-    .replace(/[  ]/g, " ")} UTC`;
+    .replace(/[\u00a0\u202f]/g, " ");
 }

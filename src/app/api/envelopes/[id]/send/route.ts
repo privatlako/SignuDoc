@@ -63,7 +63,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Confirm that this envelope is an ordinary business agreement before sending.",
+          "Elküldés előtt erősítsd meg, hogy ez a szerződés szokásos üzleti megállapodás.",
       },
       { status: 400 },
     );
@@ -79,7 +79,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Choose a deadline between 1 and 365 days from now, reminders between 1 and 30 days apart, and a signature type this install offers.",
+          "A határidő 1 és 365 nap között lehet, az emlékeztetők 1–30 naponként, az aláírás típusa pedig csak olyan lehet, amelyet ez a telepítés kínál.",
       },
       { status: 400 },
     );
@@ -124,7 +124,7 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { error: "Unable to send this envelope." },
+      { error: "Nem sikerült elküldeni a szerződést." },
       { status: 500 },
     );
   }

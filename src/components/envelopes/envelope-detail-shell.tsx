@@ -86,11 +86,11 @@ const statusPillClasses: Record<EnvelopeStatus, string> = {
 };
 
 const statusLabelMap: Record<EnvelopeStatus, string> = {
-  completed: "Completed",
-  declined: "Declined",
-  draft: "Draft",
-  sent: "Sent",
-  voided: "Voided",
+  completed: "Aláírva",
+  declined: "Elutasítva",
+  draft: "Piszkozat",
+  sent: "Aláírásra vár",
+  voided: "Visszavonva",
 };
 
 const signerStatusPillClasses: Record<SignerStatus, string> = {
@@ -101,10 +101,10 @@ const signerStatusPillClasses: Record<SignerStatus, string> = {
 };
 
 const signerStatusLabelMap: Record<SignerStatus, string> = {
-  declined: "Declined",
-  pending: "Pending",
-  signed: "Signed",
-  waiting: "Waiting",
+  declined: "Elutasítva",
+  pending: "Sorára vár",
+  signed: "Aláírva",
+  waiting: "Aláírásra vár",
 };
 
 const signerStatusIcons: Record<SignerStatus, LucideIcon> = {
@@ -145,13 +145,13 @@ export function EnvelopeDetailShell({
   if (initialState === "error") {
     return (
       <StatusPanel
-        description="Couldn't load this envelope. Please try again."
+        description="Nem sikerült betölteni ezt a szerződést. Próbáld újra."
         footer={
           <ShellButton onClick={handleRetry} variant="secondary">
-            Retry
+            Újrapróbálás
           </ShellButton>
         }
-        title="Couldn't load this envelope"
+        title="Nem sikerült betölteni a szerződést"
         tone="error"
       />
     );
@@ -160,10 +160,10 @@ export function EnvelopeDetailShell({
   if (initialState === "not-found") {
     return (
       <StatusPanel
-        action={{ href: "/dashboard", label: "Back to documents" }}
-        description="We couldn't find this envelope, or you no longer have access to it."
-        eyebrow="Unavailable"
-        title="This envelope is unavailable"
+        action={{ href: "/dashboard", label: "Vissza a szerződésekhez" }}
+        description="Nem találjuk ezt a szerződést, vagy már nincs hozzáférésed."
+        eyebrow="Nem elérhető"
+        title="Ez a szerződés nem érhető el"
         tone="error"
       />
     );
@@ -172,13 +172,13 @@ export function EnvelopeDetailShell({
   if (!record) {
     return (
       <StatusPanel
-        description="Couldn't load this envelope. Please try again."
+        description="Nem sikerült betölteni ezt a szerződést. Próbáld újra."
         footer={
           <ShellButton onClick={handleRetry} variant="secondary">
-            Retry
+            Újrapróbálás
           </ShellButton>
         }
-        title="Couldn't load this envelope"
+        title="Nem sikerült betölteni a szerződést"
         tone="error"
       />
     );
@@ -200,20 +200,20 @@ export function EnvelopeDetailShell({
     !manualReminderState.canSend;
   const reminderHelperText =
     activeRecord.status === "sent" && manualReminderState?.nextAvailableAtLabel
-      ? `You can send another reminder after ${manualReminderState.nextAvailableAtLabel}.`
+      ? `Újabb emlékeztetőt ${manualReminderState.nextAvailableAtLabel} után küldhetsz.`
       : null;
   const deadlineText = !deadline
     ? null
     : isExpired
-      ? `Expired ${deadline.expiresAtLabel}. Nobody can sign until you set a new deadline.`
+      ? `A határidő lejárt: ${deadline.expiresAtLabel}. Amíg nem állítasz be újat, senki sem tud aláírni.`
       : deadline.expiresAtLabel
-        ? `Expires ${deadline.expiresAtLabel}.`
-        : "No deadline. Each signing link lasts seven days.";
+        ? `Határidő: ${deadline.expiresAtLabel}.`
+        : "Nincs határidő. Minden aláírási link hét napig érvényes.";
   const reminderIntervalDays = record.reminderIntervalDays ?? null;
   const remindersText =
     reminderIntervalDays === null
-      ? "Automatic reminders are off."
-      : `Automatic reminders: ${formatReminderInterval(reminderIntervalDays).toLowerCase()}.`;
+      ? "Az automatikus emlékeztető ki van kapcsolva."
+      : `Automatikus emlékeztető: ${formatReminderInterval(reminderIntervalDays).toLowerCase()}.`;
   const activeSigner =
     activeRecord.status === "sent"
       ? activeRecord.signers.find((signer) => signer.status === "waiting")
@@ -253,7 +253,9 @@ export function EnvelopeDetailShell({
         return;
       }
 
-      setActionError(payload?.error ?? "Unable to send a reminder right now.");
+      setActionError(
+        payload?.error ?? "Most nem sikerült elküldeni az emlékeztetőt.",
+      );
     } finally {
       setIsSendingReminder(false);
     }
@@ -278,9 +280,9 @@ export function EnvelopeDetailShell({
         return;
       }
 
-      setActionError(payload?.error ?? "Unable to change the deadline.");
+      setActionError(payload?.error ?? "Nem sikerült módosítani a határidőt.");
     } catch {
-      setActionError("Unable to change the deadline.");
+      setActionError("Nem sikerült módosítani a határidőt.");
     } finally {
       setIsChangingDeadline(false);
     }
@@ -305,9 +307,11 @@ export function EnvelopeDetailShell({
         return;
       }
 
-      setActionError(payload?.error ?? "Unable to change the reminders.");
+      setActionError(
+        payload?.error ?? "Nem sikerült módosítani az emlékeztetőket.",
+      );
     } catch {
-      setActionError("Unable to change the reminders.");
+      setActionError("Nem sikerült módosítani az emlékeztetőket.");
     } finally {
       setIsChangingReminders(false);
     }
@@ -330,8 +334,8 @@ export function EnvelopeDetailShell({
         setActionError(
           payload?.error ??
             (activeRecord.status === "draft"
-              ? "Unable to delete this draft."
-              : "Unable to delete this envelope."),
+              ? "Nem sikerült törölni a piszkozatot."
+              : "Nem sikerült törölni a szerződést."),
         );
         return;
       }
@@ -370,7 +374,9 @@ export function EnvelopeDetailShell({
         return;
       }
 
-      setActionError(payload?.error ?? "Unable to void this envelope.");
+      setActionError(
+        payload?.error ?? "Nem sikerült visszavonni a szerződést.",
+      );
     } finally {
       setIsVoidingEnvelope(false);
     }
@@ -383,7 +389,7 @@ export function EnvelopeDetailShell({
           className="inline-flex items-center text-sm font-semibold text-(--secondary) transition hover:text-(--accent-ink)"
           href="/dashboard"
         >
-          ← Documents
+          ← Szerződések
         </Link>
 
         <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -412,10 +418,10 @@ export function EnvelopeDetailShell({
                       : statusPillClasses[activeRecord.status]
                   }`}
                 >
-                  {isExpired ? "Expired" : statusLabelMap[activeRecord.status]}
+                  {isExpired ? "Lejárt" : statusLabelMap[activeRecord.status]}
                 </span>
                 <p className="text-sm text-(--secondary)">
-                  Created {activeRecord.createdAtLabel}
+                  Létrehozva: {activeRecord.createdAtLabel}
                 </p>
                 {record.signatureTypeLabel ? (
                   <span className="pill pill-neutral">
@@ -433,10 +439,10 @@ export function EnvelopeDetailShell({
                   onClick={() => setActiveModal("delete-draft")}
                   variant="secondary"
                 >
-                  Delete draft
+                  Piszkozat törlése
                 </ShellButton>
                 <ShellButton href={`/envelopes/${envelopeId}/prepare`}>
-                  Continue editing
+                  Szerkesztés folytatása
                 </ShellButton>
               </>
             ) : null}
@@ -447,14 +453,14 @@ export function EnvelopeDetailShell({
                   onClick={() => setActiveModal("void-envelope")}
                   variant="secondary"
                 >
-                  Void envelope
+                  Visszavonás
                 </ShellButton>
                 <ShellButton
                   disabled={!activeSigner || reminderLimited}
                   loading={isSendingReminder}
                   onClick={handleSendReminder}
                 >
-                  Send reminder
+                  Emlékeztető küldése
                 </ShellButton>
               </>
             ) : null}
@@ -465,7 +471,7 @@ export function EnvelopeDetailShell({
                   onClick={() => handleDownload("evidence")}
                   variant="secondary"
                 >
-                  Download certificate
+                  Igazolás letöltése
                 </ShellButton>
                 <ShellButton onClick={() => handleDownload("signed")}>
                   <DownloadIcon
@@ -473,7 +479,7 @@ export function EnvelopeDetailShell({
                     className="size-[1.125rem]"
                     strokeWidth={2.2}
                   />
-                  Download signed PDF
+                  Aláírt PDF letöltése
                 </ShellButton>
               </>
             ) : null}
@@ -484,7 +490,7 @@ export function EnvelopeDetailShell({
                 onClick={() => handleDownload("evidence")}
                 variant="secondary"
               >
-                Download certificate
+                Igazolás letöltése
               </ShellButton>
             ) : null}
 
@@ -495,7 +501,7 @@ export function EnvelopeDetailShell({
                 onClick={() => setActiveModal("delete-envelope")}
                 variant="danger"
               >
-                Delete
+                Törlés
               </ShellButton>
             ) : null}
 
@@ -510,7 +516,7 @@ export function EnvelopeDetailShell({
                 }
                 variant="secondary"
               >
-                Export audit trail
+                Eseménynapló exportálása
               </ShellButton>
             ) : null}
           </div>
@@ -543,7 +549,7 @@ export function EnvelopeDetailShell({
               }}
               type="button"
             >
-              {isExpired ? "Set a new deadline" : "Change deadline"}
+              {isExpired ? "Új határidő beállítása" : "Határidő módosítása"}
             </button>
           </div>
         ) : null}
@@ -561,7 +567,7 @@ export function EnvelopeDetailShell({
               }}
               type="button"
             >
-              Change reminders
+              Emlékeztetők módosítása
             </button>
           </div>
         ) : null}
@@ -573,12 +579,12 @@ export function EnvelopeDetailShell({
             }`}
             role="status"
           >
-            <p>Saved as the template &ldquo;{savedTemplateName}&rdquo;.</p>
+            <p>Elmentve sablonként: „{savedTemplateName}”.</p>
             <Link
               className="shrink-0 underline underline-offset-4"
               href="/templates"
             >
-              View templates
+              Sablonok megtekintése
             </Link>
           </div>
         ) : activeRecord.signers.length > 0 ? (
@@ -588,8 +594,8 @@ export function EnvelopeDetailShell({
             }`}
           >
             <p className="text-sm leading-6 text-(--secondary)">
-              Send this kind of document often? Keep its fields and signing
-              order as a template.
+              Gyakran küldesz ilyen dokumentumot? Mentsd el a mezőit és az
+              aláírási sorrendet sablonként.
             </p>
             <button
               className="btn-quiet shrink-0"
@@ -599,7 +605,7 @@ export function EnvelopeDetailShell({
               }}
               type="button"
             >
-              Save as template
+              Mentés sablonként
             </button>
           </div>
         ) : null}
@@ -618,9 +624,9 @@ export function EnvelopeDetailShell({
       >
         <article className="panel p-5 sm:p-7">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-extrabold text-(--fg)">Signers</h2>
+            <h2 className="text-lg font-extrabold text-(--fg)">Aláírók</h2>
             <span className="pill pill-neutral">
-              {activeRecord.signers.length} total
+              {activeRecord.signers.length} fő
             </span>
           </div>
 
@@ -689,12 +695,12 @@ export function EnvelopeDetailShell({
           {record.copyRecipients && record.copyRecipients.length > 0 ? (
             <div className="mt-6">
               <h3 className="text-[0.9375rem] font-extrabold text-(--fg)">
-                Receives a copy
+                Másolat címzettjei
               </h3>
               <p className="mt-1 text-sm leading-6 text-(--secondary)">
                 {activeRecord.status === "completed"
-                  ? "Sent the finished document and its certificate."
-                  : "Gets the finished document once everyone has signed."}
+                  ? "Megkapták a kész dokumentumot és a hitelesítési igazolást."
+                  : "Megkapják a kész dokumentumot, amint mindenki aláírta."}
               </p>
               <ul className="mt-3 space-y-2">
                 {record.copyRecipients.map((recipient) => (
@@ -714,9 +720,9 @@ export function EnvelopeDetailShell({
 
         <article className="panel p-5 sm:p-7">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-extrabold text-(--fg)">Timeline</h2>
+            <h2 className="text-lg font-extrabold text-(--fg)">Előzmények</h2>
             <span className="pill pill-neutral">
-              {activeRecord.timeline.length} events
+              {activeRecord.timeline.length} esemény
             </span>
           </div>
 
@@ -782,53 +788,55 @@ export function EnvelopeDetailShell({
 
       {activeModal === "delete-draft" ? (
         <ConfirmationDialog
-          confirmLabel="Delete draft"
+          confirmLabel="Piszkozat törlése"
           description={[
-            "This draft has not been sent yet.",
-            "Deleting it will permanently remove the draft and its placed fields.",
+            "Ezt a piszkozatot még nem küldted el.",
+            "A törléssel véglegesen eltűnik a piszkozat és az elhelyezett mezők is.",
           ]}
           errorMessage={actionError}
           onCancel={() => setActiveModal(null)}
           onConfirm={handleConfirmDeleteDraft}
           processing={isDeletingDraft}
-          title="Delete this draft?"
+          title="Törlöd ezt a piszkozatot?"
         />
       ) : null}
 
       {activeModal === "delete-envelope" ? (
         <ConfirmationDialog
-          confirmLabel="Delete permanently"
+          confirmLabel="Végleges törlés"
           description={[
-            "This permanently deletes the envelope and all of its files: the original PDF, the signed PDF and the certificates.",
-            "Download links already sent to signers stop working. Download the signed PDF first if you need to keep it.",
-            "This action cannot be undone.",
+            "Ezzel véglegesen törlöd a szerződést és az összes fájlját: az eredeti PDF-et, az aláírt PDF-et és a hitelesítési igazolásokat.",
+            "Az aláíróknak már elküldött letöltési linkek nem működnek tovább. Ha meg szeretnéd tartani, előbb töltsd le az aláírt PDF-et.",
+            "Ez a lépés végleges.",
           ]}
           errorMessage={actionError}
           onCancel={() => setActiveModal(null)}
           onConfirm={handleConfirmDeleteDraft}
           processing={isDeletingDraft}
-          title="Delete this envelope?"
+          title="Törlöd ezt a szerződést?"
         />
       ) : null}
 
       {activeModal === "void-envelope" ? (
         <ConfirmationDialog
-          confirmLabel="Void envelope"
+          confirmLabel="Visszavonás"
           description={[
-            "This will cancel the signing process.",
-            "Notified signers will be informed that the envelope has been voided.",
-            "This action cannot be undone.",
+            "Ezzel leállítod az aláírási folyamatot.",
+            "A már értesített aláírók üzenetet kapnak arról, hogy visszavontad a szerződést.",
+            "Ez a lépés végleges.",
           ]}
           confirmDisabled={record.part11 && voidReason.trim().length === 0}
           errorMessage={actionError}
           onCancel={() => setActiveModal(null)}
           onConfirm={handleConfirmVoidEnvelope}
           processing={isVoidingEnvelope}
-          title="Void this envelope?"
+          title="Visszavonod ezt a szerződést?"
         >
           <label className="grid gap-2 text-sm">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              {record.part11 ? "Reason (required)" : "Reason (optional)"}
+              {record.part11
+                ? "Indoklás (kötelező)"
+                : "Indoklás (nem kötelező)"}
             </span>
             <Textarea
               disabled={isVoidingEnvelope}
@@ -838,7 +846,7 @@ export function EnvelopeDetailShell({
               value={voidReason}
             />
             <span className="text-xs leading-5 text-(--tertiary)">
-              Kept in the envelope&apos;s audit trail.
+              Bekerül a szerződés eseménynaplójába.
             </span>
           </label>
         </ConfirmationDialog>
@@ -877,15 +885,15 @@ function DeadlineDialog({
         <div className="space-y-4">
           <DialogHeader className="space-y-3">
             <DialogTitle>
-              {expired ? "Set a new deadline" : "Change the deadline"}
+              {expired ? "Új határidő beállítása" : "Határidő módosítása"}
             </DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-2 text-sm leading-6 text-(--secondary)">
                 <p>
-                  The new deadline counts from now.{" "}
+                  Az új határidő mostantól számít.{" "}
                   {expired
-                    ? "The signing link that was already sent will work again."
-                    : "The signing link that was already sent keeps working until then."}
+                    ? "A már kiküldött aláírási link újra működni fog."
+                    : "A már kiküldött aláírási link addig működik."}
                 </p>
               </div>
             </DialogDescription>
@@ -893,7 +901,7 @@ function DeadlineDialog({
 
           <label className="grid gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              Signing deadline
+              Aláírási határidő
             </span>
             <select
               autoFocus
@@ -904,7 +912,7 @@ function DeadlineDialog({
             >
               {ENVELOPE_DEADLINE_DAY_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option} days from now
+                  {option} nap múlva
                 </option>
               ))}
             </select>
@@ -922,10 +930,10 @@ function DeadlineDialog({
               onClick={onCancel}
               variant="secondary"
             >
-              Cancel
+              Mégse
             </ShellButton>
             <ShellButton loading={processing} onClick={() => onConfirm(days)}>
-              {processing ? "Saving..." : "Save deadline"}
+              {processing ? "Mentés…" : "Határidő mentése"}
             </ShellButton>
           </div>
         </div>
@@ -972,13 +980,13 @@ function RemindersDialog({
       <DialogContent className="max-w-md sm:p-8" showCloseButton={false}>
         <div className="space-y-4">
           <DialogHeader className="space-y-3">
-            <DialogTitle>Automatic reminders</DialogTitle>
+            <DialogTitle>Automatikus emlékeztető</DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-2 text-sm leading-6 text-(--secondary)">
                 <p>
-                  A reminder goes to the signer whose turn it is when they have
-                  not heard from you for this long. Reminders stop once everyone
-                  has signed or the deadline passes.
+                  Annak az aláírónak megy emlékeztető, akire épp sor kerül, ha
+                  ennyi ideje nem kapott tőled üzenetet. Az emlékeztetők
+                  leállnak, amint mindenki aláírt, vagy lejár a határidő.
                 </p>
               </div>
             </DialogDescription>
@@ -986,7 +994,7 @@ function RemindersDialog({
 
           <label className="grid gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-              Send a reminder
+              Emlékeztető gyakorisága
             </span>
             <select
               autoFocus
@@ -1022,13 +1030,13 @@ function RemindersDialog({
               onClick={onCancel}
               variant="secondary"
             >
-              Cancel
+              Mégse
             </ShellButton>
             <ShellButton
               loading={processing}
               onClick={() => onConfirm(intervalDays)}
             >
-              {processing ? "Saving..." : "Save reminders"}
+              {processing ? "Mentés…" : "Emlékeztetők mentése"}
             </ShellButton>
           </div>
         </div>
@@ -1096,7 +1104,7 @@ function ConfirmationDialog({
               onClick={onCancel}
               variant="secondary"
             >
-              Cancel
+              Mégse
             </ShellButton>
             <ShellButton
               disabled={confirmDisabled}
@@ -1104,7 +1112,7 @@ function ConfirmationDialog({
               onClick={onConfirm}
               variant="danger"
             >
-              {processing ? `${confirmLabel}...` : confirmLabel}
+              {processing ? `${confirmLabel}…` : confirmLabel}
             </ShellButton>
           </div>
         </div>

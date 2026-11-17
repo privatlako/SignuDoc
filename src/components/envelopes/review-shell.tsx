@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import type { ReviewEnvelopeData } from "@/lib/envelopes";
 import { PERMITTED_USE_PATH } from "@/lib/permitted-uses";
-import { formatReminderInterval } from "@/lib/services/reminders";
 import {
   DEFAULT_ENVELOPE_DEADLINE_DAYS,
   DEFAULT_ENVELOPE_REMINDER_DAYS,
@@ -26,9 +25,14 @@ import {
 } from "@/lib/types/domain";
 import { getSignerPalette } from "./signer-palette";
 
-const envelopeSteps = ["Upload", "Signers", "Place fields", "Review"];
+const envelopeSteps = [
+  "Feltöltés",
+  "Aláírók",
+  "Mezők elhelyezése",
+  "Ellenőrzés",
+];
 const redirectDelayMs = 1200;
-const defaultSendErrorMessage = "Failed to send. Please try again.";
+const defaultSendErrorMessage = "Az elküldés nem sikerült. Próbáld újra.";
 
 type ReviewShellProps = {
   envelopeId: string;
@@ -46,14 +50,14 @@ type ReviewRecordView = {
 };
 
 type ReviewFieldSummaryLabel =
-  | "Dropdown"
-  | "Number"
-  | "Radio group"
-  | "Checkbox"
-  | "Date"
-  | "Initials"
-  | "Signature"
-  | "Text";
+  | "Legördülő lista"
+  | "Szám"
+  | "Választógomb csoport"
+  | "Jelölőnégyzet"
+  | "Aláírás dátuma"
+  | "Szignó"
+  | "Aláírás"
+  | "Szöveg";
 
 type ReviewSigner = {
   color?: string;
@@ -72,16 +76,28 @@ type SignatureLevel = "advanced" | "qualified" | "simple";
 function describeSignatureLevel(level: SignatureLevel, providerName: string) {
   switch (level) {
     case "advanced":
-      return `Advanced electronic signatures through ${providerName}`;
+      return `Fokozott biztonságú elektronikus aláírás (${providerName})`;
     case "qualified":
-      return `Qualified electronic signatures through ${providerName}`;
+      return `Minősített elektronikus aláírás (${providerName})`;
     default:
-      return "SignuDoc signatures";
+      return "SignuDoc-aláírás";
   }
 }
 
 function buildSuccessMessage(firstSignerName: string) {
-  return `Envelope sent. ${firstSignerName} has been notified.`;
+  return `A szerződést elküldtük. ${firstSignerName} értesítést kapott.`;
+}
+
+function formatReminderInterval(intervalDays: number | null) {
+  if (intervalDays === null) {
+    return "Kikapcsolva";
+  }
+
+  if (intervalDays === 1) {
+    return "Naponta";
+  }
+
+  return intervalDays === 7 ? "Hetente" : `${String(intervalDays)} naponta`;
 }
 
 export function ReviewShell({
@@ -166,7 +182,7 @@ export function ReviewShell({
       }
 
       const notifiedSignerName =
-        payload?.notifiedSignerName?.trim() || firstSigner?.name || "Signer 1";
+        payload?.notifiedSignerName?.trim() || firstSigner?.name || "1. aláíró";
       const redirectPath = payload?.redirectPath || `/envelopes/${envelopeId}`;
 
       setIsConfirmationOpen(false);
@@ -185,8 +201,8 @@ export function ReviewShell({
     return (
       <div className="space-y-5">
         <PageHeader
-          description="Step 4 of 4 - Review and send"
-          title="New envelope"
+          description="4/4. lépés – Ellenőrzés és elküldés"
+          title="Új szerződés"
         />
         <StepIndicator current={4} steps={envelopeSteps} />
         <StatusPanel
@@ -195,11 +211,11 @@ export function ReviewShell({
               onClick={() => window.location.reload()}
               variant="secondary"
             >
-              Retry
+              Újra
             </ShellButton>
           }
-          description="We couldn't load this draft summary. Try again after checking the earlier steps."
-          title="Couldn't load the review summary"
+          description="Nem sikerült betölteni a piszkozat összefoglalóját. Nézd át az előző lépéseket, és próbáld újra."
+          title="Nem sikerült betölteni az összefoglalót"
           tone="error"
         />
       </div>
@@ -210,18 +226,18 @@ export function ReviewShell({
     return (
       <div className="space-y-5">
         <PageHeader
-          description="Step 4 of 4 - Review and send"
-          title="New envelope"
+          description="4/4. lépés – Ellenőrzés és elküldés"
+          title="Új szerződés"
         />
         <StepIndicator current={4} steps={envelopeSteps} />
         <StatusPanel
           action={{
             href: `/envelopes/${envelopeId}/prepare`,
-            label: "Back to prepare",
+            label: "Vissza a mezőkhöz",
           }}
-          description="Add signers and place fields before you review the final summary for this envelope."
-          eyebrow="Incomplete draft"
-          title="Nothing to review yet"
+          description="Az ellenőrzés előtt adj hozzá aláírókat, és helyezd el a mezőket."
+          eyebrow="Hiányos piszkozat"
+          title="Még nincs mit ellenőrizni"
         />
       </div>
     );
@@ -242,8 +258,8 @@ export function ReviewShell({
   return (
     <div className="space-y-5">
       <PageHeader
-        description="Step 4 of 4 - Review and send"
-        title="New envelope"
+        description="4/4. lépés – Ellenőrzés és elküldés"
+        title="Új szerződés"
       />
 
       <StepIndicator current={4} steps={envelopeSteps} />
@@ -252,7 +268,7 @@ export function ReviewShell({
         <section className="notice notice-success" role="status">
           <p>{notice}</p>
           <p className="mt-0.5 font-medium text-(--secondary)">
-            Opening the envelope detail view...
+            A szerződés adatlapjának megnyitása…
           </p>
         </section>
       ) : null}
@@ -264,7 +280,7 @@ export function ReviewShell({
       >
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)]">
           <article className="well flex flex-col gap-5 p-5 sm:p-6">
-            <p className="section-eyebrow">Document</p>
+            <p className="section-eyebrow">Dokumentum</p>
             <div className="flex h-56 items-center justify-center">
               <DocumentThumbnail
                 envelopeId={envelopeId}
@@ -276,7 +292,7 @@ export function ReviewShell({
                 {activeRecord.title}
               </h2>
               <p className="text-sm leading-6 text-(--secondary)">
-                {activeRecord.filename} - {activeRecord.pageCount} pages -{" "}
+                {activeRecord.filename} · {activeRecord.pageCount} oldal ·{" "}
                 {activeRecord.sizeLabel}
               </p>
             </div>
@@ -285,11 +301,10 @@ export function ReviewShell({
           <article className="min-w-0">
             <div className="flex items-center justify-between gap-3 px-1">
               <h2 className="text-lg font-extrabold text-(--fg)">
-                Signing order
+                Aláírási sorrend
               </h2>
               <span className="pill pill-neutral">
-                {activeRecord.signers.length}{" "}
-                {activeRecord.signers.length === 1 ? "signer" : "signers"}
+                {activeRecord.signers.length} aláíró
               </span>
             </div>
 
@@ -335,13 +350,13 @@ export function ReviewShell({
                               className="size-2 rounded-full"
                               style={{ backgroundColor: palette.color }}
                             />
-                            Signer {signer.order}
+                            {signer.order}. aláíró
                           </span>
                         </div>
 
                         <p
                           className={`mt-2 text-sm leading-6 ${
-                            signer.fieldSummaries.includes("Signature")
+                            signer.fieldSummaries.includes("Aláírás")
                               ? "text-(--tertiary)"
                               : "font-semibold text-(--danger)"
                           }`}
@@ -358,7 +373,7 @@ export function ReviewShell({
             {activeRecord.copyRecipients.length > 0 ? (
               <div className="well mt-3 p-4">
                 <p className="text-[0.9375rem] font-bold text-(--fg)">
-                  Copies when everyone has signed
+                  Másolatot kapnak, amikor mindenki aláírt
                 </p>
                 <ul className="mt-2 space-y-1 text-sm leading-6 text-(--secondary)">
                   {activeRecord.copyRecipients.map((recipient) => (
@@ -371,16 +386,16 @@ export function ReviewShell({
             ) : null}
 
             <p className="notice notice-accent mt-4 font-medium">
-              After you send, Signer 1 will receive an email with a link to
-              sign. Each signer is notified in order after the previous signer
-              completes.
+              Elküldés után az 1. aláíró e-mailben kap egy linket az aláíráshoz.
+              A többiek sorban kapnak értesítést, amikor az előttük lévő aláíró
+              végzett.
             </p>
 
             <div className="well mt-4 p-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5">
                   <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-                    Signing deadline
+                    Aláírási határidő
                   </span>
                   <select
                     className="field-input"
@@ -392,14 +407,14 @@ export function ReviewShell({
                   >
                     {ENVELOPE_DEADLINE_DAY_OPTIONS.map((days) => (
                       <option key={days} value={days}>
-                        {days} days
+                        {days} nap
                       </option>
                     ))}
                   </select>
                 </label>
                 <label className="grid gap-1.5">
                   <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-                    Automatic reminders
+                    Automatikus emlékeztető
                   </span>
                   <select
                     className="field-input"
@@ -423,9 +438,9 @@ export function ReviewShell({
                 </label>
               </div>
               <p className="mt-3 text-sm leading-6 text-(--secondary)">
-                Signing links stop working at the deadline. Reminders go to the
-                signer whose turn it is until they sign. You can change both
-                later from the envelope.
+                A határidő után az aláírási linkek nem működnek. Az emlékeztetőt
+                az az aláíró kapja, aki éppen soron van, amíg alá nem ír.
+                Mindkettőt később is módosíthatod a szerződés adatlapján.
               </p>
             </div>
 
@@ -433,7 +448,7 @@ export function ReviewShell({
               <div className="well mt-4 p-4">
                 <label className="grid gap-1.5">
                   <span className="text-[0.8125rem] font-semibold text-(--secondary)">
-                    Signature type
+                    Aláírás típusa
                   </span>
                   <select
                     className="field-input"
@@ -457,8 +472,8 @@ export function ReviewShell({
                 </label>
                 <p className="mt-3 text-sm leading-6 text-(--secondary)">
                   {signatureLevel === "simple"
-                    ? "Signers sign here, and the finished PDF is sealed by this install."
-                    : `Each signer proves who they are at ${record.signingProvider.name} and signs with a certificate in their own name. ${signatureLevel === "qualified" ? "A qualified signature needs a qualified certificate, which not every signer has. " : ""}Which type a document needs is a legal question; this is not legal advice.`}
+                    ? "Az aláírók itt írnak alá, a kész PDF-et pedig ez a rendszer látja el hitelesítő pecséttel."
+                    : `Minden aláíró a szolgáltatónál (${record.signingProvider.name}) igazolja a személyazonosságát, és a saját nevére szóló tanúsítvánnyal ír alá. ${signatureLevel === "qualified" ? "Minősített aláíráshoz minősített tanúsítvány kell, ami nem minden aláírónak van. " : ""}Hogy egy dokumentumhoz melyik típus kell, az jogi kérdés; ez nem jogi tanácsadás.`}
                 </p>
               </div>
             ) : null}
@@ -476,10 +491,10 @@ export function ReviewShell({
             href={`/envelopes/${envelopeId}/prepare`}
             variant="secondary"
           >
-            ← Back
+            ← Vissza
           </ShellButton>
           <ShellButton disabled={!canSend} onClick={openConfirmation}>
-            Send envelope
+            Elküldés
           </ShellButton>
         </div>
       </section>
@@ -488,7 +503,7 @@ export function ReviewShell({
         <SendConfirmationDialog
           deadlineDays={deadlineDays}
           errorMessage={sendPhase === "error" ? sendError : null}
-          firstSignerName={firstSigner?.name ?? "Signer 1"}
+          firstSignerName={firstSigner?.name ?? "1. aláíró"}
           isSending={sendPhase === "sending"}
           onCancel={closeConfirmation}
           onConfirm={handleConfirmSend}
@@ -546,21 +561,20 @@ function SendConfirmationDialog({
       <DialogContent className="max-w-md sm:p-8" showCloseButton={false}>
         <div className="space-y-4">
           <DialogHeader className="space-y-3">
-            <DialogTitle>Send this envelope?</DialogTitle>
+            <DialogTitle>Elküldöd a szerződést?</DialogTitle>
             <DialogDescription asChild>
               <div className="space-y-3 text-sm leading-6 text-(--secondary)">
                 <p>
-                  &quot;{title}&quot; will be sent to {signerCount}{" "}
-                  {signerCount === 1 ? "signer" : "signers"}.{" "}
+                  „{title}” – {signerCount} aláírónak küldjük el.{" "}
                   {signerCount === 1
-                    ? `${firstSignerName} will be notified immediately.`
-                    : `The first signer (${firstSignerName}) will be notified immediately.`}{" "}
-                  The request expires in {deadlineDays} days.
+                    ? `${firstSignerName} azonnal értesítést kap.`
+                    : `Az első aláíró (${firstSignerName}) azonnal értesítést kap.`}{" "}
+                  Az aláírási kérés {deadlineDays} nap múlva lejár.
                 </p>
                 {signatureType ? (
                   <p>
-                    Signature type: {signatureType}. It cannot be changed once
-                    the envelope is sent.
+                    Aláírás típusa: {signatureType}. Elküldés után már nem
+                    módosítható.
                   </p>
                 ) : null}
               </div>
@@ -579,16 +593,16 @@ function SendConfirmationDialog({
                 }
               />
               <span className="text-sm leading-6 text-(--secondary)">
-                By sending, you confirm this document is an ordinary business
-                agreement and not a will, court order, legally required consumer
-                disclosure, or other{" "}
+                Az elküldéssel megerősíted, hogy ez a dokumentum szokásos üzleti
+                megállapodás, és nem végrendelet, bírósági határozat, jogszabály
+                által előírt fogyasztói tájékoztató vagy más olyan{" "}
                 <a
                   className="font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
                   href={PERMITTED_USE_PATH}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  document that cannot be signed electronically
+                  dokumentum, amely nem írható alá elektronikusan
                 </a>
                 .
               </span>
@@ -607,14 +621,14 @@ function SendConfirmationDialog({
               onClick={onCancel}
               variant="secondary"
             >
-              Cancel
+              Mégse
             </ShellButton>
             <ShellButton
               disabled={!isPermittedUseConfirmed}
               loading={isSending}
               onClick={onConfirm}
             >
-              {isSending ? "Sending..." : "Send now"}
+              {isSending ? "Küldés…" : "Elküldés most"}
             </ShellButton>
           </div>
         </div>
@@ -627,8 +641,8 @@ function formatSignerFieldSummary(fields: readonly ReviewFieldSummaryLabel[]) {
   const fieldCount = fields.length;
 
   if (fieldCount === 0) {
-    return "No fields placed yet (0 fields)";
+    return "Még nincs elhelyezett mező (0 mező)";
   }
 
-  return `(${fieldCount} field${fieldCount === 1 ? "" : "s"})`;
+  return `(${fieldCount} mező)`;
 }

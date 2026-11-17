@@ -44,7 +44,9 @@ export async function PUT(
       const issue = error.issues[0];
 
       return NextResponse.json(
-        { error: issue?.message ?? "Invalid signer update request." },
+        {
+          error: issue?.message ?? "Érvénytelen kérés az aláírók módosítására.",
+        },
         { status: 400 },
       );
     }
@@ -65,7 +67,7 @@ export async function PUT(
     });
 
     return NextResponse.json(
-      { error: "Unable to update this draft signer list." },
+      { error: "Nem sikerült menteni a piszkozat aláíróit." },
       { status: 500 },
     );
   }

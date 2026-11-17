@@ -43,7 +43,7 @@ export async function DELETE(request: Request, context: TemplateRouteContext) {
     });
 
     return NextResponse.json(
-      { error: "Unable to delete this template." },
+      { error: "Nem sikerült törölni a sablont." },
       { status: 500 },
     );
   }

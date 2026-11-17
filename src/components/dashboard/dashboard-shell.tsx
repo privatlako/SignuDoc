@@ -100,10 +100,10 @@ function EmptyDashboardState() {
         </span>
         <div className="space-y-2">
           <h2 className="text-2xl font-extrabold tracking-[-0.03em] text-(--fg)">
-            No documents yet
+            Még nincs szerződésed
           </h2>
           <p className="text-[0.9375rem] leading-6 text-(--secondary)">
-            Upload a PDF and send it for signatures in minutes.
+            Tölts fel egy PDF-et, és pár perc alatt elküldheted aláírásra.
           </p>
         </div>
         <ShellButton href="/envelopes/new">
@@ -112,7 +112,7 @@ function EmptyDashboardState() {
             className="size-[1.125rem]"
             strokeWidth={2.4}
           />
-          New envelope
+          Új szerződés
         </ShellButton>
       </div>
     </section>

@@ -226,7 +226,7 @@ function getSummaryLabel(field: SigningCurrentField) {
     case "signature":
       return "Aláírás";
     case "initials":
-      return "Kezdőbetűk";
+      return "Szignó";
     case "date":
       return "Dátum";
     case "text":
@@ -1529,7 +1529,7 @@ function CurrentSignerField({
           signatureEntry.imageDataUrl ? (
             <span className="relative block h-full w-full">
               <Image
-                alt={`${field.type === "initials" ? "Kezdőbetűk" : "Aláírás"} előnézete`}
+                alt={`${field.type === "initials" ? "Szignó" : "Aláírás"} előnézete`}
                 className="object-contain p-1"
                 fill
                 src={signatureEntry.imageDataUrl}
@@ -1894,7 +1894,7 @@ function SignatureModal({
       description="Az aláírással elfogadod, hogy ez az elektronikus aláírás jogilag egyenértékű a kézzel írt aláírásoddal."
       title={
         fieldType === "initials"
-          ? "Add meg a kezdőbetűidet"
+          ? "Add meg a szignódat"
           : "Add meg az aláírásodat"
       }
       onClose={onClose}
@@ -1925,7 +1925,7 @@ function SignatureModal({
           <label className="grid gap-1.5">
             <span className="text-[0.8125rem] font-semibold text-(--secondary)">
               {fieldType === "initials"
-                ? "Kezdőbetűk gépelése"
+                ? "Szignó gépelése"
                 : "Aláírás gépelése"}
             </span>
             <input
@@ -2012,7 +2012,7 @@ function SignatureModal({
           }
         >
           {fieldType === "initials"
-            ? "Kezdőbetűk elfogadása"
+            ? "Szignó elfogadása"
             : "Aláírás elfogadása"}
         </ShellButton>
       </div>

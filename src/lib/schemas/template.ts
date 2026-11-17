@@ -2,22 +2,30 @@ import { z } from "zod";
 
 import { MAX_SIGNERS_PER_ENVELOPE } from "../types/domain.ts";
 import {
-  emailSchema,
   envelopeTitleSchema,
   idSchema,
-  nameSchema,
-  nonEmptyStringSchema,
+  recipientEmailSchema,
+  recipientNameSchema,
 } from "./common.ts";
 import { duplicateSignerEmailMessage } from "./signer.ts";
 
 export const MAX_TEMPLATE_ROLE_NAME_LENGTH = 60;
 
-export const templateNameSchema = envelopeTitleSchema;
-export const templateRoleNameSchema = nonEmptyStringSchema.max(
-  MAX_TEMPLATE_ROLE_NAME_LENGTH,
-);
+export const templateNameSchema = z
+  .string({ error: "Add meg a sablon nevét." })
+  .trim()
+  .min(1, "Add meg a sablon nevét.")
+  .max(160, "A sablon neve legfeljebb 160 karakter lehet.");
+export const templateRoleNameSchema = z
+  .string({ error: "Add meg az aláíró szerepét." })
+  .trim()
+  .min(1, "Add meg az aláíró szerepét.")
+  .max(
+    MAX_TEMPLATE_ROLE_NAME_LENGTH,
+    `Az aláíró szerepe legfeljebb ${String(MAX_TEMPLATE_ROLE_NAME_LENGTH)} karakter lehet.`,
+  );
 export const duplicateRoleNameMessage =
-  "Give each signer in the template a different name.";
+  "A sablon minden aláírójának adj más nevet.";
 
 /** One place in a template's signing order, such as "Client". */
 export const templateRoleSchema = z.object({
@@ -48,7 +56,7 @@ export const templateRolesSchema = z
       if (ids.has(role.id)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Each signer in the template must be unique.",
+          message: "A sablonban minden aláíró csak egyszer szerepelhet.",
           path: [index, "id"],
         });
       }
@@ -73,7 +81,7 @@ export const saveTemplateSchema = z.object({
 /** Starting an envelope from a template: who fills each role, in order. */
 export const useTemplateSchema = z.object({
   signers: z
-    .array(z.object({ email: emailSchema, name: nameSchema }))
+    .array(z.object({ email: recipientEmailSchema, name: recipientNameSchema }))
     .min(1)
     .max(MAX_SIGNERS_PER_ENVELOPE)
     .superRefine((signers, ctx) => {

@@ -58,7 +58,7 @@ export async function POST(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: error.issues[0]?.message ?? "Invalid template request." },
+        { error: error.issues[0]?.message ?? "Érvénytelen sablonkérés." },
         { status: 400 },
       );
     }
@@ -79,7 +79,7 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { error: "Unable to save this as a template." },
+      { error: "Nem sikerült sablonként menteni." },
       { status: 500 },
     );
   }

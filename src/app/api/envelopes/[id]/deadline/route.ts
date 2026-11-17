@@ -58,7 +58,7 @@ export async function POST(
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Choose a deadline between 1 and 365 days from now." },
+      { error: "Mostantól számítva 1 és 365 nap közötti határidőt válassz." },
       { headers: noStore, status: 400 },
     );
   }
@@ -94,7 +94,7 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { error: "Unable to change the deadline." },
+      { error: "Nem sikerült módosítani a határidőt." },
       { headers: noStore, status: 500 },
     );
   }

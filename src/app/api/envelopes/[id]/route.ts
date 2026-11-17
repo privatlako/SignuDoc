@@ -59,7 +59,7 @@ export async function DELETE(request: Request, context: EnvelopeRouteContext) {
     });
 
     return NextResponse.json(
-      { error: "Unable to delete this envelope." },
+      { error: "Nem sikerült törölni a szerződést." },
       { status: 500 },
     );
   }

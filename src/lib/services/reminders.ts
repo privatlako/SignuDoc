@@ -15,28 +15,27 @@ export function isManualNudgeAvailable(
   return getManualNudgeAvailableAt(lastNudgedAt) <= nowUnixTimestamp;
 }
 
-const reminderAvailabilityFormatter = new Intl.DateTimeFormat("en-US", {
+const reminderAvailabilityFormatter = new Intl.DateTimeFormat("hu-HU", {
   day: "numeric",
-  hour: "numeric",
+  hour: "2-digit",
   minute: "2-digit",
   month: "long",
+  timeZone: "Europe/Budapest",
 });
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
 
-/** "Off", "Every day", "Every 3 days", "Every week". */
+/** "Kikapcsolva", "Minden nap", "3 naponta", "Hetente". */
 export function formatReminderInterval(intervalDays: number | null): string {
   if (intervalDays === null) {
-    return "Off";
+    return "Kikapcsolva";
   }
 
   if (intervalDays === 1) {
-    return "Every day";
+    return "Minden nap";
   }
 
-  return intervalDays === 7
-    ? "Every week"
-    : `Every ${String(intervalDays)} days`;
+  return intervalDays === 7 ? "Hetente" : `${String(intervalDays)} naponta`;
 }
 
 /**
@@ -87,6 +86,9 @@ export function isAutomaticReminderDue(
   );
 }
 
+/** In Budapest time: "november 18. 14:30". */
 export function formatReminderAvailableAt(unixTimestamp: number): string {
-  return reminderAvailabilityFormatter.format(new Date(unixTimestamp * 1000));
+  return reminderAvailabilityFormatter
+    .format(new Date(unixTimestamp * 1000))
+    .replace(/[\u00a0\u202f]/g, " ");
 }

@@ -6,10 +6,10 @@ export type ShellNavItem = {
 };
 
 export const primaryNavItems: ShellNavItem[] = [
-  { href: "/dashboard", label: "Documents" },
-  { href: "/templates", label: "Templates" },
-  { href: "/envelopes/new", label: "New envelope" },
-  { href: "/settings", label: "Settings" },
+  { href: "/dashboard", label: "Szerződések" },
+  { href: "/templates", label: "Sablonok" },
+  { href: "/envelopes/new", label: "Új szerződés" },
+  { href: "/settings", label: "Beállítások" },
 ];
 
 export const ChevronLeftIcon = ChevronLeft;

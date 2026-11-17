@@ -10,17 +10,17 @@ export default function AppError({
 }) {
   return (
     <StatusPanel
-      description="Something went wrong while loading this page. Please try again."
+      description="Hiba történt az oldal betöltése közben. Próbáld újra."
       footer={
         <button
           className="btn-quiet min-h-11 px-5"
           onClick={reset}
           type="button"
         >
-          Try again
+          Újra
         </button>
       }
-      title="We couldn't load this page."
+      title="Nem sikerült betölteni az oldalt."
       tone="error"
     />
   );

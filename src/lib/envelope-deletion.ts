@@ -49,7 +49,7 @@ export async function deleteEnvelope(
   );
 
   if (!envelope) {
-    throw new EnvelopeMutationError("Envelope not found.", 404);
+    throw new EnvelopeMutationError("A szerződés nem található.", 404);
   }
 
   if (envelope.status === "draft") {
@@ -63,14 +63,14 @@ export async function deleteEnvelope(
 
   if (envelope.status === "sent") {
     throw new EnvelopeMutationError(
-      "This envelope is still out for signature. Void it first, then delete it.",
+      "Ez a szerződés még aláírásra vár. Előbb vond vissza, utána törölheted.",
       409,
     );
   }
 
   if ((await readStoredSettings(database))?.part11Mode) {
     throw new EnvelopeMutationError(
-      "Part 11 mode keeps finished records. They leave only through the retention period.",
+      "Part 11 módban a lezárt szerződések megmaradnak, és csak a megőrzési idő végén törlődnek.",
       409,
     );
   }
@@ -83,7 +83,7 @@ export async function deleteEnvelope(
 
   if (deletedCount !== 1) {
     throw new EnvelopeMutationError(
-      "This envelope could not be deleted. Please try again.",
+      "A szerződést nem sikerült törölni. Próbáld újra.",
       409,
     );
   }
