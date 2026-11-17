@@ -5,7 +5,7 @@ import { PDFDocument, type PDFImage, type PDFPage, rgb } from "pdf-lib";
 import {
   billingFullName,
   formatBillingAddress,
-  formatForint,
+  formatMoney,
   transferDeadlineLabel,
 } from "../customer-contract.ts";
 import {
@@ -829,8 +829,15 @@ function buildAuditLines(input: {
 
     if (offer) {
       pushField("Ajánlat sorszáma", offer.offerNumber);
-      pushField("Árajánlat összege", formatForint(offer.totalAmount));
-      pushField("Fizetendő előleg", formatForint(offer.depositAmount));
+      pushField("Pénznem", offer.currency);
+      pushField(
+        "Árajánlat összege",
+        formatMoney(offer.totalAmount, offer.currency),
+      );
+      pushField(
+        "Fizetendő előleg",
+        formatMoney(offer.depositAmount, offer.currency),
+      );
       pushField(
         "Utalási határidő",
         transferDeadlineLabel(offer.transferDeadlineDays),

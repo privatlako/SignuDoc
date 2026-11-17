@@ -37,12 +37,22 @@ process.env.APP_URL ??= "https://sign.example.test";
 const SUPPORT_ADDRESS = "szamlazas@example.test";
 const DRAWN_SIGNATURE =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+// Saved the way offers were before the currency choice: no `currency`, so
+// it reads as forints.
 const OFFER = {
   depositAmount: 300_000,
   offerNumber: "2026/041",
   phone: "+36 30 123 4567",
   projectAddress: "1052 Budapest, Tervező utca 2.",
   totalAmount: 1_250_000,
+  transferDeadlineDays: 8,
+};
+// A euro offer: amounts in cents (1 250,50 € and 300,50 €).
+const EURO_OFFER = {
+  currency: "EUR",
+  depositAmount: 30_050,
+  offerNumber: "2026/077",
+  totalAmount: 125_050,
   transferDeadlineDays: 8,
 };
 const BILLING = {
@@ -115,9 +125,11 @@ function recordingEmailService() {
 /** A sent envelope with a real PDF, one signature field per signer. */
 async function createEnvelope({
   contractType,
+  offer = OFFER,
   signerCount = 1,
 }: {
   contractType: "customer" | "partner";
+  offer?: Record<string, unknown>;
   signerCount?: number;
 }) {
   const now = unixNow();
@@ -162,7 +174,7 @@ async function createEnvelope({
       now,
       now + 86_400,
       contractType,
-      contractType === "customer" ? JSON.stringify(OFFER) : null,
+      contractType === "customer" ? JSON.stringify(offer) : null,
     ],
   );
   await database.query(
@@ -265,6 +277,7 @@ test("the first signer of a customer contract sees the offer and must give billi
 
   assert.equal(payload.customerContract?.offer.offerNumber, OFFER.offerNumber);
   assert.equal(payload.customerContract?.offer.depositAmount, 300_000);
+  assert.equal(payload.customerContract?.offer.currency, "HUF");
 
   const { sent, service } = recordingEmailService();
 
@@ -347,6 +360,7 @@ test("a signed customer contract stores the billing details, waits for invoicing
   assert.equal(stored.billing?.acceptedPaymentObligation, true);
   assert.equal(stored.billing?.signerEmail, signer.email);
   assert.match(response.redirectPath, /deposit=300000/);
+  assert.match(response.redirectPath, /currency=HUF/);
   assert.match(response.redirectPath, /due=\d{4}-\d{2}-\d{2}/);
 
   const internal = sent.filter(
@@ -365,6 +379,7 @@ test("a signed customer contract stores the billing details, waits for invoicing
     "Kovács Anna",
     signer.email,
     "2026/041",
+    "Pénznem: HUF",
     "1 250 000 Ft",
     "300 000 Ft",
     "1051 Budapest, Fő utca 1.",
@@ -410,6 +425,84 @@ test("a signed customer contract stores the billing details, waits for invoicing
   assert.equal(detail?.customerContract?.billingStatus, "pending");
   assert.equal(detail?.customerContract?.offer?.depositLabel, "300 000 Ft");
   assert.equal(detail?.customerContract?.billing?.name, "Kovács Anna");
+});
+
+test("a euro offer is shown, mailed and recorded in euros", async () => {
+  const envelope = await createEnvelope({
+    contractType: "customer",
+    offer: EURO_OFFER,
+  });
+  const signer = envelope.signers[0]!;
+  const payload = await getSigningPayloadForToken(signer.token, { database });
+
+  assert.equal(payload.customerContract?.offer.currency, "EUR");
+  assert.equal(payload.customerContract?.offer.totalAmount, 125_050);
+
+  const { sent, service } = recordingEmailService();
+  const response = await submitSigningForToken(
+    signer.token,
+    submission(signer.fieldId, BILLING),
+    {
+      database,
+      emailService: service,
+      storageService: envelope.storageService,
+    },
+  );
+
+  assert.equal((await readEnvelope(envelope.envelopeId)).status, "completed");
+  assert.match(response.redirectPath, /deposit=30050/);
+  assert.match(response.redirectPath, /currency=EUR/);
+
+  const internal = sent.filter(
+    (entry) => entry.message.template === "billing_ready",
+  );
+
+  assert.equal(internal.length, 1);
+
+  for (const expected of [
+    "Pénznem: EUR",
+    "Árajánlat összege: 1 250,50 €",
+    "Esedékes előleg: 300,50 €",
+  ]) {
+    assert.ok(
+      internal[0]!.message.textBody.includes(expected),
+      `the internal email says ${expected}`,
+    );
+  }
+
+  assert.doesNotMatch(internal[0]!.message.textBody, / Ft\b/);
+  assert.ok(internal[0]!.message.htmlBody?.includes("1 250,50 €"));
+
+  const signerCopy = sent.find(
+    (entry) =>
+      entry.message.template === "completion_notification" &&
+      entry.message.to === signer.email,
+  );
+
+  assert.match(
+    signerCopy?.message.textBody ?? "",
+    /Fizetendő előleg: 300,50 €\. Az előlegszámlát e-mailben küldjük/,
+  );
+
+  const signed = await database.query<{ metadata: Record<string, unknown> }>(
+    `select metadata from audit_events where envelope_id = $1 and event = 'signed'`,
+    [envelope.envelopeId],
+  );
+  const billingAudit = signed.rows[0]?.metadata.billing as
+    Record<string, unknown> | undefined;
+
+  assert.equal(billingAudit?.currency, "EUR");
+  assert.equal(billingAudit?.depositAmount, 30_050);
+
+  const detail = await getEnvelopeDetailDataForUser(
+    envelope.userId,
+    envelope.envelopeId,
+    database,
+  );
+
+  assert.equal(detail?.customerContract?.offer?.currencyLabel, "Euró (€)");
+  assert.equal(detail?.customerContract?.offer?.totalLabel, "1 250,50 €");
+  assert.equal(detail?.customerContract?.offer?.depositLabel, "300,50 €");
 });
 
 test("on a customer contract with two signers the first gives the billing details and the last finishes", async () => {

@@ -21,9 +21,16 @@ import {
   type ContractType,
   type CustomerOffer,
   customerOfferSchema,
+  DEFAULT_OFFER_CURRENCY,
   DEFAULT_TRANSFER_DEADLINE_DAYS,
-  formatForint,
-  parseForintInput,
+  describeOfferAmountInputProblem,
+  formatOfferAmounts,
+  OFFER_CURRENCY_LABELS,
+  OFFER_CURRENCY_UNITS,
+  type OfferCurrency,
+  offerCurrencies,
+  parseOfferAmountInput,
+  readOfferCurrency,
 } from "@/lib/customer-contract";
 import type { ReviewEnvelopeData } from "@/lib/envelopes";
 import { PERMITTED_USE_PATH } from "@/lib/permitted-uses";
@@ -84,6 +91,7 @@ type SendPhase = "error" | "idle" | "sending";
 type SignatureLevel = "advanced" | "qualified" | "simple";
 
 type OfferFormValues = {
+  currency: OfferCurrency;
   depositAmount: string;
   offerNumber: string;
   phone: string;
@@ -95,6 +103,7 @@ type OfferFormValues = {
 type OfferFormErrors = Partial<Record<keyof OfferFormValues, string>>;
 
 const emptyOfferForm: OfferFormValues = {
+  currency: DEFAULT_OFFER_CURRENCY,
   depositAmount: "",
   offerNumber: "",
   phone: "",
@@ -108,12 +117,16 @@ function validateOfferForm(
   values: OfferFormValues,
 ): { offer: CustomerOffer; ok: true } | { errors: OfferFormErrors; ok: false } {
   const days = values.transferDeadlineDays.trim();
+  const { currency } = values;
+  const totalAmount = parseOfferAmountInput(values.totalAmount, currency);
+  const depositAmount = parseOfferAmountInput(values.depositAmount, currency);
   const parsed = customerOfferSchema.safeParse({
-    depositAmount: parseForintInput(values.depositAmount) ?? undefined,
+    currency,
+    depositAmount: depositAmount ?? undefined,
     offerNumber: values.offerNumber,
     phone: values.phone,
     projectAddress: values.projectAddress,
-    totalAmount: parseForintInput(values.totalAmount) ?? undefined,
+    totalAmount: totalAmount ?? undefined,
     transferDeadlineDays: /^\d{1,3}$/.test(days) ? Number(days) : undefined,
   });
 
@@ -122,6 +135,22 @@ function validateOfferForm(
   }
 
   const errors: OfferFormErrors = {};
+
+  // Something typed that is not an amount in this currency ("12,5" in
+  // forints, three decimals in euros) gets its own message, not "add it".
+  if (totalAmount === null && values.totalAmount.trim()) {
+    errors.totalAmount = describeOfferAmountInputProblem(
+      "totalAmount",
+      currency,
+    );
+  }
+
+  if (depositAmount === null && values.depositAmount.trim()) {
+    errors.depositAmount = describeOfferAmountInputProblem(
+      "depositAmount",
+      currency,
+    );
+  }
 
   for (const issue of parsed.error.issues) {
     const key = issue.path[0];
@@ -202,6 +231,20 @@ export function ReviewShell({
   }
 
   function updateOffer(key: keyof OfferFormValues, value: string) {
+    if (key === "currency") {
+      const currency = readOfferCurrency(value) ?? DEFAULT_OFFER_CURRENCY;
+
+      setOfferValues((current) => ({ ...current, currency }));
+      // The amounts are read in the new currency now.
+      setOfferErrors((current) => ({
+        ...current,
+        currency: undefined,
+        depositAmount: undefined,
+        totalAmount: undefined,
+      }));
+      return;
+    }
+
     setOfferValues((current) => ({ ...current, [key]: value }));
     setOfferErrors((current) => ({ ...current, [key]: undefined }));
   }
@@ -620,9 +663,13 @@ export function ReviewShell({
               ? (() => {
                   const checked = validateOfferForm(offerValues);
 
-                  return checked.ok
-                    ? `Ügyfélszerződés: ${checked.offer.offerNumber} sz. ajánlat, ${formatForint(checked.offer.totalAmount)}, előleg ${formatForint(checked.offer.depositAmount)}.`
-                    : null;
+                  if (!checked.ok) {
+                    return null;
+                  }
+
+                  const amounts = formatOfferAmounts(checked.offer);
+
+                  return `Ügyfélszerződés: ${checked.offer.offerNumber} sz. ajánlat, ${amounts.total}, előleg ${amounts.deposit}.`;
                 })()
               : null
           }
@@ -776,7 +823,7 @@ function OfferInput({
   disabled: boolean;
   error?: string;
   helper?: string;
-  inputMode?: "numeric" | "tel" | "text";
+  inputMode?: "decimal" | "numeric" | "tel" | "text";
   label: string;
   name: string;
   onChange: (value: string) => void;
@@ -885,26 +932,53 @@ function ContractTypeSection({
               suffix="nap"
               value={values.transferDeadlineDays}
             />
-            <OfferInput
-              disabled={disabled}
-              error={errors.totalAmount}
-              inputMode="numeric"
-              label="Árajánlat összege"
-              name="totalAmount"
-              onChange={(value) => onOfferChange("totalAmount", value)}
-              suffix="Ft"
-              value={values.totalAmount}
-            />
-            <OfferInput
-              disabled={disabled}
-              error={errors.depositAmount}
-              inputMode="numeric"
-              label="Esedékes előleg"
-              name="depositAmount"
-              onChange={(value) => onOfferChange("depositAmount", value)}
-              suffix="Ft"
-              value={values.depositAmount}
-            />
+            <div className="grid gap-4 sm:col-span-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_minmax(0,1fr)]">
+              <label className="grid gap-1.5 self-start">
+                <span className="text-[0.8125rem] font-semibold text-(--secondary)">
+                  Pénznem
+                </span>
+                <select
+                  className="field-input"
+                  disabled={disabled}
+                  name="currency"
+                  onChange={(event) =>
+                    onOfferChange("currency", event.target.value)
+                  }
+                  value={values.currency}
+                >
+                  {offerCurrencies.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {OFFER_CURRENCY_LABELS[currency]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <OfferInput
+                disabled={disabled}
+                error={errors.totalAmount}
+                helper={
+                  values.currency === "EUR"
+                    ? "Legfeljebb két tizedesjegy, például 1 250,50."
+                    : undefined
+                }
+                inputMode={values.currency === "EUR" ? "decimal" : "numeric"}
+                label="Árajánlat összege"
+                name="totalAmount"
+                onChange={(value) => onOfferChange("totalAmount", value)}
+                suffix={OFFER_CURRENCY_UNITS[values.currency]}
+                value={values.totalAmount}
+              />
+              <OfferInput
+                disabled={disabled}
+                error={errors.depositAmount}
+                inputMode={values.currency === "EUR" ? "decimal" : "numeric"}
+                label="Esedékes előleg"
+                name="depositAmount"
+                onChange={(value) => onOfferChange("depositAmount", value)}
+                suffix={OFFER_CURRENCY_UNITS[values.currency]}
+                value={values.depositAmount}
+              />
+            </div>
             <OfferInput
               disabled={disabled}
               error={errors.projectAddress}

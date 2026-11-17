@@ -16,8 +16,10 @@ const COLORS = {
   soft: "#f5f1ec",
 };
 
+// Montserrat where the reader has it, the system font otherwise: email
+// programs do not load web fonts reliably.
 const FONT_STACK =
-  "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
+  "Montserrat,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 const SERIF_STACK = "Georgia,'Times New Roman',serif";
 
 /** The button and accent color: the install's brand color, or Homilla brown. */

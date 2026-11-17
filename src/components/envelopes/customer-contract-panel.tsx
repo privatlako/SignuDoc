@@ -82,6 +82,7 @@ export function CustomerContractPanel({
               label="Ajánlat sorszáma"
               value={record.offer.offerNumber}
             />
+            <DetailRow label="Pénznem" value={record.offer.currencyLabel} />
             <DetailRow
               label="Árajánlat összege"
               value={record.offer.totalLabel}

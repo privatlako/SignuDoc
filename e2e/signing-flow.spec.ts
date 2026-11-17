@@ -1352,6 +1352,17 @@ test("a customer accepts an offer with billing details, and the sender marks it 
     await expect(
       page.getByText("Az előleg nem lehet nagyobb az árajánlat összegénél."),
     ).toBeVisible();
+    // Forints by default; in euros the amounts take up to two decimals.
+    await expect(page.getByLabel("Pénznem")).toHaveValue("HUF");
+    await page.getByLabel("Pénznem").selectOption("EUR");
+    await page.getByLabel("Esedékes előleg").fill("300,505");
+    await page.getByRole("button", { name: "Elküldés", exact: true }).click();
+    await expect(
+      page.getByText(
+        "Az előleg euróban, legfeljebb két tizedesjeggyel legyen, például 1 250,50.",
+      ),
+    ).toBeVisible();
+    await page.getByLabel("Pénznem").selectOption("HUF");
     await page.getByLabel("Esedékes előleg").fill("300 000");
     await page
       .getByLabel("Tervezési cím")
@@ -1363,7 +1374,9 @@ test("a customer accepts an offer with billing details, and the sender marks it 
     });
 
     await expect(
-      confirmation.getByText(/Ügyfélszerződés: 2026\/041 sz\. ajánlat/),
+      confirmation.getByText(
+        "Ügyfélszerződés: 2026/041 sz. ajánlat, 1 250 000 Ft, előleg 300 000 Ft.",
+      ),
     ).toBeVisible();
     await confirmation.getByRole("checkbox").check();
     await confirmation.getByRole("button", { name: "Elküldés most" }).click();

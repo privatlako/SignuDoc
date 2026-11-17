@@ -1,13 +1,16 @@
 import { SigningDoneShell } from "@/components/signing/signing-done-shell";
 import {
   buildDepositNote,
-  formatForint,
-  MAX_OFFER_AMOUNT_FT,
+  buildDepositNoteInDays,
+  DEFAULT_OFFER_CURRENCY,
+  MAX_OFFER_AMOUNT,
   MAX_TRANSFER_DEADLINE_DAYS,
+  readOfferCurrency,
 } from "@/lib/customer-contract";
 
 type SignDonePageProps = {
   searchParams?: Promise<{
+    currency?: string | string[];
     days?: string | string[];
     deposit?: string | string[];
     due?: string | string[];
@@ -20,21 +23,30 @@ function first(value: string | string[] | undefined): string | undefined {
 }
 
 /**
- * The deposit note for a customer who accepted an offer. Only numbers and a
- * date are read from the address, so nothing else can be put on the page.
+ * The deposit note for a customer who accepted an offer. Only numbers, a
+ * date and a known currency code are read from the address, so nothing else
+ * can be put on the page. The deposit is in the currency's stored unit
+ * (forints or euro cents); no currency means HUF, as links sent before the
+ * currency choice had none.
  */
 function readDepositNote(params: {
+  currency?: string;
   days?: string;
   deposit?: string;
   due?: string;
 }): string | null {
   const deposit = Number(params.deposit);
+  const currency =
+    params.currency === undefined
+      ? DEFAULT_OFFER_CURRENCY
+      : readOfferCurrency(params.currency);
 
   if (
+    !currency ||
     !params.deposit ||
     !/^\d{1,11}$/.test(params.deposit) ||
     deposit < 1 ||
-    deposit > MAX_OFFER_AMOUNT_FT
+    deposit > MAX_OFFER_AMOUNT
   ) {
     return null;
   }
@@ -44,6 +56,7 @@ function readDepositNote(params: {
 
     if (!Number.isNaN(dueDate.getTime())) {
       return buildDepositNote({
+        currency,
         depositAmount: deposit,
         dueDateLabel: new Intl.DateTimeFormat("hu-HU", {
           day: "numeric",
@@ -63,7 +76,7 @@ function readDepositNote(params: {
     days >= 1 &&
     days <= MAX_TRANSFER_DEADLINE_DAYS
   ) {
-    return `Fizetendő előleg: ${formatForint(deposit)}. Az előlegszámlát e-mailben küldjük; az utalás határideje a szerződés lezárásától számított ${days} nap.`;
+    return buildDepositNoteInDays({ currency, days, depositAmount: deposit });
   }
 
   return null;
@@ -75,6 +88,7 @@ export default async function SignDonePage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const envelopeTitle = first(resolvedSearchParams?.title);
   const depositNote = readDepositNote({
+    currency: first(resolvedSearchParams?.currency),
     days: first(resolvedSearchParams?.days),
     deposit: first(resolvedSearchParams?.deposit),
     due: first(resolvedSearchParams?.due),

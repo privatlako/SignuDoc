@@ -31,8 +31,45 @@ export const BILLING_STATUS_LABELS: Record<BillingStatus, string> = {
 
 export const DEFAULT_TRANSFER_DEADLINE_DAYS = 8;
 export const MAX_TRANSFER_DEADLINE_DAYS = 365;
-/** Ten billion forints: far above any offer, low enough to stay exact. */
-export const MAX_OFFER_AMOUNT_FT = 10_000_000_000;
+/**
+ * The currencies an offer can be made in. Amounts are stored as whole
+ * numbers of the currency's smallest unit used here: forints for HUF (no
+ * fillér) and cents for EUR, so no amount ever goes through a float.
+ * Offers saved before the currency choice have no `currency` and are HUF.
+ */
+export const offerCurrencies = ["HUF", "EUR"] as const;
+export type OfferCurrency = (typeof offerCurrencies)[number];
+export const offerCurrencySchema = z.enum(offerCurrencies);
+export const DEFAULT_OFFER_CURRENCY: OfferCurrency = "HUF";
+
+export const OFFER_CURRENCY_LABELS: Record<OfferCurrency, string> = {
+  EUR: "Euró (€)",
+  HUF: "Forint (Ft)",
+};
+
+/** The unit printed after an amount. */
+export const OFFER_CURRENCY_UNITS: Record<OfferCurrency, string> = {
+  EUR: "€",
+  HUF: "Ft",
+};
+
+/** How many stored units make one forint or one euro. */
+const MINOR_UNITS_PER_MAJOR: Record<OfferCurrency, number> = {
+  EUR: 100,
+  HUF: 1,
+};
+
+/**
+ * The largest stored amount, in either currency's stored unit: ten billion
+ * forints or a hundred million euros. Far above any offer, and exact.
+ */
+export const MAX_OFFER_AMOUNT = 10_000_000_000;
+
+export function readOfferCurrency(value: unknown): OfferCurrency | null {
+  const parsed = offerCurrencySchema.safeParse(value);
+
+  return parsed.success ? parsed.data : null;
+}
 export const DEFAULT_BILLING_COUNTRY = "Magyarország";
 
 /** The rule shown to the sender beside the contract type. */
@@ -59,12 +96,36 @@ function optionalText(max: number, tooLong: string) {
   );
 }
 
-function amountSchema(requiredMessage: string, label: string) {
-  return z
-    .number({ error: requiredMessage })
-    .int(`${label} egész forintösszeg legyen.`)
-    .min(1, `${label} legalább 1 Ft legyen.`)
-    .max(MAX_OFFER_AMOUNT_FT, `${label} túl nagy.`);
+const OFFER_AMOUNT_LABELS = {
+  depositAmount: "Az előleg",
+  totalAmount: "Az árajánlat összege",
+} as const;
+
+/**
+ * Checks one stored amount against its currency: a whole number of stored
+ * units (forints or cents), at least the smallest step, at most the limit.
+ */
+function checkOfferAmount(
+  amount: number,
+  currency: OfferCurrency,
+  key: keyof typeof OFFER_AMOUNT_LABELS,
+  context: z.RefinementCtx,
+) {
+  const label = OFFER_AMOUNT_LABELS[key];
+  const fail = (message: string) =>
+    context.addIssue({ code: "custom", message, path: [key] });
+
+  if (!Number.isSafeInteger(amount)) {
+    fail(
+      currency === "EUR"
+        ? `${label} legfeljebb két tizedesjegyű euróösszeg legyen.`
+        : `${label} egész forintösszeg legyen.`,
+    );
+  } else if (amount < 1) {
+    fail(`${label} legalább ${formatMoney(1, currency)} legyen.`);
+  } else if (amount > MAX_OFFER_AMOUNT) {
+    fail(`${label} túl nagy.`);
+  }
 }
 
 const PHONE_PATTERN = /^\+?[0-9 ()/-]{6,24}$/;
@@ -79,11 +140,15 @@ export const customerOfferSchema = z
       "Add meg az ajánlat sorszámát.",
       "Az ajánlat sorszáma legfeljebb 60 karakter lehet.",
     ),
-    totalAmount: amountSchema(
-      "Add meg az árajánlat összegét.",
-      "Az árajánlat összege",
+    /** Missing on offers saved before the currency choice: those are HUF. */
+    currency: z.preprocess(
+      (value) => (value === undefined || value === null ? undefined : value),
+      offerCurrencySchema.default(DEFAULT_OFFER_CURRENCY),
     ),
-    depositAmount: amountSchema("Add meg az esedékes előleget.", "Az előleg"),
+    /** In the currency's stored unit: forints (HUF) or cents (EUR). */
+    totalAmount: z.number({ error: "Add meg az árajánlat összegét." }),
+    /** In the currency's stored unit: forints (HUF) or cents (EUR). */
+    depositAmount: z.number({ error: "Add meg az esedékes előleget." }),
     transferDeadlineDays: z
       .number({ error: "Add meg az utalási határidőt napokban." })
       .int("Az utalási határidő egész számú nap legyen.")
@@ -104,11 +169,34 @@ export const customerOfferSchema = z
       phoneMessage,
     ),
   })
-  .refine((offer) => offer.depositAmount <= offer.totalAmount, {
-    message: "Az előleg nem lehet nagyobb az árajánlat összegénél.",
-    path: ["depositAmount"],
+  .superRefine((offer, context) => {
+    // Zod still runs this when another field failed; check only what parsed.
+    if (
+      readOfferCurrency(offer.currency) === null ||
+      typeof offer.totalAmount !== "number" ||
+      typeof offer.depositAmount !== "number"
+    ) {
+      return;
+    }
+
+    checkOfferAmount(offer.totalAmount, offer.currency, "totalAmount", context);
+    checkOfferAmount(
+      offer.depositAmount,
+      offer.currency,
+      "depositAmount",
+      context,
+    );
+
+    if (offer.depositAmount > offer.totalAmount) {
+      context.addIssue({
+        code: "custom",
+        message: "Az előleg nem lehet nagyobb az árajánlat összegénél.",
+        path: ["depositAmount"],
+      });
+    }
   });
 
+/** A checked offer; `currency` is always set (HUF when it was missing). */
 export type CustomerOffer = z.infer<typeof customerOfferSchema>;
 
 function isHungary(country: string): boolean {
@@ -307,18 +395,66 @@ export function describeBillingProblem(value: unknown): string | null {
     : (parsed.error.issues[0]?.message ?? "Ellenőrizd a számlázási adatokat.");
 }
 
+/** Groups whole units by thousands with a plain space: "1 250 000". */
+function groupThousands(whole: number): string {
+  return (
+    new Intl.NumberFormat("hu-HU", {
+      maximumFractionDigits: 0,
+      useGrouping: true,
+    })
+      .format(whole)
+      // hu-HU groups with a no-break space; a plain one prints everywhere,
+      // PDF fonts and plain-text emails included.
+      .replace(/[\s\u00a0\u202f]/g, " ")
+  );
+}
+
+/**
+ * An offer amount for people to read, from its stored unit:
+ * HUF "1 250 000 Ft" (whole forints), EUR "1 250,50 €" (always two
+ * decimals, comma as the decimal sign). The one formatter for every place
+ * an amount appears.
+ */
+export function formatMoney(
+  amount: number,
+  currency: OfferCurrency = DEFAULT_OFFER_CURRENCY,
+): string {
+  const unit = OFFER_CURRENCY_UNITS[currency];
+
+  if (currency === "HUF") {
+    return `${groupThousands(Math.round(amount))} ${unit}`;
+  }
+
+  // Integer arithmetic on cents, so 0.1 + 0.2 never shows up.
+  const cents = Math.round(amount);
+  const sign = cents < 0 ? "-" : "";
+  const absolute = Math.abs(cents);
+  const whole = Math.trunc(absolute / MINOR_UNITS_PER_MAJOR.EUR);
+  const fraction = String(absolute % MINOR_UNITS_PER_MAJOR.EUR).padStart(
+    2,
+    "0",
+  );
+
+  return `${sign}${groupThousands(whole)},${fraction} ${unit}`;
+}
+
 /** "1 250 000 Ft": whole forints, grouped by thousands. */
 export function formatForint(amount: number): string {
-  const grouped = new Intl.NumberFormat("hu-HU", {
-    maximumFractionDigits: 0,
-    useGrouping: true,
-  })
-    .format(Math.round(amount))
-    // hu-HU groups with a no-break space; a plain one prints everywhere,
-    // PDF fonts and plain-text emails included.
-    .replace(/[\s  ]/g, " ");
+  return formatMoney(amount, "HUF");
+}
 
-  return `${grouped} Ft`;
+/** Both amounts of an offer, in its currency. */
+export function formatOfferAmounts(offer: {
+  currency?: OfferCurrency;
+  depositAmount: number;
+  totalAmount: number;
+}): { deposit: string; total: string } {
+  const currency = offer.currency ?? DEFAULT_OFFER_CURRENCY;
+
+  return {
+    deposit: formatMoney(offer.depositAmount, currency),
+    total: formatMoney(offer.totalAmount, currency),
+  };
 }
 
 /**
@@ -326,13 +462,53 @@ export function formatForint(amount: number): string {
  * forints. Null when it is not one.
  */
 export function parseForintInput(value: string): number | null {
-  const digits = value.replace(/[\s  .]|ft/gi, "");
+  const digits = value.replace(/[\s\u00a0\u202f.]|ft/gi, "");
 
   if (!/^\d{1,11}$/.test(digits)) {
     return null;
   }
 
   return Number(digits);
+}
+
+/**
+ * Reads an amount a person typed as euro cents: spaces group thousands,
+ * and a comma or a point starts at most two decimals ("1 250,50",
+ * "1250.5", "1 250 €"). Null when it is not one.
+ */
+export function parseEuroInput(value: string): number | null {
+  const compact = value.replace(/[\s\u00a0\u202f€]|eur/gi, "");
+  const match = /^(\d{1,9})(?:[.,](\d{1,2}))?$/.exec(compact);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, whole, fraction = ""] = match;
+
+  return (
+    Number(whole) * MINOR_UNITS_PER_MAJOR.EUR + Number(fraction.padEnd(2, "0"))
+  );
+}
+
+/** Reads a typed amount into the currency's stored unit; null if invalid. */
+export function parseOfferAmountInput(
+  value: string,
+  currency: OfferCurrency,
+): number | null {
+  return currency === "EUR" ? parseEuroInput(value) : parseForintInput(value);
+}
+
+/** Why a typed amount could not be read, for the field under it. */
+export function describeOfferAmountInputProblem(
+  key: keyof typeof OFFER_AMOUNT_LABELS,
+  currency: OfferCurrency,
+): string {
+  const label = OFFER_AMOUNT_LABELS[key];
+
+  return currency === "EUR"
+    ? `${label} euróban, legfeljebb két tizedesjeggyel legyen, például 1 250,50.`
+    : `${label} egész forintösszeg legyen, például 1 250 000.`;
 }
 
 function budapestDateParts(unixSeconds: number) {
@@ -413,11 +589,21 @@ export function formatBillingAddress(billing: {
 
 /** The deposit note for the signer: completion email and done screen. */
 export function buildDepositNote(input: {
+  currency?: OfferCurrency;
   depositAmount: number;
   dueDateLabel: string;
 }): string {
   // Hungarian dates end with a period already ("2026. november 25.").
   const due = input.dueDateLabel.replace(/\.$/, "");
 
-  return `Fizetendő előleg: ${formatForint(input.depositAmount)}. Az előlegszámlát e-mailben küldjük; az utalás határideje: ${due}.`;
+  return `Fizetendő előleg: ${formatMoney(input.depositAmount, input.currency)}. Az előlegszámlát e-mailben küldjük; az utalás határideje: ${due}.`;
+}
+
+/** The deposit note when the closing day is not known yet. */
+export function buildDepositNoteInDays(input: {
+  currency?: OfferCurrency;
+  days: number;
+  depositAmount: number;
+}): string {
+  return `Fizetendő előleg: ${formatMoney(input.depositAmount, input.currency)}. Az előlegszámlát e-mailben küldjük; az utalás határideje a szerződés lezárásától számított ${input.days} nap.`;
 }

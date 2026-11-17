@@ -9,7 +9,8 @@ import {
   customerOfferSchema,
   formatBillingAddress,
   formatBudapestDateTime,
-  formatForint,
+  formatMoney,
+  OFFER_CURRENCY_LABELS,
   transferDeadlineDate,
   transferDeadlineLabel,
 } from "./customer-contract.ts";
@@ -420,6 +421,8 @@ export type EnvelopeDetailCustomerContract = {
   billingStatus: BillingStatus | null;
   billingStatusChangedAtLabel: string | null;
   offer: {
+    /** "Forint (Ft)" or "Euró (€)". */
+    currencyLabel: string;
     depositLabel: string;
     offerNumber: string;
     phone: string | null;
@@ -1602,11 +1605,12 @@ function buildDetailCustomerContract(
         : null,
     offer: offer
       ? {
-          depositLabel: formatForint(offer.depositAmount),
+          currencyLabel: OFFER_CURRENCY_LABELS[offer.currency],
+          depositLabel: formatMoney(offer.depositAmount, offer.currency),
           offerNumber: offer.offerNumber,
           phone: offer.phone ?? null,
           projectAddress: offer.projectAddress ?? null,
-          totalLabel: formatForint(offer.totalAmount),
+          totalLabel: formatMoney(offer.totalAmount, offer.currency),
           transferDeadlineLabel:
             typeof completedAt === "number"
               ? `${transferDeadlineDate(completedAt, offer.transferDeadlineDays).label} (${transferDeadlineLabel(offer.transferDeadlineDays)})`
@@ -2382,6 +2386,7 @@ export async function sendDraftEnvelope(
               ? {
                   contractType,
                   offerNumber: offer.offerNumber,
+                  offerCurrency: offer.currency,
                   offerTotalAmount: offer.totalAmount,
                   offerDepositAmount: offer.depositAmount,
                   transferDeadlineDays: offer.transferDeadlineDays,

@@ -358,6 +358,7 @@ function getSigningDoneRedirectPath(
 
   if (customer) {
     searchParams.set("deposit", String(customer.offer.depositAmount));
+    searchParams.set("currency", customer.offer.currency);
 
     if (customer.completedAt) {
       searchParams.set(
@@ -2203,6 +2204,7 @@ function billingAuditMetadata(
     acceptedPrivacy: true,
     acceptedTerms: true,
     billingName: billingFullName(billing),
+    currency: offer.currency,
     depositAmount: offer.depositAmount,
     offerNumber: offer.offerNumber,
     privacyUrl: billing.privacyUrl,
@@ -3018,6 +3020,7 @@ export async function submitSigningForToken(
               depositNote: {
                 signerId: completedBilling?.signerId ?? context.signers[0]?.id,
                 text: buildDepositNote({
+                  currency: context.envelope.offer.currency,
                   depositAmount: context.envelope.offer.depositAmount,
                   dueDateLabel: transferDeadlineDate(
                     finalArtifacts.generatedAt,

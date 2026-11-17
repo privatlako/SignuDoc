@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Montserrat } from "next/font/google";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+// latin-ext carries ő and ű.
+const montserrat = Montserrat({
   display: "swap",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-ui",
   weight: ["400", "500", "600", "700", "800"],
 });
@@ -25,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="hu">
-      <body className={`${plusJakartaSans.variable} antialiased`}>
+      <body className={`${montserrat.variable} antialiased`}>
         <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>

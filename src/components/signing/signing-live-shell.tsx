@@ -51,7 +51,7 @@ import {
   type BillingFormErrors,
   type BillingFormValues,
   emptyBillingForm,
-  formatForint,
+  formatMoney,
   transferDeadlineLabel,
   validateBillingForm,
 } from "@/lib/customer-contract";
@@ -2468,7 +2468,7 @@ function OfferSummary({
               Árajánlat összege
             </dt>
             <dd className="mt-0.5 whitespace-nowrap text-[0.9375rem] font-bold text-(--fg)">
-              {formatForint(offer.totalAmount)}
+              {formatMoney(offer.totalAmount, offer.currency)}
             </dd>
           </div>
           <div>
@@ -2487,7 +2487,7 @@ function OfferSummary({
               className="whitespace-nowrap text-2xl font-extrabold tracking-[-0.02em] text-(--accent-ink) sm:text-3xl"
               data-testid="deposit-amount"
             >
-              {formatForint(offer.depositAmount)}
+              {formatMoney(offer.depositAmount, offer.currency)}
             </dd>
           </div>
         </dl>
@@ -2515,7 +2515,7 @@ function OfferSummary({
         <div className="flex items-baseline justify-between gap-3">
           <dt className="text-(--secondary)">Árajánlat összege</dt>
           <dd className="whitespace-nowrap text-right font-semibold text-(--fg)">
-            {formatForint(offer.totalAmount)}
+            {formatMoney(offer.totalAmount, offer.currency)}
           </dd>
         </div>
         <div className="well flex items-baseline justify-between gap-3 rounded-xl px-3.5 py-3">
@@ -2524,7 +2524,7 @@ function OfferSummary({
             className="whitespace-nowrap text-right text-lg font-extrabold text-(--accent-ink)"
             data-testid="deposit-amount"
           >
-            {formatForint(offer.depositAmount)}
+            {formatMoney(offer.depositAmount, offer.currency)}
           </dd>
         </div>
       </dl>

@@ -11,7 +11,7 @@ import {
   billingFullName,
   formatBillingAddress,
   formatBudapestDateTime,
-  formatForint,
+  formatMoney,
   readStoredBilling,
   readStoredOffer,
   transferDeadlineDate,
@@ -85,8 +85,15 @@ export function buildBillingReadyEmail(input: {
     ["E-mail", input.customerEmail],
     ["Telefonszám", input.billing.phone],
     ["Ajánlat sorszáma", input.offer.offerNumber],
-    ["Árajánlat összege", formatForint(input.offer.totalAmount)],
-    ["Esedékes előleg", formatForint(input.offer.depositAmount)],
+    ["Pénznem", input.offer.currency],
+    [
+      "Árajánlat összege",
+      formatMoney(input.offer.totalAmount, input.offer.currency),
+    ],
+    [
+      "Esedékes előleg",
+      formatMoney(input.offer.depositAmount, input.offer.currency),
+    ],
     [
       "Utalási határidő",
       `${dueDate.label} (aláírástól számított ${input.offer.transferDeadlineDays} nap)`,
