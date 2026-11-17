@@ -3,7 +3,7 @@ export default function CanvasLoading() {
     <div className="grid min-h-[calc(100vh-73px)] lg:grid-cols-[272px_minmax(0,1fr)]">
       <aside className="hidden py-5 pl-5 lg:block">
         <div className="panel space-y-2 rounded-[1.25rem] p-4">
-          <div className="h-4 w-20 animate-pulse rounded-full bg-[#eeeff4]" />
+          <div className="h-4 w-20 animate-pulse rounded-full bg-[#ece7e0]" />
           {Array.from({ length: 5 }).map((_, index) => (
             <div
               className="h-12 animate-pulse rounded-[0.875rem] bg-(--surface)"

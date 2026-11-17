@@ -3,8 +3,8 @@ export default function AppLoading() {
     <div aria-label="Az oldal betöltése" className="space-y-5">
       <section className="panel px-6 py-7 sm:px-8">
         <div className="space-y-3">
-          <div className="h-9 w-56 animate-pulse rounded-full bg-[#eeeff4]" />
-          <div className="h-4 w-full max-w-md animate-pulse rounded-full bg-[#eeeff4]" />
+          <div className="h-9 w-56 animate-pulse rounded-full bg-[#ece7e0]" />
+          <div className="h-4 w-full max-w-md animate-pulse rounded-full bg-[#ece7e0]" />
         </div>
       </section>
       <div className="flex flex-wrap gap-2">
@@ -22,8 +22,8 @@ export default function AppLoading() {
             key={index}
           >
             <div className="h-52 animate-pulse rounded-2xl bg-(--surface)" />
-            <div className="h-4 w-3/4 animate-pulse rounded-full bg-[#eeeff4]" />
-            <div className="h-3 w-1/2 animate-pulse rounded-full bg-[#eeeff4]" />
+            <div className="h-4 w-3/4 animate-pulse rounded-full bg-[#ece7e0]" />
+            <div className="h-3 w-1/2 animate-pulse rounded-full bg-[#ece7e0]" />
           </div>
         ))}
       </div>
