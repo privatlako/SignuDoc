@@ -1,3 +1,4 @@
+import { emailHeading } from "./services/email-layout.ts";
 import { isResendTestSender } from "./services/email-addresses.ts";
 import {
   createEmailService,
@@ -34,14 +35,13 @@ export async function sendTestEmail({
   try {
     const branding = await getBranding(env);
     const { productName } = branding;
-    const textBody = [
-      buildGreeting(name),
-      "",
-      `Ez egy teszt üzenet, a küldő: ${productName}. Ha ezt olvasod, az e-mail-küldés működik.`,
-    ].join("\n");
+    const testLine =
+      "Ez egy teszt üzenet. Ha ezt olvasod, az e-mail-küldés működik.";
+    const textBody = [buildGreeting(name), "", testLine].join("\n");
     const htmlBody = [
+      emailHeading("Működik az e-mail-küldés"),
       `<p>${escapeHtml(buildGreeting(name))}</p>`,
-      `<p>Ez egy teszt üzenet, a küldő: ${escapeHtml(productName)}. Ha ezt olvasod, az e-mail-küldés működik.</p>`,
+      `<p>${escapeHtml(testLine)}</p>`,
     ].join("");
     const content = withUserEmailLegalFooter(
       { htmlBody, textBody },

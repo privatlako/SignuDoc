@@ -15,7 +15,13 @@ import {
   type EmailService,
   type TransactionalEmailMessage,
 } from "../services/email.ts";
+import {
+  emailButton,
+  emailHeading,
+  emailNote,
+} from "../services/email-layout.ts";
 import { withUserEmailLegalFooter } from "../services/email-legal-footer.ts";
+import { buildGreeting } from "../services/signing-invitation-email.ts";
 import { consumeRateLimit } from "../security/rate-limit.ts";
 import { getClientIpHeaderNames } from "../security/request.ts";
 import {
@@ -84,20 +90,19 @@ function buildEmailVerificationMessage(input: {
   name: string;
   url: string;
 }) {
-  const { productName } = input.branding;
-  const textBody = [
-    `Hi ${input.name},`,
-    "",
-    `Verify your email address to finish setting up your ${productName} sender account:`,
-    input.url,
-    "",
-    "If you didn't request this, you can ignore this email.",
-  ].join("\n");
+  const greeting = buildGreeting(input.name);
+  const introLine = `Erősítsd meg az e-mail-címedet, hogy befejezd a fiókod beállítását: ${input.branding.productName} – szerződés aláíró portál.`;
+  const noteLine =
+    "Ha nem te kérted, nyugodtan hagyd figyelmen kívül ezt az e-mailt.";
+  const textBody = [greeting, "", introLine, input.url, "", noteLine].join(
+    "\n",
+  );
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.name)},</p>`,
-    `<p>Verify your email address to finish setting up your ${escapeHtml(productName)} sender account.</p>`,
-    `<p><a href="${escapeHtml(input.url)}">Verify your email</a></p>`,
-    "<p>If you didn't request this, you can ignore this email.</p>",
+    emailHeading("Erősítsd meg az e-mail-címedet"),
+    `<p>${escapeHtml(greeting)}</p>`,
+    `<p>${escapeHtml(introLine)}</p>`,
+    emailButton("E-mail-cím megerősítése", input.url),
+    emailNote(escapeHtml(noteLine)),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -109,7 +114,7 @@ function buildEmailVerificationMessage(input: {
 
   return {
     htmlBody: legalFooter.htmlBody,
-    subject: `Verify your ${productName} email`,
+    subject: `E-mail-cím megerősítése – ${input.branding.productName}`,
     template: "email_verification" as const,
     textBody: legalFooter.textBody,
   };
@@ -121,20 +126,19 @@ function buildChangeEmailConfirmationMessage(input: {
   newEmail: string;
   url: string;
 }) {
-  const { productName } = input.branding;
-  const textBody = [
-    `Hi ${input.name},`,
-    "",
-    `Confirm that you want to change your ${productName} sender email to ${input.newEmail}:`,
-    input.url,
-    "",
-    "If you didn't request this, you can ignore this email.",
-  ].join("\n");
+  const greeting = buildGreeting(input.name);
+  const introLine = `Erősítsd meg, hogy erre szeretnéd módosítani a fiókod e-mail-címét: ${input.newEmail}.`;
+  const noteLine =
+    "Ha nem te kérted, nyugodtan hagyd figyelmen kívül ezt az e-mailt.";
+  const textBody = [greeting, "", introLine, input.url, "", noteLine].join(
+    "\n",
+  );
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.name)},</p>`,
-    `<p>Confirm that you want to change your ${escapeHtml(productName)} sender email to ${escapeHtml(input.newEmail)}.</p>`,
-    `<p><a href="${escapeHtml(input.url)}">Confirm this email change</a></p>`,
-    "<p>If you didn't request this, you can ignore this email.</p>",
+    emailHeading("Erősítsd meg az új e-mail-címedet"),
+    `<p>${escapeHtml(greeting)}</p>`,
+    `<p>${escapeHtml(introLine)}</p>`,
+    emailButton("Új e-mail-cím megerősítése", input.url),
+    emailNote(escapeHtml(noteLine)),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -146,7 +150,7 @@ function buildChangeEmailConfirmationMessage(input: {
 
   return {
     htmlBody: legalFooter.htmlBody,
-    subject: `Confirm your ${productName} email change`,
+    subject: `E-mail-cím módosítása – ${input.branding.productName}`,
     template: "change_email_confirmation" as const,
     textBody: legalFooter.textBody,
   };
@@ -157,20 +161,19 @@ function buildPasswordResetMessage(input: {
   name: string;
   url: string;
 }) {
-  const { productName } = input.branding;
-  const textBody = [
-    `Hi ${input.name},`,
-    "",
-    `Use the link below to reset your ${productName} password:`,
-    input.url,
-    "",
-    "If you didn't request this reset, you can ignore this email.",
-  ].join("\n");
+  const greeting = buildGreeting(input.name);
+  const introLine = "Az alábbi gombbal új jelszót állíthatsz be a fiókodhoz.";
+  const noteLine =
+    "Ha nem te kérted, nyugodtan hagyd figyelmen kívül ezt az e-mailt. A jelszavad addig nem változik.";
+  const textBody = [greeting, "", introLine, input.url, "", noteLine].join(
+    "\n",
+  );
   const htmlBody = [
-    `<p>Hi ${escapeHtml(input.name)},</p>`,
-    `<p>Use the link below to reset your ${escapeHtml(productName)} password.</p>`,
-    `<p><a href="${escapeHtml(input.url)}">Reset your password</a></p>`,
-    "<p>If you didn't request this reset, you can ignore this email.</p>",
+    emailHeading("Új jelszó beállítása"),
+    `<p>${escapeHtml(greeting)}</p>`,
+    `<p>${escapeHtml(introLine)}</p>`,
+    emailButton("Új jelszó beállítása", input.url),
+    emailNote(escapeHtml(noteLine)),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -182,7 +185,7 @@ function buildPasswordResetMessage(input: {
 
   return {
     htmlBody: legalFooter.htmlBody,
-    subject: `Reset your ${productName} password`,
+    subject: `Új jelszó beállítása – ${input.branding.productName}`,
     template: "password_reset" as const,
     textBody: legalFooter.textBody,
   };

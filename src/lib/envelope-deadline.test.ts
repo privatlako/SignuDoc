@@ -74,7 +74,7 @@ test("the next signer's link ends at the envelope's deadline", () => {
   );
 });
 
-test("a deadline is written out in full, in UTC", () => {
+test("a deadline is written out in full: in UTC on screen, in Budapest time in emails", () => {
   // 2027-01-15 08:00:00 UTC
   assert.equal(
     formatDeadline(1_800_000_000),
@@ -82,7 +82,7 @@ test("a deadline is written out in full, in UTC", () => {
   );
   assert.equal(
     buildDeadlineLine(1_800_000_000),
-    "Az aláírási kérés lejár: 2027. január 15. 08:00 (UTC).",
+    "Az aláírási kérés lejár: 2027. január 15. 09:00.",
   );
   assert.equal(buildDeadlineLine(null), null);
 });

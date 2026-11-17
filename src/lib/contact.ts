@@ -114,7 +114,7 @@ export async function submitPublicContactMessage(
     const emailService = createEmailService({ env });
     const deliveryResult = await emailService.send({
       htmlBody: [
-        "<p>Új üzenet érkezett a SignuDoc nyilvános kapcsolatfelvételi űrlapjáról.</p>",
+        "<p>Új üzenet érkezett a portál kapcsolatfelvételi űrlapjáról.</p>",
         `<p><strong>Név:</strong> ${escapeHtml(parsedInput.name)}<br /><strong>E-mail:</strong> ${escapeHtml(parsedInput.email)}<br /><strong>Beküldve:</strong> ${escapeHtml(submittedAt)}</p>`,
         `<p><strong>Üzenet:</strong><br />${escapedMessageHtml}</p>`,
       ].join(""),
@@ -122,7 +122,7 @@ export async function submitPublicContactMessage(
       subject: `[Kapcsolat] ${parsedInput.name}`,
       template: "contact_form",
       textBody: [
-        "Új üzenet érkezett a SignuDoc nyilvános kapcsolatfelvételi űrlapjáról.",
+        "Új üzenet érkezett a portál kapcsolatfelvételi űrlapjáról.",
         "",
         `Név: ${parsedInput.name}`,
         `E-mail: ${parsedInput.email}`,

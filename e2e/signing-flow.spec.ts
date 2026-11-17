@@ -158,7 +158,9 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     expect(testEmail.subject).toBe(`Teszt e-mail – ${ORGANIZATION_NAME}`);
     // Replies and questions go to the address given at setup.
     expect(testEmail.replyTo).toBe(supportEmail);
-    expect(testEmail.text).toContain(`Kérdésed van? Írj ide: ${supportEmail}`);
+    expect(testEmail.text).toContain(
+      `Kérdésed van? Írj nekünk: ${supportEmail}`,
+    );
 
     // The organization puts its own logo and color on the site. The logo
     // is saved the moment it is chosen, the color with the form.
@@ -284,7 +286,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
 
     // Emails carry the organization's name, not the product's.
     expect(verificationEmail.text).toContain(
-      `Ezt az üzenetet ${ORGANIZATION_NAME} küldte a SignuDoc segítségével.`,
+      `${ORGANIZATION_NAME} · Elektronikus szerződés aláíró portál`,
     );
 
     await page.goto(
@@ -515,7 +517,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
   const signingLink = extractLink(invitation.text, "/sign/");
 
   expect(invitation.text).toContain(
-    `Ezt az üzenetet ${ORGANIZATION_NAME} küldte a SignuDoc segítségével.`,
+    `${ORGANIZATION_NAME} · Elektronikus szerződés aláíró portál`,
   );
   expect(invitation.replyTo).toBe(supportEmail);
   // The logo opens the message, fetched from this site.

@@ -6,6 +6,12 @@ import {
 import { getBranding } from "./settings.ts";
 import { recordEmailSent } from "./services/audit.ts";
 import { createEmailService, type EmailService } from "./services/email.ts";
+import {
+  emailButton,
+  emailHeading,
+  emailNote,
+  emailSecondaryButton,
+} from "./services/email-layout.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
 import {
   buildGreeting,
@@ -31,7 +37,7 @@ export async function sendFreshDownloadLinks(
     async sendLinks({ envelope, evidenceUrl, signedUrl, signer }) {
       const title = quoteTitle(envelope.title);
       const subject = `Új letöltési linkek: ${title}`;
-      const introLine = `Itt vannak az új letöltési linkek ehhez a dokumentumhoz: ${title}. ${String(TTL_DAYS)} napig érvényesek.`;
+      const introLine = `Itt vannak az új letöltési linkek ehhez a szerződéshez: ${title}. ${String(TTL_DAYS)} napig érvényesek.`;
       const keepLine = "Töltsd le és őrizd meg a fájlokat: ez a te példányod.";
       const textBody = [
         buildGreeting(signer.name),
@@ -44,14 +50,14 @@ export async function sendFreshDownloadLinks(
         keepLine,
       ].join("\n");
       const htmlBody = [
+        emailHeading("Új letöltési linkek"),
         `<p>${escapeHtml(buildGreeting(signer.name))}</p>`,
         `<p>${escapeHtml(introLine)}</p>`,
-        "<p>",
+        signedUrl ? emailButton("Aláírt szerződés letöltése", signedUrl) : "",
         signedUrl
-          ? `<a href="${escapeHtml(signedUrl)}">Aláírt PDF letöltése</a><br />`
-          : "",
-        `<a href="${escapeHtml(evidenceUrl)}">Hitelesítési igazolás letöltése</a></p>`,
-        `<p>${keepLine}</p>`,
+          ? emailSecondaryButton("Hitelesítési igazolás letöltése", evidenceUrl)
+          : emailButton("Hitelesítési igazolás letöltése", evidenceUrl),
+        emailNote(escapeHtml(keepLine)),
       ].join("");
       const body = withUserEmailLegalFooter({ htmlBody, textBody }, branding);
       const delivery = await emailService.send({

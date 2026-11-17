@@ -62,6 +62,13 @@ import {
   type EmailService,
 } from "./services/email.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
+import {
+  emailButton,
+  emailCode,
+  emailHeading,
+  emailNote,
+  emailSecondaryButton,
+} from "./services/email-layout.ts";
 import { hashOpaqueToken } from "./services/opaque-tokens.ts";
 import {
   finalizeEnvelope,
@@ -360,7 +367,7 @@ function buildCompletionSenderEmail(input: {
   const completedUrl = getEnvelopeUrl(input.envelopeId);
   const title = quoteTitle(input.envelopeTitle);
   const subject = `Mindenki aláírta: ${title}`;
-  const introLine = `Mindenki aláírta ezt a dokumentumot: ${title}.`;
+  const introLine = `Mindenki aláírta ezt a szerződést: ${title}.`;
   const readyLine =
     "Az aláírt PDF és a hitelesítési igazolás már elérhető a fiókodban.";
   const textBody = [
@@ -373,10 +380,11 @@ function buildCompletionSenderEmail(input: {
     completedUrl,
   ].join("\n");
   const htmlBody = [
+    emailHeading("Mindenki aláírta a szerződést"),
     `<p>${escapeHtml(buildGreeting(input.senderName))}</p>`,
     `<p>${escapeHtml(introLine)}</p>`,
     `<p>${readyLine}</p>`,
-    `<p><a href="${escapeHtml(completedUrl)}">Megnézem a lezárt dokumentumot</a></p>`,
+    emailButton("Lezárt szerződés megnyitása", completedUrl),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -409,7 +417,7 @@ function buildDeclineNotificationEmail(input: {
   const title = quoteTitle(input.envelopeTitle);
   const subject = `${input.signerName} elutasította: ${title}`;
   const reason = input.declineReason?.trim() || null;
-  const introLine = `${input.signerName} (${input.signerEmail}) elutasította ezt a dokumentumot: ${title}.`;
+  const introLine = `${input.signerName} (${input.signerEmail}) elutasította ezt a szerződést: ${title}.`;
   const textBody = [
     buildGreeting(input.senderName),
     "",
@@ -420,10 +428,11 @@ function buildDeclineNotificationEmail(input: {
     envelopeUrl,
   ].join("\n");
   const htmlBody = [
+    emailHeading("Elutasították a szerződést"),
     `<p>${escapeHtml(buildGreeting(input.senderName))}</p>`,
     `<p>${escapeHtml(introLine)}</p>`,
     reason ? `<p><strong>Az indoklása:</strong> ${escapeHtml(reason)}</p>` : "",
-    `<p><a href="${escapeHtml(envelopeUrl)}">Megnézem a dokumentumot</a></p>`,
+    emailButton("Szerződés megnyitása", envelopeUrl),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -457,13 +466,13 @@ function buildCompletionSignerEmail(input: {
 }) {
   const title = quoteTitle(input.envelopeTitle);
   const subject = `Mindenki aláírta: ${title}`;
-  const introLine = `Mindenki aláírta ezt a dokumentumot: ${title}. Küldő: ${input.senderName}.`;
+  const introLine = `Mindenki aláírta ezt a szerződést: ${title}. Küldő: ${input.senderName}.`;
   const copyLine = input.copyOnly
     ? `${input.senderName} kérte, hogy kapj róla egy másolatot.`
     : null;
   const filesLine = input.attached
-    ? "Csatoltuk az aláírt dokumentumot és a hitelesítési igazolást. Őrizd meg őket: ez a te példányod a megállapodásból."
-    : "Az aláírt dokumentum és a hitelesítési igazolás elkészült.";
+    ? "Csatoltuk az aláírt szerződést és a hitelesítési igazolást. Őrizd meg őket: ez a te példányod a megállapodásból."
+    : "Az aláírt szerződés és a hitelesítési igazolás elkészült.";
   const textBody = [
     buildGreeting(input.signerName),
     "",
@@ -476,12 +485,19 @@ function buildCompletionSignerEmail(input: {
     `Hitelesítési igazolás (kitakart adatokkal): ${input.evidenceDownloadUrl}`,
   ].join("\n");
   const htmlBody = [
+    emailHeading("Mindenki aláírta a szerződést"),
     `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
     `<p>${escapeHtml(introLine)}</p>`,
     copyLine ? `<p>${escapeHtml(copyLine)}</p>` : "",
     `<p>${filesLine}</p>`,
-    `<p>A letöltési linkek ${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} napig érvényesek. Ha egy link lejárt, ott kérhetsz újat.</p>`,
-    `<p><a href="${escapeHtml(input.signedDownloadUrl)}">Aláírt PDF letöltése</a><br /><a href="${escapeHtml(input.evidenceDownloadUrl)}">Hitelesítési igazolás letöltése (kitakart adatokkal)</a></p>`,
+    emailButton("Aláírt szerződés letöltése", input.signedDownloadUrl),
+    emailSecondaryButton(
+      "Hitelesítési igazolás letöltése",
+      input.evidenceDownloadUrl,
+    ),
+    emailNote(
+      `A letöltési linkek ${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} napig érvényesek. Ha egy link lejárt, ott kérhetsz újat. Az igazolásban a személyes adatok egy része ki van takarva.`,
+    ),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
@@ -1341,7 +1357,7 @@ export async function sendSignerEmailCode(
   }
 
   const minutes = Math.round(EMAIL_CODE_TTL_SECONDS / 60);
-  const codeIntro = `Ezzel az ellenőrző kóddal nyithatod meg ezt a dokumentumot: ${quoteTitle(context.envelope.title)}.`;
+  const codeIntro = `Ezzel az ellenőrző kóddal nyithatod meg aláírásra ezt a szerződést: ${quoteTitle(context.envelope.title)}.`;
   const codeNote = `A kód ${String(minutes)} percig érvényes. Ha nem te nyitottál meg az imént egy aláírási linket, nyugodtan hagyd figyelmen kívül ezt az e-mailt.`;
   const textBody = [
     buildGreeting(context.signer.name),
@@ -1353,12 +1369,16 @@ export async function sendSignerEmailCode(
     codeNote,
   ].join("\n");
   const htmlBody = [
+    emailHeading("Az ellenőrző kódod"),
     `<p>${escapeHtml(buildGreeting(context.signer.name))}</p>`,
     `<p>${escapeHtml(codeIntro)}</p>`,
-    `<p style="font-size:24px;font-weight:700;letter-spacing:4px">${issued.code}</p>`,
-    `<p>${codeNote}</p>`,
+    emailCode(issued.code),
+    emailNote(escapeHtml(codeNote)),
   ].join("");
-  const body = withUserEmailLegalFooter({ htmlBody, textBody }, branding);
+  const body = withUserEmailLegalFooter(
+    { htmlBody, preheader: `Az ellenőrző kódod: ${issued.code}`, textBody },
+    branding,
+  );
   let delivery: Awaited<ReturnType<EmailService["send"]>>;
 
   try {

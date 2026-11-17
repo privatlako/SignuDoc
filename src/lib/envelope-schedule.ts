@@ -13,7 +13,11 @@ import {
   formatEmailDeadline,
   quoteTitle,
 } from "./services/signing-invitation-email.ts";
+import { emailButton, emailHeading } from "./services/email-layout.ts";
+import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
+import { getBranding } from "./settings.ts";
 import { resolveAppUrl } from "./utils/env.ts";
+import { escapeHtml } from "./utils/html.ts";
 
 // What the daily job does for envelopes that are out for signature:
 //
@@ -166,7 +170,7 @@ async function noteExpiryNoticeSent(
   }, database);
 }
 
-function buildExpiryNotice(envelope: ExpiredEnvelopeRow) {
+async function buildExpiryNotice(envelope: ExpiredEnvelopeRow) {
   const appUrl = resolveAppUrl();
   const link = appUrl ? `${appUrl}/envelopes/${envelope.id}` : null;
   const title = quoteTitle(envelope.title);
@@ -175,17 +179,38 @@ function buildExpiryNotice(envelope: ExpiredEnvelopeRow) {
       ? ` Még ${envelope.signerName} (${envelope.signerEmail}) aláírására várt.`
       : "";
 
+  const greeting = buildGreeting(
+    envelope.ownerName?.trim() || envelope.ownerEmail,
+  );
+  const introLine = `Lejárt az aláírási határidő ennél a szerződésnél: ${title}. A határidő ${formatEmailDeadline(envelope.expiresAt)} volt.${waitingOn} Most már senki nem tudja aláírni.`;
+  const nextLine =
+    "Ha több időt adnál az aláíróknak, nyisd meg a szerződést, és állíts be új határidőt. A korábban kiküldött aláírási link ekkor újra működik. Ha már nincs szükség rá, vond vissza.";
+  const body = withUserEmailLegalFooter(
+    {
+      htmlBody: [
+        emailHeading("Lejárt az aláírási határidő"),
+        `<p>${escapeHtml(greeting)}</p>`,
+        `<p>${escapeHtml(introLine)}</p>`,
+        `<p>${escapeHtml(nextLine)}</p>`,
+        link ? emailButton("Szerződés megnyitása", link) : "",
+      ].join(""),
+      textBody: [
+        greeting,
+        "",
+        introLine,
+        "",
+        nextLine,
+        ...(link ? ["", link] : []),
+      ].join("\n"),
+    },
+    await getBranding(),
+  );
+
   return {
+    htmlBody: body.htmlBody,
     subject: `Lejárt a határidő, mielőtt mindenki aláírta volna: ${title}`,
     template: "expiry_notice" as const,
-    textBody: [
-      buildGreeting(envelope.ownerName?.trim() || envelope.ownerEmail),
-      "",
-      `Lejárt az aláírási határidő ennél a dokumentumnál: ${title}. A határidő ${formatEmailDeadline(envelope.expiresAt)} volt.${waitingOn} Most már senki nem tudja aláírni.`,
-      "",
-      "Ha több időt adnál az aláíróknak, nyisd meg a dokumentumot, és állíts be új határidőt. A korábban kiküldött aláírási link ekkor újra működik. Ha már nincs szükség a dokumentumra, vond vissza.",
-      ...(link ? ["", link] : []),
-    ].join("\n"),
+    textBody: body.textBody,
     to: envelope.ownerEmail,
   };
 }
@@ -210,7 +235,7 @@ async function sendExpiryNotices({
         continue;
       }
 
-      await emailService().send(buildExpiryNotice(envelope), {
+      await emailService().send(await buildExpiryNotice(envelope), {
         idempotencyKey: `expiry-notice/${envelope.id}/${envelope.expiresAt}`,
       });
       await noteExpiryNoticeSent(envelope, now, database);

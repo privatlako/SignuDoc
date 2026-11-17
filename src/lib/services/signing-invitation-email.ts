@@ -1,6 +1,7 @@
 import { type Branding } from "../branding.ts";
 import { escapeHtml } from "../utils/html.ts";
 import { withUserEmailLegalFooter } from "./email-legal-footer.ts";
+import { emailButton, emailHeading, emailNote } from "./email-layout.ts";
 import { type TransactionalEmailMessage } from "./email.ts";
 
 type SigningInvitationEmailInput = {
@@ -19,15 +20,15 @@ const emailDeadlineFormatter = new Intl.DateTimeFormat("hu-HU", {
   hour: "2-digit",
   minute: "2-digit",
   month: "long",
-  timeZone: "UTC",
+  timeZone: "Europe/Budapest",
   year: "numeric",
 });
 
-/** A deadline as emails write it: "2027. január 15. 08:00 (UTC)". */
+/** A deadline as emails write it, in Budapest time: "2027. január 15. 09:00". */
 export function formatEmailDeadline(unixTimestamp: number): string {
-  return `${emailDeadlineFormatter
+  return emailDeadlineFormatter
     .format(new Date(unixTimestamp * 1000))
-    .replace(/[  ]/g, " ")} (UTC)`;
+    .replace(/[\u00a0\u202f]/g, " ");
 }
 
 /** "Az aláírási kérés lejár: …", or nothing for an envelope with no deadline. */
@@ -39,12 +40,16 @@ export function buildDeadlineLine(
     : null;
 }
 
-/** The greeting every email to a person opens with. */
+/** The greeting every email to a person opens with: "Kedves Teszt János!". */
 export function buildGreeting(name: string | null | undefined): string {
   const trimmed = name?.trim();
 
-  return trimmed ? `Szia ${trimmed}!` : "Szia!";
+  return trimmed ? `Kedves ${trimmed}!` : "Üdvözlünk!";
 }
+
+/** What signers are told about confirming and accounts. */
+export const SIGNING_CONFIRMATION_LINE =
+  "Az aláíráshoz e-mailes megerősítés szükséges, fiókot nem szükséges létrehoznod.";
 
 /** „Title”, with Hungarian quotation marks. */
 export function quoteTitle(title: string): string {
@@ -57,8 +62,8 @@ export function buildSigningInvitationEmail(
   const title = quoteTitle(input.envelopeTitle);
   const subject = `${input.senderName} aláírást kér tőled: ${title}`;
   const deadlineLine = buildDeadlineLine(input.expiresAt);
-  const introLine = `${input.senderName} aláírásra küldte neked ezt a dokumentumot: ${title}.`;
-  const noAccountLine = "Az aláíráshoz nem kell fiókot létrehoznod.";
+  const introLine = `${input.senderName} aláírásra küldte neked ezt a szerződést: ${title}.`;
+  const confirmationLine = SIGNING_CONFIRMATION_LINE;
   const newestLinkLine =
     "Ha közben újabb meghívót vagy emlékeztetőt kapsz, mindig a legfrissebb linket használd.";
   const textBody = [
@@ -66,24 +71,26 @@ export function buildSigningInvitationEmail(
     "",
     introLine,
     "",
-    "Itt tudod megnézni és aláírni:",
+    "Szerződés aláírása:",
     input.signingUrl,
     ...(deadlineLine ? ["", deadlineLine] : []),
     "",
-    noAccountLine,
+    confirmationLine,
     newestLinkLine,
   ].join("\n");
   const htmlBody = [
+    emailHeading("Aláírásra vár egy szerződés"),
     `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
     `<p>${escapeHtml(introLine)}</p>`,
-    `<p><a href="${escapeHtml(input.signingUrl)}">Megnézem és aláírom</a></p>`,
-    deadlineLine ? `<p>${escapeHtml(deadlineLine)}</p>` : "",
-    `<p>${noAccountLine}</p>`,
-    `<p>${newestLinkLine}</p>`,
+    emailButton("Szerződés aláírása", input.signingUrl),
+    deadlineLine ? emailNote(escapeHtml(deadlineLine)) : "",
+    emailNote(escapeHtml(confirmationLine)),
+    emailNote(escapeHtml(newestLinkLine)),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
       htmlBody,
+      preheader: introLine,
       textBody,
     },
     input.branding,

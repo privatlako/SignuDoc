@@ -1,6 +1,6 @@
-import { SIGNUDOC_NAME, type Branding } from "../branding.ts";
+import { type Branding } from "../branding.ts";
 import { getEnv, type EnvSource } from "../utils/env.ts";
-import { escapeHtml } from "../utils/html.ts";
+import { PORTAL_NAME, renderEmailLayout } from "./email-layout.ts";
 import { requireConfigValue } from "./service-config.ts";
 
 type EmailBodyContent = {
@@ -45,78 +45,53 @@ function buildFooterLinks(branding: Branding, env: EnvSource): FooterLink[] {
 }
 
 /**
- * The install's logo for the top of an email, or nothing when it has none.
- * Email programs fetch it from this site, so it needs the site's address;
- * many hide pictures until asked, which is why the name is the alt text.
+ * The install's logo for the top of an email, or null when it has none.
+ * Email programs fetch it from this site, so it needs the site's address.
  */
-function buildLogoHeader(branding: Branding, env: EnvSource): string {
+function buildLogoSource(branding: Branding, env: EnvSource): string | null {
   const appUrl = getEnv(env).appUrl;
 
   if (!branding.logoUrl || !appUrl) {
-    return "";
+    return null;
   }
 
-  const source = new URL(branding.logoUrl, appUrl).toString();
-
-  return [
-    '<p style="margin:0 0 24px;">',
-    `<img src="${escapeHtml(source)}" alt="${escapeHtml(branding.productName)}" height="40" `,
-    'style="display:block;height:40px;width:auto;max-width:240px;border:0;" />',
-    "</p>",
-  ].join("");
+  return new URL(branding.logoUrl, appUrl).toString();
 }
 
 /**
- * Appends the footer every email to a person carries: the install's terms,
- * privacy and contact links, where it has them. On a neutral install the
- * footer also names the organization's support address and says the message
- * was sent with SignuDoc, and the organization's logo, when it has one,
- * goes at the top.
+ * Puts a message into the shared email layout (see email-layout.ts): the
+ * organization's logo and the portal's name on top, and a footer with the
+ * support address and the install's terms, privacy and contact links. The
+ * plain-text version gets the same footer as lines of text.
  */
 export function withUserEmailLegalFooter(
-  input: EmailBodyContent,
+  input: EmailBodyContent & { preheader?: string },
   branding: Branding,
   env: EnvSource = process.env,
 ): EmailBodyContent {
   const links = buildFooterLinks(branding, env);
-  const logoHeader = buildLogoHeader(branding, env);
-  const textLines: string[] = [];
-  const htmlLines: string[] = [];
+  const supportAddress = branding.hosted ? null : branding.supportAddress;
+  const name = branding.organizationName ?? branding.productName;
+  const textLines: string[] = ["", "Ez egy automatikus e-mail."];
+
+  if (supportAddress) {
+    textLines.push("", `Kérdésed van? Írj nekünk: ${supportAddress}`);
+  }
 
   for (const link of links) {
     textLines.push("", `${link.label}:`, link.url);
-    htmlLines.push(`<a href="${escapeHtml(link.url)}">${link.label}</a>`);
   }
 
-  if (!branding.hosted) {
-    if (branding.supportAddress) {
-      textLines.push("", `Kérdésed van? Írj ide: ${branding.supportAddress}`);
-      htmlLines.push(
-        `Kérdésed van? Írj ide: <a href="mailto:${escapeHtml(branding.supportAddress)}">${escapeHtml(branding.supportAddress)}</a>`,
-      );
-    }
-
-    const sentBy = branding.organizationName
-      ? `Ezt az üzenetet ${branding.organizationName} küldte a ${SIGNUDOC_NAME} segítségével.`
-      : `Ezt az üzenetet a ${SIGNUDOC_NAME} segítségével küldtük.`;
-
-    textLines.push("", sentBy);
-    htmlLines.push(escapeHtml(sentBy));
-  }
-
-  if (htmlLines.length === 0) {
-    return logoHeader
-      ? { htmlBody: `${logoHeader}${input.htmlBody}`, textBody: input.textBody }
-      : input;
-  }
-
-  const htmlFooter = [
-    '<hr style="margin:24px 0;border:none;border-top:1px solid #e2e2e2;" />',
-    `<p>${htmlLines.join("<br />")}</p>`,
-  ].join("");
+  textLines.push("", `${name} · ${PORTAL_NAME}`);
 
   return {
-    htmlBody: `${logoHeader}${input.htmlBody}${htmlFooter}`,
+    htmlBody: renderEmailLayout({
+      bodyHtml: input.htmlBody,
+      branding,
+      footer: { links, supportAddress },
+      logoSource: buildLogoSource(branding, env),
+      ...(input.preheader ? { preheader: input.preheader } : {}),
+    }),
     // Each entry starts with an empty line; one more newline puts that
     // empty line between the message and the footer.
     textBody: `${input.textBody}\n${textLines.join("\n")}`,

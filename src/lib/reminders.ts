@@ -27,7 +27,13 @@ import {
   buildDeadlineLine,
   buildGreeting,
   quoteTitle,
+  SIGNING_CONFIRMATION_LINE,
 } from "./services/signing-invitation-email.ts";
+import {
+  emailButton,
+  emailHeading,
+  emailNote,
+} from "./services/email-layout.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
 import {
   formatReminderAvailableAt,
@@ -221,10 +227,10 @@ function buildReminderEmail(input: {
     ? `Emlékeztető: ${title} még az aláírásodra vár`
     : `${input.senderName} emlékeztet: ${title} még az aláírásodra vár`;
   const introLine = automatic
-    ? `Csak jelzem, hogy ez a dokumentum még az aláírásodra vár: ${title}. Küldő: ${input.senderName}.`
-    : `${input.senderName} emlékeztet, hogy ez a dokumentum még az aláírásodra vár: ${title}.`;
+    ? `Csak jelezzük, hogy ez a szerződés még az aláírásodra vár: ${title}. Küldő: ${input.senderName}.`
+    : `${input.senderName} emlékeztet, hogy ez a szerződés még az aláírásodra vár: ${title}.`;
   const deadlineLine = buildDeadlineLine(input.expiresAt);
-  const noAccountLine = "Az aláíráshoz nem kell fiókot létrehoznod.";
+  const noAccountLine = SIGNING_CONFIRMATION_LINE;
   const newestLinkLine =
     "Ha közben újabb meghívót vagy emlékeztetőt kapsz, mindig a legfrissebb linket használd.";
   const textBody = [
@@ -232,7 +238,7 @@ function buildReminderEmail(input: {
     "",
     introLine,
     "",
-    "Itt tudod megnézni és aláírni:",
+    "Szerződés aláírása:",
     input.signingUrl,
     ...(deadlineLine ? ["", deadlineLine] : []),
     "",
@@ -240,16 +246,18 @@ function buildReminderEmail(input: {
     newestLinkLine,
   ].join("\n");
   const htmlBody = [
+    emailHeading("Emlékeztető: aláírásra vár egy szerződés"),
     `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
     `<p>${escapeHtml(introLine)}</p>`,
-    `<p><a href="${escapeHtml(input.signingUrl)}">Megnézem és aláírom</a></p>`,
-    deadlineLine ? `<p>${escapeHtml(deadlineLine)}</p>` : "",
-    `<p>${noAccountLine}</p>`,
-    `<p>${newestLinkLine}</p>`,
+    emailButton("Szerződés aláírása", input.signingUrl),
+    deadlineLine ? emailNote(escapeHtml(deadlineLine)) : "",
+    emailNote(escapeHtml(noAccountLine)),
+    emailNote(escapeHtml(newestLinkLine)),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
     {
       htmlBody,
+      preheader: introLine,
       textBody,
     },
     input.branding,

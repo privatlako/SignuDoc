@@ -72,6 +72,7 @@ import {
 } from "./services/audit.ts";
 import { createEmailService } from "./services/email.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
+import { emailHeading } from "./services/email-layout.ts";
 import {
   buildGreeting,
   buildSigningInvitationEmail,
@@ -1172,7 +1173,7 @@ function buildVoidNotificationEmail(input: {
 }) {
   const title = quoteTitle(input.envelopeTitle);
   const subject = `${input.senderName} visszavonta: ${title}`;
-  const introLine = `${input.senderName} visszavonta ezt a dokumentumot: ${title}.`;
+  const introLine = `${input.senderName} visszavonta ezt a szerződést: ${title}.`;
   const doneLine =
     "Az aláírási folyamat lezárult, neked nincs vele több teendőd.";
   const textBody = [
@@ -1182,6 +1183,7 @@ function buildVoidNotificationEmail(input: {
     doneLine,
   ].join("\n");
   const htmlBody = [
+    emailHeading("Visszavonták a szerződést"),
     `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
     `<p>${escapeHtml(introLine)}</p>`,
     `<p>${doneLine}</p>`,

@@ -28,6 +28,8 @@ test("the hosted service links to its own terms, privacy and contact pages", () 
     [
       "Hello",
       "",
+      "Ez egy automatikus e-mail.",
+      "",
       "Felhasználási feltételek:",
       "https://sign.acme.com/terms",
       "",
@@ -36,16 +38,17 @@ test("the hosted service links to its own terms, privacy and contact pages", () 
       "",
       "Kapcsolat:",
       "https://sign.acme.com/contact",
+      "",
+      "SignuDoc · Elektronikus szerződés aláíró portál",
     ].join("\n"),
   );
   assert.match(
     result.htmlBody,
-    /<a href="https:\/\/sign\.acme\.com\/terms">Felhasználási feltételek<\/a>/,
+    /<a href="https:\/\/sign\.acme\.com\/terms" style="[^"]*">Felhasználási feltételek<\/a>/,
   );
-  assert.doesNotMatch(result.textBody, /SignuDoc segítségével/);
 });
 
-test("a neutral install with nothing else set links its signer privacy notice and says who sent the message", () => {
+test("a neutral install links its signer privacy notice and names the organization and the portal", () => {
   const result = withUserEmailLegalFooter(body, neutral, env);
 
   assert.equal(
@@ -53,12 +56,16 @@ test("a neutral install with nothing else set links its signer privacy notice an
     [
       "Hello",
       "",
+      "Ez egy automatikus e-mail.",
+      "",
       "Adatkezelési tájékoztató:",
       "https://sign.acme.com/signer-privacy",
       "",
-      "Ezt az üzenetet Acme Corp küldte a SignuDoc segítségével.",
+      "Acme Corp · Elektronikus szerződés aláíró portál",
     ].join("\n"),
   );
+  assert.doesNotMatch(result.textBody, /SignuDoc/);
+  assert.doesNotMatch(result.htmlBody, /SignuDoc/);
 });
 
 test("a neutral install links to the organization's own pages and support address", () => {
@@ -78,35 +85,33 @@ test("a neutral install links to the organization's own pages and support addres
     [
       "Hello",
       "",
+      "Ez egy automatikus e-mail.",
+      "",
+      "Kérdésed van? Írj nekünk: help@acme.com",
+      "",
       "Felhasználási feltételek:",
       "https://acme.com/terms",
       "",
       "Adatvédelmi tájékoztató:",
       "https://acme.com/privacy",
       "",
-      "Kérdésed van? Írj ide: help@acme.com",
-      "",
-      "Ezt az üzenetet Acme Corp küldte a SignuDoc segítségével.",
+      "Acme Corp · Elektronikus szerződés aláíró portál",
     ].join("\n"),
   );
   assert.match(
     result.htmlBody,
-    /<a href="mailto:help@acme\.com">help@acme\.com<\/a>/,
+    /<a href="mailto:help@acme\.com" style="[^"]*">help@acme\.com<\/a>/,
   );
 });
 
-test("an install that has not been named yet does not invent a name", () => {
-  const result = withUserEmailLegalFooter(
-    body,
-    { ...neutral, organizationName: null, productName: "SignuDoc" },
-    env,
-  );
+test("the message body is wrapped in a complete Hungarian HTML document", () => {
+  const result = withUserEmailLegalFooter(body, neutral, env);
 
-  assert.match(
-    result.textBody,
-    /\n\nEzt az üzenetet a SignuDoc segítségével küldtük\.$/,
-  );
-  assert.doesNotMatch(result.textBody, /Acme/);
+  assert.ok(result.htmlBody.startsWith("<!DOCTYPE html>"));
+  assert.match(result.htmlBody, /<html lang="hu">/);
+  assert.match(result.htmlBody, /Elektronikus szerződés aláíró portál/);
+  // Plain paragraphs get the layout's styles.
+  assert.match(result.htmlBody, /<p style="[^"]*">Hello<\/p>/);
 });
 
 test("the organization's name and links are escaped in the HTML part", () => {
@@ -120,40 +125,32 @@ test("the organization's name and links are escaped in the HTML part", () => {
     env,
   );
 
-  assert.match(
-    result.htmlBody,
-    /Ezt az üzenetet Harbour &amp; &lt;Finch&gt; küldte/,
-  );
+  assert.match(result.htmlBody, /Harbour &amp; &lt;Finch&gt;/);
   assert.doesNotMatch(result.htmlBody, /<Finch>/);
   assert.doesNotMatch(result.htmlBody, /b="2"/);
   // The plain-text part is not HTML and carries the name as it is.
-  assert.match(
-    result.textBody,
-    /Ezt az üzenetet Harbour & <Finch> küldte a SignuDoc segítségével\./,
-  );
+  assert.match(result.textBody, /Harbour & <Finch> · Elektronikus/);
 });
 
 test("a neutral install with no links does not need to know its own URL", () => {
   assert.doesNotThrow(() => withUserEmailLegalFooter(body, neutral, {}));
 });
 
-test("an install with a logo puts it at the top of the HTML part only", () => {
+test("an install with a logo shows it in the header of the HTML part only", () => {
   const result = withUserEmailLegalFooter(
     body,
     {
       ...neutral,
       logoUrl: "/api/brand/logo?v=0123456789abcdef",
-      productName: 'Acme "Signing" & Co',
+      organizationName: 'Acme "Signing" & Co',
     },
     env,
   );
 
-  assert.ok(
-    result.htmlBody.startsWith(
-      '<p style="margin:0 0 24px;"><img src="https://sign.acme.com/api/brand/logo?v=0123456789abcdef" alt="Acme &quot;Signing&quot; &amp; Co"',
-    ),
+  assert.match(
+    result.htmlBody,
+    /<img src="https:\/\/sign\.acme\.com\/api\/brand\/logo\?v=0123456789abcdef" alt="Acme &quot;Signing&quot; &amp; Co"/,
   );
-  assert.ok(result.htmlBody.includes("<p>Hello</p>"));
   assert.doesNotMatch(result.textBody, /logo/);
 });
 

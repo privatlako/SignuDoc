@@ -19,7 +19,10 @@ import {
   buildGreeting,
   quoteTitle,
 } from "./services/signing-invitation-email.ts";
-import { readStoredSettings } from "./settings.ts";
+import { emailButton, emailHeading } from "./services/email-layout.ts";
+import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
+import { getBranding, readStoredSettings } from "./settings.ts";
+import { escapeHtml } from "./utils/html.ts";
 import { type EnvSource, isHostedMode, resolveAppUrl } from "./utils/env.ts";
 
 const DAY_IN_SECONDS = 24 * 60 * 60;
@@ -767,7 +770,7 @@ async function listFinishedEnvelopesToHandle(
 const retentionDayFormatter = new Intl.DateTimeFormat("hu-HU", {
   day: "numeric",
   month: "long",
-  timeZone: "UTC",
+  timeZone: "Europe/Budapest",
   year: "numeric",
 });
 
@@ -786,19 +789,40 @@ async function warnBeforeRetentionDeletion(
   const appUrl = resolveAppUrl();
   const link = appUrl ? `${appUrl}/envelopes/${envelope.id}` : null;
 
-  await emailService.send(
+  const greeting = buildGreeting(envelope.ownerName);
+  const introLine = `A szervezeted a lezárt szerződéseket csak egy meghatározott ideig őrzi meg. Ezt a szerződést és az eseménynaplóját hamarosan töröljük: ${quoteTitle(envelope.title)}.`;
+  const dayLine = `A törlés legkorábbi napja: ${formatDay(deleteOn)}`;
+  const keepLine =
+    "Ha meg szeretnéd tartani, most töltsd le az aláírt PDF-et és a hitelesítési igazolást.";
+  const body = withUserEmailLegalFooter(
     {
-      subject: `Hamarosan törlődik: ${quoteTitle(envelope.title)} (${formatDay(deleteOn)})`,
-      template: "retention_notice",
+      htmlBody: [
+        emailHeading("Hamarosan törlődik egy szerződés"),
+        `<p>${escapeHtml(greeting)}</p>`,
+        `<p>${escapeHtml(introLine)}</p>`,
+        `<p><strong>${escapeHtml(dayLine)}</strong></p>`,
+        `<p>${escapeHtml(keepLine)}</p>`,
+        link ? emailButton("Szerződés megnyitása", link) : "",
+      ].join(""),
       textBody: [
-        buildGreeting(envelope.ownerName),
+        greeting,
         "",
-        `A szervezeted a lezárt dokumentumokat csak egy meghatározott ideig őrzi meg. Ezt a dokumentumot és az eseménynaplóját hamarosan töröljük: ${quoteTitle(envelope.title)}.`,
-        `A törlés legkorábbi napja: ${formatDay(deleteOn)}`,
+        introLine,
+        dayLine,
         "",
-        "Ha meg szeretnéd tartani, most töltsd le az aláírt PDF-et és a hitelesítési igazolást.",
+        keepLine,
         ...(link ? ["", link] : []),
       ].join("\n"),
+    },
+    await getBranding(),
+  );
+
+  await emailService.send(
+    {
+      htmlBody: body.htmlBody,
+      subject: `Hamarosan törlődik: ${quoteTitle(envelope.title)} (${formatDay(deleteOn)})`,
+      template: "retention_notice",
+      textBody: body.textBody,
       to: envelope.ownerEmail,
     },
     { idempotencyKey: `retention-notice/${envelope.id}` },
