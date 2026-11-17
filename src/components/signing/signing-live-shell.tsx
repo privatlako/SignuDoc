@@ -540,8 +540,9 @@ export function SigningLiveShell({
   // Signed with a certificate in the signer's own name: Finish goes to the
   // signing provider, which signs, then sends the signer back.
   const providerSignature = record.providerSignature ?? null;
-  // A customer contract: this signer gives the billing details and accepts
-  // the terms before they can finish.
+  // A customer contract: once the fields are done, Tovább opens the
+  // billing step, where this signer gives the billing details, accepts the
+  // terms and finishes. Typed values stay when the step is closed.
   const customerContract = record.customerContract ?? null;
   const [billingValues, setBillingValues] = useState<BillingFormValues>(() =>
     emptyBillingForm(customerContract?.offer ?? {}),
@@ -626,14 +627,14 @@ export function SigningLiveShell({
   const invalidNumberCount = record.currentSignerFields.filter((field) =>
     hasInvalidNumber(field, textValues),
   ).length;
-  // The billing details count as one more required item.
-  const remainingItems = remainingFields + (isBillingComplete ? 0 : 1);
+  // The billing details are asked for after Tovább, so they are not
+  // counted here.
+  const remainingItems = remainingFields;
   const canFinish = remainingItems === 0 && invalidNumberCount === 0;
-  const requiredFieldCount =
-    countAnswerableFields(
-      record.currentSignerFields,
-      (field) => field.required,
-    ) + (customerContract ? 1 : 0);
+  const requiredFieldCount = countAnswerableFields(
+    record.currentSignerFields,
+    (field) => field.required,
+  );
   const completionPercent =
     requiredFieldCount === 0
       ? 100
@@ -683,7 +684,11 @@ export function SigningLiveShell({
   }
 
   async function handleFinishSigning() {
-    if (!canFinish || isSubmitting || !isReauthReady) {
+    if (!canFinish || isSubmitting || !isReauthReady || !isBillingComplete) {
+      if (!isBillingComplete) {
+        setShowBillingErrors(true);
+      }
+
       return;
     }
 
@@ -854,6 +859,44 @@ export function SigningLiveShell({
       documentPanGestureRef.current = null;
     }
   }
+
+  function closeFinishDialog() {
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsFinishDialogOpen(false);
+    setSubmitError(null);
+  }
+
+  const finishButtons = (
+    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <ShellButton
+        disabled={isDeclining || isSubmitting}
+        onClick={closeFinishDialog}
+        variant="secondary"
+      >
+        Vissza
+      </ShellButton>
+      <ShellButton
+        disabled={!isReauthReady || !isBillingComplete}
+        loading={isSubmitting}
+        onClick={handleFinishSigning}
+      >
+        {providerSignature
+          ? isSubmitting
+            ? "Előkészítés…"
+            : customerContract
+              ? `Megrendelés, tovább: ${providerSignature.providerName}`
+              : `Tovább: ${providerSignature.providerName}`
+          : isSubmitting
+            ? "Befejezés…"
+            : customerContract
+              ? "Befejezés"
+              : "Aláírás befejezése"}
+      </ShellButton>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -1085,30 +1128,9 @@ export function SigningLiveShell({
             </div>
           </div>
 
-          <aside
-            className={`space-y-4 ${
-              customerContract ? "" : "xl:sticky xl:top-[5.25rem] xl:self-start"
-            }`}
-          >
+          <aside className="space-y-4 xl:sticky xl:top-[5.25rem] xl:self-start">
             {customerContract ? (
               <OfferSummary offer={customerContract.offer} />
-            ) : null}
-
-            {customerContract ? (
-              <BillingForm
-                disabled={isSubmitting}
-                errors={
-                  billingCheck && !billingCheck.ok ? billingCheck.errors : {}
-                }
-                onChange={(key, value) => {
-                  setSubmitError(null);
-                  setBillingValues((current) => ({ ...current, [key]: value }));
-                }}
-                privacyUrl={customerContract.privacyUrl}
-                showAllErrors={showBillingErrors}
-                termsUrl={customerContract.termsUrl}
-                values={billingValues}
-              />
             ) : null}
 
             <section className="panel rounded-[1.25rem] p-5">
@@ -1173,7 +1195,7 @@ export function SigningLiveShell({
                     setIsFinishDialogOpen(true);
                   }}
                 >
-                  Befejezés
+                  {customerContract ? "Tovább" : "Befejezés"}
                 </ShellButton>
               </div>
             </section>
@@ -1182,26 +1204,10 @@ export function SigningLiveShell({
               <div className="flex items-center justify-between gap-3">
                 <p className="section-eyebrow">Neked kijelölt mezők</p>
                 <span className="pill pill-neutral">
-                  {actionSummaryFields.length + (customerContract ? 1 : 0)}
+                  {actionSummaryFields.length}
                 </span>
               </div>
               <div className="mt-3 space-y-2">
-                {customerContract ? (
-                  <FieldStatusRow
-                    isComplete={isBillingComplete}
-                    isInvalid={false}
-                    label="Számlázási adatok · oldalsáv"
-                    onSelect={() => {
-                      setShowBillingErrors(true);
-                      revealBillingForm();
-                    }}
-                    value={
-                      isBillingComplete
-                        ? `${billingValues.lastName} ${billingValues.firstName}`.trim()
-                        : "Kitöltésre vár"
-                    }
-                  />
-                ) : null}
                 {actionSummaryFields.map((field) => (
                   <FieldStatusRow
                     isComplete={isFieldComplete(
@@ -1270,17 +1276,69 @@ export function SigningLiveShell({
 
       {isFinishDialogOpen ? (
         <DialogFrame
-          description={`Most aláírod ezt a dokumentumot: „${record.envelopeTitle}” (küldő: ${record.senderName}).`}
-          title="Befejezed az aláírást?"
-          onClose={() => {
-            if (isSubmitting) {
-              return;
-            }
-
-            setIsFinishDialogOpen(false);
-            setSubmitError(null);
-          }}
+          description={
+            customerContract
+              ? `Még egy lépés: add meg, kinek állítsuk ki az előlegszámlát, és fogadd el a feltételeket. Ezzel megrendeled az ajánlatban szereplő munkát, és aláírod ezt a dokumentumot: „${record.envelopeTitle}” (küldő: ${record.senderName}).`
+              : `Most aláírod ezt a dokumentumot: „${record.envelopeTitle}” (küldő: ${record.senderName}).`
+          }
+          footer={
+            customerContract ? (
+              <div className="grid gap-3">
+                {submitError ? (
+                  <div className="notice notice-danger" role="alert">
+                    {submitError}
+                  </div>
+                ) : null}
+                {!isBillingComplete ? (
+                  <p className="text-[0.8125rem] leading-5 text-(--secondary)">
+                    A folytatáshoz töltsd ki a számlázási adatokat, és fogadd el
+                    a három feltételt.{" "}
+                    <button
+                      className="cursor-pointer font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
+                      onClick={() => {
+                        setShowBillingErrors(true);
+                        window.setTimeout(revealBillingForm, 0);
+                      }}
+                      type="button"
+                    >
+                      Mutasd, mi hiányzik
+                    </button>
+                  </p>
+                ) : null}
+                {finishButtons}
+              </div>
+            ) : undefined
+          }
+          size={customerContract ? "wide" : "default"}
+          title={
+            customerContract
+              ? "Számlázási adatok és megrendelés"
+              : "Befejezed az aláírást?"
+          }
+          onClose={closeFinishDialog}
         >
+          {customerContract ? (
+            <>
+              <OfferSummary
+                offer={customerContract.offer}
+                variant="prominent"
+              />
+              <BillingForm
+                disabled={isSubmitting}
+                errors={
+                  billingCheck && !billingCheck.ok ? billingCheck.errors : {}
+                }
+                onChange={(key, value) => {
+                  setSubmitError(null);
+                  setBillingValues((current) => ({ ...current, [key]: value }));
+                }}
+                privacyUrl={customerContract.privacyUrl}
+                showAllErrors={showBillingErrors}
+                termsUrl={customerContract.termsUrl}
+                values={billingValues}
+              />
+            </>
+          ) : null}
           {providerSignature ? (
             <div className="grid gap-3 text-sm leading-6 text-(--secondary)">
               <p>
@@ -1297,6 +1355,12 @@ export function SigningLiveShell({
                 aláírásod erre a dokumentumra nézve kötelező érvényű.
               </p>
             </div>
+          ) : customerContract ? (
+            <p className="text-sm leading-6 text-(--secondary)">
+              A Befejezés gombra kattintva megrendeled az ajánlatban szereplő
+              munkát, és megerősíted, hogy az elektronikus aláírásod erre a
+              dokumentumra nézve kötelező érvényű.
+            </p>
           ) : (
             <p className="text-sm leading-6 text-(--secondary)">
               A Befejezés gombra kattintva megerősíted, hogy az elektronikus
@@ -1353,36 +1417,12 @@ export function SigningLiveShell({
               />
             </div>
           ) : null}
-          {submitError ? (
+          {!customerContract && submitError ? (
             <div className="notice notice-danger" role="alert">
               {submitError}
             </div>
           ) : null}
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <ShellButton
-              disabled={isDeclining || isSubmitting}
-              onClick={() => {
-                setIsFinishDialogOpen(false);
-                setSubmitError(null);
-              }}
-              variant="secondary"
-            >
-              Vissza
-            </ShellButton>
-            <ShellButton
-              disabled={!isReauthReady}
-              loading={isSubmitting}
-              onClick={handleFinishSigning}
-            >
-              {providerSignature
-                ? isSubmitting
-                  ? "Előkészítés…"
-                  : `Tovább: ${providerSignature.providerName}`
-                : isSubmitting
-                  ? "Befejezés…"
-                  : "Aláírás befejezése"}
-            </ShellButton>
-          </div>
+          {customerContract ? null : finishButtons}
         </DialogFrame>
       ) : null}
 
@@ -2290,25 +2330,54 @@ function SignatureDrawCanvas({
 function DialogFrame({
   children,
   description,
+  footer,
   onClose,
   size = "default",
   title,
 }: {
   children: ReactNode;
   description: string;
+  /**
+   * Stays in view below the content, which scrolls on its own: for a long
+   * dialog whose buttons must not scroll away.
+   */
+  footer?: ReactNode;
   onClose: () => void;
   /** "wide" for a dialog that is mostly reading, such as the disclosure. */
   size?: "default" | "wide";
   title: string;
 }) {
+  const widthClass =
+    size === "wide"
+      ? "max-w-[calc(100%-1.5rem)] sm:max-w-3xl"
+      : "max-w-[600px]";
+
+  if (footer) {
+    return (
+      <Dialog open onOpenChange={(open) => !open && onClose()}>
+        <DialogContent
+          className={`flex max-h-[calc(100dvh-1rem)] flex-col gap-0 overflow-hidden p-0 sm:max-h-[calc(100dvh-2rem)] ${widthClass}`}
+          showCloseButton={false}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <DialogHeader className="space-y-2 px-5 pt-5 sm:px-8 sm:pt-8">
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{description}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-5 px-5 pb-6 pt-5 sm:px-8">{children}</div>
+          </div>
+          <div className="border-t border-(--border) px-5 py-4 sm:px-8 sm:py-5">
+            {footer}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className={
-          size === "wide"
-            ? "max-h-[calc(100dvh-2rem)] max-w-[calc(100%-1.5rem)] overflow-y-auto p-0 sm:max-w-3xl"
-            : "max-h-[calc(100dvh-2rem)] max-w-[600px] overflow-y-auto p-0"
-        }
+        className={`max-h-[calc(100dvh-2rem)] overflow-y-auto p-0 ${widthClass}`}
         showCloseButton={false}
       >
         <div>
@@ -2370,9 +2439,66 @@ function FieldStatusRow({
 
 function OfferSummary({
   offer,
+  variant = "side",
 }: {
   offer: NonNullable<SigningPayload["customerContract"]>["offer"];
+  /** "prominent" at the top of the billing step; "side" in the side panel. */
+  variant?: "prominent" | "side";
 }) {
+  const deadline = transferDeadlineLabel(offer.transferDeadlineDays);
+
+  if (variant === "prominent") {
+    return (
+      <section
+        aria-label="Az ajánlat összefoglalója"
+        className="well rounded-[1.25rem] p-4 sm:p-5"
+      >
+        <p className="section-eyebrow">Az ajánlat</p>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div>
+            <dt className="text-xs font-semibold text-(--tertiary)">
+              Ajánlat sorszáma
+            </dt>
+            <dd className="mt-0.5 text-[0.9375rem] font-bold text-(--fg)">
+              {offer.offerNumber}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold text-(--tertiary)">
+              Árajánlat összege
+            </dt>
+            <dd className="mt-0.5 whitespace-nowrap text-[0.9375rem] font-bold text-(--fg)">
+              {formatForint(offer.totalAmount)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold text-(--tertiary)">
+              Utalási határidő
+            </dt>
+            <dd className="mt-0.5 text-[0.9375rem] font-bold text-(--fg)">
+              {deadline}
+            </dd>
+          </div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-xl bg-(--paper-raised) px-4 py-3.5 sm:col-span-3">
+            <dt className="text-[0.9375rem] font-bold text-(--fg)">
+              Fizetendő előleg
+            </dt>
+            <dd
+              className="whitespace-nowrap text-2xl font-extrabold tracking-[-0.02em] text-(--accent-ink) sm:text-3xl"
+              data-testid="deposit-amount"
+            >
+              {formatForint(offer.depositAmount)}
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-3 text-[0.8125rem] leading-5 text-(--secondary)">
+          Az előleget az előlegszámla alapján, az {deadline}on belül kell
+          átutalnod.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section
       aria-label="Az ajánlat összefoglalója"
@@ -2403,7 +2529,10 @@ function OfferSummary({
         </div>
       </dl>
       <p className="mt-3 text-[0.8125rem] leading-5 text-(--secondary)">
-        Utalási határidő: {transferDeadlineLabel(offer.transferDeadlineDays)}.
+        Utalási határidő: {deadline}.
+      </p>
+      <p className="mt-1.5 text-[0.8125rem] leading-5 text-(--secondary)">
+        A számlázási adatokat a Tovább gomb után adod meg.
       </p>
     </section>
   );
@@ -2418,6 +2547,8 @@ const billingTextFields: ReadonlyArray<{
   label: string;
   optional?: boolean;
   type?: "text";
+  /** Takes the full row when the fields sit in two columns. */
+  wide?: boolean;
 }> = [
   { autoComplete: "family-name", key: "lastName", label: "Vezetéknév" },
   { autoComplete: "given-name", key: "firstName", label: "Keresztnév" },
@@ -2430,8 +2561,18 @@ const billingTextFields: ReadonlyArray<{
   },
   { autoComplete: "postal-code", key: "postalCode", label: "Irányítószám" },
   { autoComplete: "address-level2", key: "city", label: "Város" },
-  { autoComplete: "street-address", key: "street", label: "Utca, házszám" },
-  { autoComplete: "off", key: "projectAddress", label: "Tervezési cím" },
+  {
+    autoComplete: "street-address",
+    key: "street",
+    label: "Utca, házszám",
+    wide: true,
+  },
+  {
+    autoComplete: "off",
+    key: "projectAddress",
+    label: "Tervezési cím",
+    wide: true,
+  },
   { autoComplete: "tel", key: "phone", label: "Telefonszám" },
 ];
 
@@ -2507,7 +2648,7 @@ function BillingForm({
   return (
     <section
       aria-labelledby="billing-form-title"
-      className="panel scroll-mt-24 rounded-[1.25rem] p-5"
+      className="scroll-mt-4"
       id="billing-form"
     >
       <p className="section-eyebrow" id="billing-form-title">
@@ -2517,7 +2658,7 @@ function BillingForm({
         Kizárólag magánszemély részére. Ezekre az adatokra állítjuk ki az
         előlegszámlát.
       </p>
-      <div className="mt-4 grid gap-3.5">
+      <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
         {billingTextFields.map((field) => {
           const value = values[field.key];
           const error =
@@ -2526,17 +2667,21 @@ function BillingForm({
               : undefined;
 
           return (
-            <FieldShell
-              autoComplete={field.autoComplete}
-              disabled={disabled}
-              error={error}
+            <div
+              className={field.wide ? "sm:col-span-2" : undefined}
               key={field.key}
-              label={field.label}
-              name={`billing-${field.key}`}
-              onChange={(event) => onChange(field.key, event.target.value)}
-              readOnly={false}
-              value={value}
-            />
+            >
+              <FieldShell
+                autoComplete={field.autoComplete}
+                disabled={disabled}
+                error={error}
+                label={field.label}
+                name={`billing-${field.key}`}
+                onChange={(event) => onChange(field.key, event.target.value)}
+                readOnly={false}
+                value={value}
+              />
+            </div>
           );
         })}
       </div>

@@ -1394,15 +1394,21 @@ test("a customer accepts an offer with billing details, and the sender marks it 
       .check();
     await consent.getByRole("button", { name: "Elfogadom, tovább" }).click();
 
+    // While signing, the side panel shows only the offer; the billing
+    // details come after Tovább.
     await expect(signerPage.getByTestId("deposit-amount")).toHaveText(
       "300 000 Ft",
     );
+    await expect(signerPage.getByLabel("Vezetéknév")).toHaveCount(0);
     await expect(
-      signerPage.getByText("Kizárólag magánszemély részére.", { exact: false }),
+      signerPage.getByText("Még 1 kötelező mező van hátra"),
     ).toBeVisible();
-    await expect(signerPage.getByLabel("Tervezési cím")).toHaveValue(
-      "1052 Budapest, Tervező utca 2.",
-    );
+
+    const nextButton = signerPage
+      .locator("aside")
+      .getByRole("button", { exact: true, name: "Tovább" });
+
+    await expect(nextButton).toBeDisabled();
 
     await signerPage
       .getByRole("button", { exact: true, name: "Aláírás" })
@@ -1412,46 +1418,69 @@ test("a customer accepts an offer with billing details, and the sender marks it 
       .getByRole("button", { name: "Aláírás elfogadása" })
       .click();
 
-    const finishButton = signerPage.getByRole("button", {
+    // The signature is the only field: the billing step does not count.
+    await expect(
+      signerPage.getByText("Minden kötelező mező kész"),
+    ).toBeVisible();
+    await expect(nextButton).toBeEnabled();
+    await nextButton.click();
+
+    const billingStep = signerPage.getByRole("dialog", {
+      name: "Számlázási adatok és megrendelés",
+    });
+
+    await expect(billingStep.getByTestId("deposit-amount")).toHaveText(
+      "300 000 Ft",
+    );
+    await expect(billingStep.getByTestId("deposit-amount")).toBeVisible();
+    await expect(billingStep.getByText("2026/041")).toBeVisible();
+    await expect(
+      billingStep.getByText("Kizárólag magánszemély részére.", {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await expect(billingStep.getByLabel("Tervezési cím")).toHaveValue(
+      "1052 Budapest, Tervező utca 2.",
+    );
+
+    const orderButton = billingStep.getByRole("button", {
       exact: true,
       name: "Befejezés",
     });
 
-    // The signature is there; the billing details are not yet.
-    await expect(
-      signerPage.getByText("Még 1 kötelező mező van hátra"),
-    ).toBeVisible();
-    await expect(finishButton).toBeDisabled();
+    await expect(orderButton).toBeDisabled();
 
-    await signerPage.getByLabel("Vezetéknév").fill("Kovács");
-    await signerPage.getByLabel("Keresztnév").fill("Anna");
-    await signerPage.getByLabel("Irányítószám").fill("105");
+    await billingStep.getByLabel("Vezetéknév").fill("Kovács");
+    await billingStep.getByLabel("Keresztnév").fill("Anna");
+
+    // Closing the step keeps what was typed.
+    await billingStep
+      .getByRole("button", { exact: true, name: "Vissza" })
+      .click();
+    await expect(billingStep).toHaveCount(0);
+    await nextButton.click();
+    await expect(billingStep.getByLabel("Vezetéknév")).toHaveValue("Kovács");
+
+    await billingStep.getByLabel("Irányítószám").fill("105");
     await expect(
-      signerPage.getByText("Magyar irányítószám 4 számjegyből áll."),
+      billingStep.getByText("Magyar irányítószám 4 számjegyből áll."),
     ).toBeVisible();
-    await signerPage.getByLabel("Irányítószám").fill("1051");
-    await signerPage.getByLabel("Város").fill("Budapest");
-    await signerPage.getByLabel("Utca, házszám").fill("Fő utca 1.");
-    await signerPage.getByLabel("Telefonszám").fill("+36 30 123 4567");
-    await signerPage
+    await billingStep.getByLabel("Irányítószám").fill("1051");
+    await billingStep.getByLabel("Város").fill("Budapest");
+    await billingStep.getByLabel("Utca, házszám").fill("Fő utca 1.");
+    await billingStep.getByLabel("Telefonszám").fill("+36 30 123 4567");
+    await billingStep
       .getByRole("checkbox", { name: /Általános Szerződési Feltételeket/ })
       .check();
-    await signerPage
+    await billingStep
       .getByRole("checkbox", { name: /Adatvédelmi Nyilatkozatot/ })
       .check();
-    await expect(finishButton).toBeDisabled();
-    await signerPage
+    await expect(orderButton).toBeDisabled();
+    await billingStep
       .getByRole("checkbox", { name: /fizetési kötelezettség keletkezik/ })
       .check();
-    await expect(
-      signerPage.getByText("Minden kötelező mező kész"),
-    ).toBeVisible();
-
-    await finishButton.click();
-    await signerPage
-      .getByRole("dialog", { name: "Befejezed az aláírást?" })
-      .getByRole("button", { name: "Aláírás befejezése" })
-      .click();
+    await expect(orderButton).toBeEnabled();
+    await orderButton.click();
     await expect(signerPage).toHaveURL(/\/sign\/[^/]+\/done/);
     await expect(signerPage.getByTestId("deposit-note")).toContainText(
       "Fizetendő előleg: 300 000 Ft.",
