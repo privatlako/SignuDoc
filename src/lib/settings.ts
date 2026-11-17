@@ -324,6 +324,19 @@ export async function getBranding(
   return buildBranding(await getSettings(env));
 }
 
+/**
+ * The same, read through a given database connection: for jobs that are
+ * handed their own (the daily schedule and retention sweep).
+ */
+export async function getBrandingFrom(
+  database: DbExecutor,
+  env: EnvSource = process.env,
+): Promise<Branding> {
+  return buildBranding(
+    resolveSettings(await readStoredSettings(database), env),
+  );
+}
+
 export function toSignupPolicy(settings: AppSettings): SignupPolicy {
   return {
     allowedEmailDomains: settings.allowedEmailDomains,

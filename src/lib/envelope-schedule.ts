@@ -15,7 +15,7 @@ import {
 } from "./services/signing-invitation-email.ts";
 import { emailButton, emailHeading } from "./services/email-layout.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
-import { getBranding } from "./settings.ts";
+import { getBrandingFrom } from "./settings.ts";
 import { resolveAppUrl } from "./utils/env.ts";
 import { escapeHtml } from "./utils/html.ts";
 
@@ -170,7 +170,10 @@ async function noteExpiryNoticeSent(
   }, database);
 }
 
-async function buildExpiryNotice(envelope: ExpiredEnvelopeRow) {
+async function buildExpiryNotice(
+  envelope: ExpiredEnvelopeRow,
+  database: DbPool,
+) {
   const appUrl = resolveAppUrl();
   const link = appUrl ? `${appUrl}/envelopes/${envelope.id}` : null;
   const title = quoteTitle(envelope.title);
@@ -203,7 +206,7 @@ async function buildExpiryNotice(envelope: ExpiredEnvelopeRow) {
         ...(link ? ["", link] : []),
       ].join("\n"),
     },
-    await getBranding(),
+    await getBrandingFrom(database),
   );
 
   return {
@@ -235,7 +238,7 @@ async function sendExpiryNotices({
         continue;
       }
 
-      await emailService().send(await buildExpiryNotice(envelope), {
+      await emailService().send(await buildExpiryNotice(envelope, database), {
         idempotencyKey: `expiry-notice/${envelope.id}/${envelope.expiresAt}`,
       });
       await noteExpiryNoticeSent(envelope, now, database);

@@ -21,7 +21,7 @@ import {
 } from "./services/signing-invitation-email.ts";
 import { emailButton, emailHeading } from "./services/email-layout.ts";
 import { withUserEmailLegalFooter } from "./services/email-legal-footer.ts";
-import { getBranding, readStoredSettings } from "./settings.ts";
+import { getBrandingFrom, readStoredSettings } from "./settings.ts";
 import { escapeHtml } from "./utils/html.ts";
 import { type EnvSource, isHostedMode, resolveAppUrl } from "./utils/env.ts";
 
@@ -814,7 +814,7 @@ async function warnBeforeRetentionDeletion(
         ...(link ? ["", link] : []),
       ].join("\n"),
     },
-    await getBranding(),
+    await getBrandingFrom(database),
   );
 
   await emailService.send(

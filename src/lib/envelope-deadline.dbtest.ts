@@ -290,7 +290,7 @@ test("the daily job tells the sender once that a deadline passed", async () => {
   assert.match(mine[0]?.textBody ?? "", /Még Riley Recipient \(/);
   assert.match(
     mine[0]?.textBody ?? "",
-    new RegExp(`/envelopes/${expired.envelopeId}$`),
+    new RegExp(`/envelopes/${expired.envelopeId}$`, "m"),
   );
   assert.equal(
     (await readEnvelope(expired.envelopeId)).expiry_notified_at,
