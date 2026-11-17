@@ -2,6 +2,18 @@ import { randomUUID } from "node:crypto";
 
 import { type Branding } from "./branding.ts";
 import {
+  billingFullName,
+  type BillingStatus,
+  type ContractType,
+  type CustomerOffer,
+  customerOfferSchema,
+  formatBillingAddress,
+  formatBudapestDateTime,
+  formatForint,
+  transferDeadlineDate,
+  transferDeadlineLabel,
+} from "./customer-contract.ts";
+import {
   type DbExecutor,
   type DbPool,
   getDb,
@@ -138,6 +150,12 @@ type SendDraftEnvelopeInput = {
    * own name through the install's signing provider. Simple by default.
    */
   signatureLevel?: "advanced" | "qualified" | "simple";
+  /**
+   * Partner by default. A customer contract carries the offer the first
+   * signer accepts, and asks them for billing details while signing.
+   */
+  contractType?: ContractType;
+  offer?: CustomerOffer | null;
   ipAddress?: string | null;
   senderEmail: string;
   senderName: string;
@@ -162,7 +180,11 @@ type VoidEnvelopeOptions = {
 };
 
 type EnvelopeRow = {
+  billing: unknown;
+  billingStatus: string | null;
+  billingStatusChangedAt: number | null;
   completedAt: number | null;
+  contractType: ContractType;
   createdAt: number;
   declinedAt: number | null;
   evidenceKey: string | null;
@@ -179,6 +201,7 @@ type EnvelopeRow = {
   sourcePdfHash: string;
   sourcePdfKey: string;
   sourcePdfSizeBytes: number;
+  offer: unknown;
   status: EnvelopeRecord["status"];
   title: string;
   updatedAt: number;
@@ -272,6 +295,8 @@ type PersistedFieldRecord = FieldRecord & {
 };
 
 export type DashboardEnvelopeListItem = {
+  /** Set on a signed customer contract: waiting to be invoiced, or done. */
+  billingStatus?: BillingStatus | null;
   contextLine: string;
   createdAtLabel: string;
   /** Out for signature and past its deadline. */
@@ -382,7 +407,31 @@ export type EnvelopeDetailDeadline = {
   expiresAtLabel: string | null;
 };
 
+/** A customer contract's offer and billing, for the sender's page. */
+export type EnvelopeDetailCustomerContract = {
+  billing: {
+    acceptedAtLabel: string;
+    address: string;
+    email: string;
+    name: string;
+    phone: string;
+    projectAddress: string;
+  } | null;
+  billingStatus: BillingStatus | null;
+  billingStatusChangedAtLabel: string | null;
+  offer: {
+    depositLabel: string;
+    offerNumber: string;
+    phone: string | null;
+    projectAddress: string | null;
+    totalLabel: string;
+    transferDeadlineLabel: string;
+  } | null;
+};
+
 export type EnvelopeDetailData = {
+  /** Set on a customer contract. */
+  customerContract?: EnvelopeDetailCustomerContract | null;
   /** People who get a copy of the finished document without signing. */
   copyRecipients: readonly CopyRecipientRecord[];
   createdAtLabel: string;
@@ -788,6 +837,11 @@ export async function getEnvelopeByIdForUser(
         part11,
         signature_level AS "signatureLevel",
         signature_provider AS "signatureProvider",
+        contract_type AS "contractType",
+        offer,
+        billing,
+        billing_status AS "billingStatus",
+        billing_status_changed_at AS "billingStatusChangedAt",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM envelopes
@@ -1473,6 +1527,11 @@ export async function listEnvelopesForUser(
         part11,
         signature_level AS "signatureLevel",
         signature_provider AS "signatureProvider",
+        contract_type AS "contractType",
+        NULL::jsonb AS offer,
+        NULL::jsonb AS billing,
+        billing_status AS "billingStatus",
+        billing_status_changed_at AS "billingStatusChangedAt",
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM envelopes
@@ -1497,6 +1556,7 @@ export async function listEnvelopesForUser(
     const fields = fieldsByEnvelope.get(envelope.id) ?? [];
 
     return {
+      billingStatus: envelope.billingStatus ?? null,
       contextLine: buildDashboardContextLine(envelope, signers, fields),
       createdAtLabel: formatShortDate(envelope.createdAt),
       expired: isEnvelopeExpired(envelope, Math.floor(Date.now() / 1000)),
@@ -1511,6 +1571,49 @@ export async function listEnvelopesForUser(
       title: envelope.title,
     };
   });
+}
+
+function buildDetailCustomerContract(
+  envelope: EnvelopeRecord,
+): EnvelopeDetailCustomerContract | null {
+  if (envelope.contractType !== "customer") {
+    return null;
+  }
+
+  const offer = envelope.offer ?? null;
+  const billing = envelope.billing ?? null;
+  const completedAt = envelope.completedAt ?? null;
+
+  return {
+    billing: billing
+      ? {
+          acceptedAtLabel: formatBudapestDateTime(billing.acceptedAt),
+          address: formatBillingAddress(billing),
+          email: billing.signerEmail,
+          name: billingFullName(billing),
+          phone: billing.phone,
+          projectAddress: billing.projectAddress,
+        }
+      : null,
+    billingStatus: envelope.billingStatus ?? null,
+    billingStatusChangedAtLabel:
+      typeof envelope.billingStatusChangedAt === "number"
+        ? formatBudapestDateTime(envelope.billingStatusChangedAt)
+        : null,
+    offer: offer
+      ? {
+          depositLabel: formatForint(offer.depositAmount),
+          offerNumber: offer.offerNumber,
+          phone: offer.phone ?? null,
+          projectAddress: offer.projectAddress ?? null,
+          totalLabel: formatForint(offer.totalAmount),
+          transferDeadlineLabel:
+            typeof completedAt === "number"
+              ? `${transferDeadlineDate(completedAt, offer.transferDeadlineDays).label} (${transferDeadlineLabel(offer.transferDeadlineDays)})`
+              : transferDeadlineLabel(offer.transferDeadlineDays),
+        }
+      : null,
+  };
 }
 
 export async function getEnvelopeDetailDataForUser(
@@ -1603,6 +1706,7 @@ export async function getEnvelopeDetailDataForUser(
   return {
     copyRecipients,
     createdAtLabel: formatLongDate(envelope.createdAt),
+    customerContract: buildDetailCustomerContract(envelope),
     deadline:
       envelope.status === "sent"
         ? {
@@ -2018,6 +2122,23 @@ export async function sendDraftEnvelope(
     throw new EnvelopeMutationError(choiceProblem, 400);
   }
 
+  const contractType = input.contractType ?? "partner";
+  let offer: CustomerOffer | null = null;
+
+  if (contractType === "customer") {
+    const parsedOffer = customerOfferSchema.safeParse(input.offer);
+
+    if (!parsedOffer.success) {
+      throw new EnvelopeMutationError(
+        parsedOffer.error.issues[0]?.message ??
+          "Ügyfélszerződéshez add meg az ajánlat adatait.",
+        400,
+      );
+    }
+
+    offer = parsedOffer.data;
+  }
+
   // In Part 11 mode each signer signs with their own verified account, and
   // the envelope keeps that rule even if the mode is turned off later.
   const part11 = (await readStoredSettings(database))?.part11Mode ?? false;
@@ -2112,7 +2233,12 @@ export async function sendDraftEnvelope(
             updated_at = $2,
             expires_at = $5,
             expiry_notified_at = NULL,
-            reminder_interval_days = $6
+            reminder_interval_days = $6,
+            contract_type = $7,
+            offer = $8::jsonb,
+            billing = NULL,
+            billing_status = NULL,
+            billing_status_changed_at = NULL
           WHERE id = $3
             AND user_id = $4
             AND status = 'draft'
@@ -2124,6 +2250,8 @@ export async function sendDraftEnvelope(
           userId,
           expiresAt,
           input.reminderIntervalDays ?? null,
+          contractType,
+          offer ? JSON.stringify(offer) : null,
         ],
       );
 
@@ -2250,6 +2378,15 @@ export async function sendDraftEnvelope(
             permittedUseConfirmed: true,
             permittedUseVersion: PERMITTED_USE_VERSION,
             ...(part11 ? { part11: true } : {}),
+            ...(offer
+              ? {
+                  contractType,
+                  offerNumber: offer.offerNumber,
+                  offerTotalAmount: offer.totalAmount,
+                  offerDepositAmount: offer.depositAmount,
+                  transferDeadlineDays: offer.transferDeadlineDays,
+                }
+              : {}),
             ...(signingProvider
               ? {
                   signatureLevel,
@@ -2298,6 +2435,8 @@ export async function sendDraftEnvelope(
             part11 = false,
             signature_level = 'simple',
             signature_provider = NULL,
+            contract_type = 'partner',
+            offer = NULL,
             updated_at = $1
           WHERE id = $2
             AND user_id = $3

@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/shared/page-header";
 export type DashboardShellState = "default" | "empty" | "error";
 
 export type DashboardFilter =
-  "All" | "Draft" | "Sent" | "Completed" | "Declined" | "Voided";
+  "All" | "Draft" | "Sent" | "Completed" | "Billing" | "Declined" | "Voided";
 
 type EnvelopeStatus = "draft" | "sent" | "completed" | "declined" | "voided";
 
@@ -23,12 +23,13 @@ export const filterOptions: readonly DashboardFilter[] = [
   "Draft",
   "Sent",
   "Completed",
+  "Billing",
   "Declined",
   "Voided",
 ];
 
 export const dashboardStatusFilterMap: Record<
-  Exclude<DashboardFilter, "All">,
+  Exclude<DashboardFilter, "All" | "Billing">,
   EnvelopeStatus
 > = {
   Completed: "completed",
@@ -38,9 +39,26 @@ export const dashboardStatusFilterMap: Record<
   Voided: "voided",
 };
 
+/** True when the envelope belongs under the filter. */
+export function matchesDashboardFilter(
+  envelope: Pick<DashboardEnvelopeListItem, "billingStatus" | "status">,
+  filter: DashboardFilter,
+): boolean {
+  if (filter === "All") {
+    return true;
+  }
+
+  if (filter === "Billing") {
+    return envelope.billingStatus === "pending";
+  }
+
+  return envelope.status === dashboardStatusFilterMap[filter];
+}
+
 /** What each filter is called on screen. The keys stay in English. */
 const filterLabelMap: Record<DashboardFilter, string> = {
   All: "Mind",
+  Billing: "Számlázásra vár",
   Completed: "Aláírva",
   Declined: "Elutasítva",
   Draft: "Piszkozat",
@@ -295,6 +313,9 @@ function EnvelopeCard({
         >
           {envelope.statusLabel}
         </span>
+        {envelope.billingStatus === "pending" ? (
+          <span className="pill pill-accent">Számlázásra vár</span>
+        ) : null}
         <span className="text-xs text-(--tertiary)">
           <span className="sr-only">Létrehozva: </span>
           {envelope.createdAtLabel}

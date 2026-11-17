@@ -15,6 +15,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  CONTRACT_TYPE_LABELS,
+  CUSTOMER_CONTRACT_SIGNER_RULE,
+  type ContractType,
+  type CustomerOffer,
+  customerOfferSchema,
+  DEFAULT_TRANSFER_DEADLINE_DAYS,
+  formatForint,
+  parseForintInput,
+} from "@/lib/customer-contract";
 import type { ReviewEnvelopeData } from "@/lib/envelopes";
 import { PERMITTED_USE_PATH } from "@/lib/permitted-uses";
 import {
@@ -73,6 +83,57 @@ type SendPhase = "error" | "idle" | "sending";
 
 type SignatureLevel = "advanced" | "qualified" | "simple";
 
+type OfferFormValues = {
+  depositAmount: string;
+  offerNumber: string;
+  phone: string;
+  projectAddress: string;
+  totalAmount: string;
+  transferDeadlineDays: string;
+};
+
+type OfferFormErrors = Partial<Record<keyof OfferFormValues, string>>;
+
+const emptyOfferForm: OfferFormValues = {
+  depositAmount: "",
+  offerNumber: "",
+  phone: "",
+  projectAddress: "",
+  totalAmount: "",
+  transferDeadlineDays: String(DEFAULT_TRANSFER_DEADLINE_DAYS),
+};
+
+/** Checks the offer the way the server does, with a message per field. */
+function validateOfferForm(
+  values: OfferFormValues,
+): { offer: CustomerOffer; ok: true } | { errors: OfferFormErrors; ok: false } {
+  const days = values.transferDeadlineDays.trim();
+  const parsed = customerOfferSchema.safeParse({
+    depositAmount: parseForintInput(values.depositAmount) ?? undefined,
+    offerNumber: values.offerNumber,
+    phone: values.phone,
+    projectAddress: values.projectAddress,
+    totalAmount: parseForintInput(values.totalAmount) ?? undefined,
+    transferDeadlineDays: /^\d{1,3}$/.test(days) ? Number(days) : undefined,
+  });
+
+  if (parsed.success) {
+    return { offer: parsed.data, ok: true };
+  }
+
+  const errors: OfferFormErrors = {};
+
+  for (const issue of parsed.error.issues) {
+    const key = issue.path[0];
+
+    if (typeof key === "string" && !(key in errors)) {
+      errors[key as keyof OfferFormValues] = issue.message;
+    }
+  }
+
+  return { errors, ok: false };
+}
+
 function describeSignatureLevel(level: SignatureLevel, providerName: string) {
   switch (level) {
     case "advanced":
@@ -113,6 +174,10 @@ export function ReviewShell({
   );
   const [signatureLevel, setSignatureLevel] =
     useState<SignatureLevel>("simple");
+  const [contractType, setContractType] = useState<ContractType>("partner");
+  const [offerValues, setOfferValues] =
+    useState<OfferFormValues>(emptyOfferForm);
+  const [offerErrors, setOfferErrors] = useState<OfferFormErrors>({});
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [sendPhase, setSendPhase] = useState<SendPhase>("idle");
@@ -136,7 +201,22 @@ export function ReviewShell({
     setIsConfirmationOpen(false);
   }
 
+  function updateOffer(key: keyof OfferFormValues, value: string) {
+    setOfferValues((current) => ({ ...current, [key]: value }));
+    setOfferErrors((current) => ({ ...current, [key]: undefined }));
+  }
+
   function openConfirmation() {
+    if (contractType === "customer") {
+      const checked = validateOfferForm(offerValues);
+
+      if (!checked.ok) {
+        setOfferErrors(checked.errors);
+        return;
+      }
+    }
+
+    setOfferErrors({});
     setNotice(null);
     setSendError(null);
     setSendPhase("idle");
@@ -163,6 +243,14 @@ export function ReviewShell({
           permittedUseConfirmed: true,
           reminderIntervalDays: reminderDays,
           ...(record?.signingProvider ? { signatureLevel } : {}),
+          contractType,
+          ...(contractType === "customer"
+            ? (() => {
+                const checked = validateOfferForm(offerValues);
+
+                return checked.ok ? { offer: checked.offer } : {};
+              })()
+            : {}),
         }),
         headers: {
           "content-type": "application/json",
@@ -391,6 +479,18 @@ export function ReviewShell({
               végzett.
             </p>
 
+            <ContractTypeSection
+              contractType={contractType}
+              disabled={sendPhase === "sending" || Boolean(notice)}
+              errors={offerErrors}
+              onContractTypeChange={(value) => {
+                setContractType(value);
+                setOfferErrors({});
+              }}
+              onOfferChange={updateOffer}
+              values={offerValues}
+            />
+
             <div className="well mt-4 p-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5">
@@ -515,6 +615,17 @@ export function ReviewShell({
                 )
               : null
           }
+          offerSummary={
+            contractType === "customer"
+              ? (() => {
+                  const checked = validateOfferForm(offerValues);
+
+                  return checked.ok
+                    ? `Ügyfélszerződés: ${checked.offer.offerNumber} sz. ajánlat, ${formatForint(checked.offer.totalAmount)}, előleg ${formatForint(checked.offer.depositAmount)}.`
+                    : null;
+                })()
+              : null
+          }
           signerCount={activeRecord.signers.length}
           title={activeRecord.title}
         />
@@ -530,6 +641,8 @@ type SendConfirmationDialogProps = {
   isSending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  /** Set for a customer contract: the offer in one line. */
+  offerSummary: string | null;
   /** Set when signers sign through the install's signing provider. */
   signatureType: string | null;
   signerCount: number;
@@ -543,6 +656,7 @@ function SendConfirmationDialog({
   isSending,
   onCancel,
   onConfirm,
+  offerSummary,
   signatureType,
   signerCount,
   title,
@@ -571,6 +685,7 @@ function SendConfirmationDialog({
                     : `Az első aláíró (${firstSignerName}) azonnal értesítést kap.`}{" "}
                   Az aláírási kérés {deadlineDays} nap múlva lejár.
                 </p>
+                {offerSummary ? <p>{offerSummary}</p> : null}
                 {signatureType ? (
                   <p>
                     Aláírás típusa: {signatureType}. Elküldés után már nem
@@ -645,4 +760,179 @@ function formatSignerFieldSummary(fields: readonly ReviewFieldSummaryLabel[]) {
   }
 
   return `(${fieldCount} mező)`;
+}
+
+function OfferInput({
+  disabled,
+  error,
+  helper,
+  inputMode,
+  label,
+  name,
+  onChange,
+  suffix,
+  value,
+}: {
+  disabled: boolean;
+  error?: string;
+  helper?: string;
+  inputMode?: "numeric" | "tel" | "text";
+  label: string;
+  name: string;
+  onChange: (value: string) => void;
+  suffix?: string;
+  value: string;
+}) {
+  return (
+    <label className="grid gap-1.5">
+      <span className="text-[0.8125rem] font-semibold text-(--secondary)">
+        {label}
+      </span>
+      <span className="relative flex items-center">
+        <input
+          aria-describedby={error || helper ? `${name}-hint` : undefined}
+          aria-invalid={error ? true : undefined}
+          className={`field-input w-full ${suffix ? "pr-12" : ""} ${error ? "border-(--danger)" : ""}`}
+          disabled={disabled}
+          inputMode={inputMode}
+          name={name}
+          onChange={(event) => onChange(event.target.value)}
+          value={value}
+        />
+        {suffix ? (
+          <span className="pointer-events-none absolute right-3.5 text-sm font-semibold text-(--tertiary)">
+            {suffix}
+          </span>
+        ) : null}
+      </span>
+      {error ? (
+        <span
+          className="text-xs font-semibold text-(--danger)"
+          id={`${name}-hint`}
+        >
+          {error}
+        </span>
+      ) : helper ? (
+        <span
+          className="text-xs leading-5 text-(--tertiary)"
+          id={`${name}-hint`}
+        >
+          {helper}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+function ContractTypeSection({
+  contractType,
+  disabled,
+  errors,
+  onContractTypeChange,
+  onOfferChange,
+  values,
+}: {
+  contractType: ContractType;
+  disabled: boolean;
+  errors: OfferFormErrors;
+  onContractTypeChange: (value: ContractType) => void;
+  onOfferChange: (key: keyof OfferFormValues, value: string) => void;
+  values: OfferFormValues;
+}) {
+  return (
+    <div className="well mt-4 p-4">
+      <label className="grid gap-1.5">
+        <span className="text-[0.8125rem] font-semibold text-(--secondary)">
+          Szerződés típusa
+        </span>
+        <select
+          className="field-input"
+          disabled={disabled}
+          name="contractType"
+          onChange={(event) =>
+            onContractTypeChange(event.target.value as ContractType)
+          }
+          value={contractType}
+        >
+          {(["partner", "customer"] as const).map((type) => (
+            <option key={type} value={type}>
+              {CONTRACT_TYPE_LABELS[type]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {contractType === "customer" ? (
+        <div className="mt-4 grid gap-4">
+          <p className="section-eyebrow">Ajánlat adatai</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <OfferInput
+              disabled={disabled}
+              error={errors.offerNumber}
+              label="Ajánlat sorszáma"
+              name="offerNumber"
+              onChange={(value) => onOfferChange("offerNumber", value)}
+              value={values.offerNumber}
+            />
+            <OfferInput
+              disabled={disabled}
+              error={errors.transferDeadlineDays}
+              helper="Aláírástól számítva."
+              inputMode="numeric"
+              label="Utalási határidő"
+              name="transferDeadlineDays"
+              onChange={(value) => onOfferChange("transferDeadlineDays", value)}
+              suffix="nap"
+              value={values.transferDeadlineDays}
+            />
+            <OfferInput
+              disabled={disabled}
+              error={errors.totalAmount}
+              inputMode="numeric"
+              label="Árajánlat összege"
+              name="totalAmount"
+              onChange={(value) => onOfferChange("totalAmount", value)}
+              suffix="Ft"
+              value={values.totalAmount}
+            />
+            <OfferInput
+              disabled={disabled}
+              error={errors.depositAmount}
+              inputMode="numeric"
+              label="Esedékes előleg"
+              name="depositAmount"
+              onChange={(value) => onOfferChange("depositAmount", value)}
+              suffix="Ft"
+              value={values.depositAmount}
+            />
+            <OfferInput
+              disabled={disabled}
+              error={errors.projectAddress}
+              helper="Nem kötelező. Az ügyfél aláíráskor ellenőrzi."
+              label="Tervezési cím"
+              name="projectAddress"
+              onChange={(value) => onOfferChange("projectAddress", value)}
+              value={values.projectAddress}
+            />
+            <OfferInput
+              disabled={disabled}
+              error={errors.phone}
+              helper="Nem kötelező. Az ügyfél aláíráskor ellenőrzi."
+              inputMode="tel"
+              label="Telefonszám"
+              name="phone"
+              onChange={(value) => onOfferChange("phone", value)}
+              value={values.phone}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <p className="mt-3 text-sm leading-6 text-(--secondary)">
+        {contractType === "customer"
+          ? `Az ügyfél aláíráskor látja az ajánlat összegét és az előleget, megadja a számlázási adatait, és elfogadja a feltételeket. ${CUSTOMER_CONTRACT_SIGNER_RULE}`
+          : "Tervezői vagy partnerszerződésnél az aláírás a megszokott módon zajlik, számlázási adatok nélkül."}
+      </p>
+    </div>
+  );
 }

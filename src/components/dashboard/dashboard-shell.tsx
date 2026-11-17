@@ -7,7 +7,7 @@ import type { DashboardEnvelopeListItem } from "@/lib/envelopes";
 import {
   DashboardDocumentsHeader,
   DashboardDocumentsPanel,
-  dashboardStatusFilterMap,
+  matchesDashboardFilter,
   type DashboardFilter,
   type DashboardShellState,
 } from "@/components/dashboard/dashboard-documents-surface";
@@ -32,10 +32,7 @@ export function DashboardShell({
       : (providedEnvelopes ?? []);
   const normalizedSearchValue = searchValue.trim().toLowerCase();
   const filteredEnvelopes = envelopes.filter((envelope) => {
-    const matchesFilter =
-      selectedFilter === "All"
-        ? true
-        : envelope.status === dashboardStatusFilterMap[selectedFilter];
+    const matchesFilter = matchesDashboardFilter(envelope, selectedFilter);
     const matchesSearch =
       normalizedSearchValue.length === 0 ||
       envelope.title.toLowerCase().includes(normalizedSearchValue) ||

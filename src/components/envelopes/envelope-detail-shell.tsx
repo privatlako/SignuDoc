@@ -33,6 +33,7 @@ import {
   ENVELOPE_DEADLINE_DAY_OPTIONS,
   ENVELOPE_REMINDER_DAY_OPTIONS,
 } from "@/lib/types/domain";
+import { CustomerContractPanel } from "./customer-contract-panel";
 import { getSignerPalette } from "./signer-palette";
 
 type EnvelopeDetailShellProps = {
@@ -616,6 +617,13 @@ export function EnvelopeDetailShell({
           </div>
         ) : null}
       </section>
+
+      {record.customerContract ? (
+        <CustomerContractPanel
+          envelopeId={envelopeId}
+          record={record.customerContract}
+        />
+      ) : null}
 
       <section
         className="grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]"

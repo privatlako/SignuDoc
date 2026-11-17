@@ -1272,3 +1272,227 @@ test("a signer signs with a qualified signature in their own name, through the s
     ).toBeVisible();
   });
 });
+
+// Runs on the same install: a customer contract with an offer. The customer
+// gives their billing details while signing, and the organization is told
+// that the contract can be invoiced.
+test("a customer accepts an offer with billing details, and the sender marks it invoiced", async ({
+  browser,
+  page,
+}, testInfo) => {
+  const runId = String(Date.now());
+  const signerEmail = `ugyfel+${runId}@example.com`;
+  const title = "Tervezési szerződés – ügyfél";
+  const database = new pg.Client({ connectionString: e2eDatabaseUrl });
+  let adminEmail = "";
+  let supportAddress = "";
+
+  await database.connect();
+
+  try {
+    const admin = await database.query<{ email: string }>(
+      `select email from public."user" where role = 'admin' limit 1`,
+    );
+    const settings = await database.query<{ support_address: string | null }>(
+      `select support_address from public.app_settings where id`,
+    );
+
+    adminEmail = admin.rows[0]?.email ?? "";
+    supportAddress = settings.rows[0]?.support_address ?? "";
+  } finally {
+    await database.end();
+  }
+
+  expect(adminEmail).not.toBe("");
+  expect(supportAddress).not.toBe("");
+
+  let envelopeId = "";
+
+  await test.step("the sender sends a customer contract with the offer", async () => {
+    const pdfPath = await writeSamplePdf(testInfo.outputPath("offer.pdf"));
+
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(adminEmail);
+    await page.getByLabel("Password").fill(PASSWORD);
+    await page.getByRole("button", { name: "Log in" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+
+    await page.goto("/envelopes/new");
+    await page.getByLabel("Szerződés címe", { exact: true }).fill(title);
+    await page
+      .getByLabel("PDF feltöltése", { exact: true })
+      .setInputFiles(pdfPath);
+    await page.getByRole("button", { name: "Tovább →" }).click();
+    await expect(page).toHaveURL(/\/envelopes\/[^/]+\/signers$/);
+    envelopeId = /\/envelopes\/([^/]+)\/signers$/.exec(page.url())?.[1] ?? "";
+
+    await page.getByLabel("1. aláíró neve").fill("Kovács Anna");
+    await page.getByLabel("1. aláíró e-mail-címe").fill(signerEmail);
+    await page.getByRole("button", { name: "Tovább →" }).click();
+    await expect(page).toHaveURL(/\/prepare$/);
+
+    await page.getByRole("button", { exact: true, name: "Aláírás" }).click();
+
+    const placementTarget = page.getByLabel("Aláírás elhelyezése, 1. oldal");
+    const box = await placementTarget.boundingBox();
+
+    await placementTarget.click({
+      position: { x: box!.width * 0.3, y: box!.height * 0.6 },
+    });
+    await expect(page.getByRole("status")).toHaveText("Mentve");
+    await page.getByRole("button", { name: "Tovább →" }).click();
+    await expect(page).toHaveURL(/\/review$/);
+
+    await page.getByLabel("Szerződés típusa").selectOption("customer");
+    await page.getByLabel("Ajánlat sorszáma").fill("2026/041");
+    await page.getByLabel("Árajánlat összege").fill("1 250 000");
+    await page.getByLabel("Esedékes előleg").fill("2 000 000");
+    await page.getByRole("button", { name: "Elküldés", exact: true }).click();
+    // Checked before anything is sent.
+    await expect(
+      page.getByText("Az előleg nem lehet nagyobb az árajánlat összegénél."),
+    ).toBeVisible();
+    await page.getByLabel("Esedékes előleg").fill("300 000");
+    await page
+      .getByLabel("Tervezési cím")
+      .fill("1052 Budapest, Tervező utca 2.");
+    await page.getByRole("button", { name: "Elküldés", exact: true }).click();
+
+    const confirmation = page.getByRole("dialog", {
+      name: "Elküldöd a szerződést?",
+    });
+
+    await expect(
+      confirmation.getByText(/Ügyfélszerződés: 2026\/041 sz\. ajánlat/),
+    ).toBeVisible();
+    await confirmation.getByRole("checkbox").check();
+    await confirmation.getByRole("button", { name: "Elküldés most" }).click();
+    await expect(page).toHaveURL(new RegExp(`/envelopes/${envelopeId}$`));
+    await expect(
+      page.getByRole("heading", { name: "Ajánlat adatai" }),
+    ).toBeVisible();
+  });
+
+  await test.step("the customer gives billing details and accepts the terms", async () => {
+    const invitation = await waitForEmail({
+      template: "signing_invitation",
+      to: signerEmail,
+    });
+    const signerContext = await browser.newContext({
+      viewport: { height: 900, width: 1440 },
+    });
+    const signerPage = await signerContext.newPage();
+
+    await signerPage.goto(extractLink(invitation.text, "/sign/"));
+
+    const consent = signerPage.getByRole("dialog", { name: "Mielőtt aláírod" });
+
+    await consent
+      .getByRole("checkbox", {
+        name: "Hozzájárulok az elektronikus dokumentumok és aláírások használatához",
+      })
+      .check();
+    await consent.getByRole("button", { name: "Elfogadom, tovább" }).click();
+
+    await expect(signerPage.getByTestId("deposit-amount")).toHaveText(
+      "300 000 Ft",
+    );
+    await expect(
+      signerPage.getByText("Kizárólag magánszemély részére.", { exact: false }),
+    ).toBeVisible();
+    await expect(signerPage.getByLabel("Tervezési cím")).toHaveValue(
+      "1052 Budapest, Tervező utca 2.",
+    );
+
+    await signerPage
+      .getByRole("button", { exact: true, name: "Aláírás" })
+      .click();
+    await signerPage
+      .getByRole("dialog", { name: "Add meg az aláírásodat" })
+      .getByRole("button", { name: "Aláírás elfogadása" })
+      .click();
+
+    const finishButton = signerPage.getByRole("button", {
+      exact: true,
+      name: "Befejezés",
+    });
+
+    // The signature is there; the billing details are not yet.
+    await expect(
+      signerPage.getByText("Még 1 kötelező mező van hátra"),
+    ).toBeVisible();
+    await expect(finishButton).toBeDisabled();
+
+    await signerPage.getByLabel("Vezetéknév").fill("Kovács");
+    await signerPage.getByLabel("Keresztnév").fill("Anna");
+    await signerPage.getByLabel("Irányítószám").fill("105");
+    await expect(
+      signerPage.getByText("Magyar irányítószám 4 számjegyből áll."),
+    ).toBeVisible();
+    await signerPage.getByLabel("Irányítószám").fill("1051");
+    await signerPage.getByLabel("Város").fill("Budapest");
+    await signerPage.getByLabel("Utca, házszám").fill("Fő utca 1.");
+    await signerPage.getByLabel("Telefonszám").fill("+36 30 123 4567");
+    await signerPage
+      .getByRole("checkbox", { name: /Általános Szerződési Feltételeket/ })
+      .check();
+    await signerPage
+      .getByRole("checkbox", { name: /Adatvédelmi Nyilatkozatot/ })
+      .check();
+    await expect(finishButton).toBeDisabled();
+    await signerPage
+      .getByRole("checkbox", { name: /fizetési kötelezettség keletkezik/ })
+      .check();
+    await expect(
+      signerPage.getByText("Minden kötelező mező kész"),
+    ).toBeVisible();
+
+    await finishButton.click();
+    await signerPage
+      .getByRole("dialog", { name: "Befejezed az aláírást?" })
+      .getByRole("button", { name: "Aláírás befejezése" })
+      .click();
+    await expect(signerPage).toHaveURL(/\/sign\/[^/]+\/done/);
+    await expect(signerPage.getByTestId("deposit-note")).toContainText(
+      "Fizetendő előleg: 300 000 Ft.",
+    );
+    await signerContext.close();
+  });
+
+  await test.step("the organization is told, and the sender marks it invoiced", async () => {
+    const internal = await waitForEmail({
+      template: "billing_ready",
+      to: supportAddress,
+    });
+
+    expect(internal.subject).toBe(`Mehet a számlázás: „${title}”`);
+    expect(internal.text).toContain("Kovács Anna");
+    expect(internal.text).toContain("2026/041");
+    expect(internal.text).toContain("300 000 Ft");
+    expect(internal.text).toContain("1051 Budapest, Fő utca 1.");
+
+    const signerCopy = await waitForEmail({
+      template: "completion_notification",
+      to: signerEmail,
+    });
+
+    expect(signerCopy.text).toContain("Fizetendő előleg: 300 000 Ft.");
+
+    await page.goto("/dashboard");
+    await page.getByRole("button", { name: "Számlázásra vár" }).click();
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+
+    await page.goto(`/envelopes/${envelopeId}`);
+    await expect(page.getByTestId("billing-status")).toHaveText(
+      "Számlázásra vár",
+    );
+    await expect(page.getByText("Kovács Anna").first()).toBeVisible();
+    await page
+      .getByRole("button", { exact: true, name: "Kiszámlázva" })
+      .click();
+    await expect(page.getByTestId("billing-status")).toHaveText("Kiszámlázva");
+    await expect(
+      page.getByRole("button", { name: "Visszaállítás számlázásra várra" }),
+    ).toBeVisible();
+  });
+});

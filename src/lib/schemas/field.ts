@@ -252,6 +252,12 @@ export const signingFieldSubmissionSchema = z.union([
 ]);
 
 export const signingSubmissionSchema = z.object({
+  /**
+   * A customer contract's billing details, from the signer who gives them.
+   * Checked against billingSubmissionSchema (customer-contract.ts) when the
+   * envelope asks this signer for them, and ignored otherwise.
+   */
+  billing: z.unknown().optional(),
   clientTimezoneOffsetMinutes: z.number().int().min(-840).max(840),
   fields: z.array(signingFieldSubmissionSchema),
   // Part 11 envelopes: both parts of the signer's electronic signature,

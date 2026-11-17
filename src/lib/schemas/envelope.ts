@@ -9,6 +9,12 @@ import {
   MAX_ENVELOPE_REMINDER_DAYS,
 } from "../types/domain.ts";
 import {
+  contractTypeSchema,
+  readBillingStatus,
+  readStoredBilling,
+  readStoredOffer,
+} from "../customer-contract.ts";
+import {
   emailSchema,
   envelopeTitleSchema,
   idSchema,
@@ -52,6 +58,8 @@ export const sendEnvelopeOptionsSchema = z.object({
   reminderIntervalDays: reminderIntervalDaysSchema.optional(),
   /** Simple unless the install has a signing provider. */
   signatureLevel: z.enum(["simple", "advanced", "qualified"]).optional(),
+  /** Partner by default. A customer contract needs an offer. */
+  contractType: contractTypeSchema.optional(),
 });
 
 export const changeRemindersSchema = z.object({
@@ -166,6 +174,14 @@ export const envelopeRecordSchema = z.object({
   /** The PDF as the last signer signed it, for provider signatures. */
   revisionKey: z.string().trim().min(1).nullable().optional(),
   revisionSha256: sourcePdfHashSchema.nullable().optional(),
+  /** Partner unless sent as a customer contract. See customer-contract.ts. */
+  contractType: contractTypeSchema.optional(),
+  /** A customer contract's offer, as the sender entered it. */
+  offer: z.unknown().transform(readStoredOffer).optional(),
+  /** The billing details the customer gave while signing. */
+  billing: z.unknown().transform(readStoredBilling).optional(),
+  billingStatus: z.unknown().transform(readBillingStatus).optional(),
+  billingStatusChangedAt: unixTimestampSchema.nullable().optional(),
   createdAt: unixTimestampSchema,
   updatedAt: unixTimestampSchema,
 });

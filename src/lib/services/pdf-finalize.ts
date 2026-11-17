@@ -3,6 +3,12 @@ import { randomUUID } from "node:crypto";
 import { PDFDocument, type PDFImage, type PDFPage, rgb } from "pdf-lib";
 
 import {
+  billingFullName,
+  formatBillingAddress,
+  formatForint,
+  transferDeadlineLabel,
+} from "../customer-contract.ts";
+import {
   auditEventRecordSchema,
   type AuditEventRecord,
   type EnvelopeRecord,
@@ -804,6 +810,37 @@ function buildAuditLines(input: {
         bodyFontSize,
       );
     }
+  }
+
+  const billing =
+    input.envelope.contractType === "customer" ? input.envelope.billing : null;
+
+  if (billing) {
+    const offer = input.envelope.offer ?? null;
+
+    pushSection("Számlázási adatok");
+    pushField("Név", billingFullName(billing));
+    pushField("Számlázási cím", formatBillingAddress(billing));
+    pushField("Tervezési cím", billing.projectAddress);
+
+    if (!input.redactForRecipients) {
+      pushField("Telefonszám", billing.phone);
+    }
+
+    if (offer) {
+      pushField("Ajánlat sorszáma", offer.offerNumber);
+      pushField("Árajánlat összege", formatForint(offer.totalAmount));
+      pushField("Fizetendő előleg", formatForint(offer.depositAmount));
+      pushField(
+        "Utalási határidő",
+        transferDeadlineLabel(offer.transferDeadlineDays),
+      );
+    }
+
+    pushField(
+      "Elfogadta",
+      `ÁSZF, Adatvédelmi Nyilatkozat, fizetési kötelezettség (${formatAuditTimestamp(billing.acceptedAt)})`,
+    );
   }
 
   pushSection("Eseménynapló");

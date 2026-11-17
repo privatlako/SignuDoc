@@ -2,10 +2,15 @@ import { Brand } from "@/components/layout/brand";
 import { PublicLegalFooter } from "@/components/layout/public-legal-links";
 
 type SigningDoneShellProps = {
+  /** A customer contract: the deposit the signer is to transfer. */
+  depositNote?: string | null;
   envelopeTitle?: string | null;
 };
 
-export function SigningDoneShell({ envelopeTitle }: SigningDoneShellProps) {
+export function SigningDoneShell({
+  depositNote,
+  envelopeTitle,
+}: SigningDoneShellProps) {
   const resolvedEnvelopeTitle =
     envelopeTitle && envelopeTitle.trim().length > 0
       ? envelopeTitle.trim()
@@ -63,6 +68,14 @@ export function SigningDoneShell({ envelopeTitle }: SigningDoneShellProps) {
           <p className="mx-auto mt-3 max-w-[480px] text-base leading-7 text-(--secondary)">
             Amikor mindenki aláírta, e-mailben megkapod az aláírt dokumentumot.
           </p>
+          {depositNote ? (
+            <p
+              className="notice notice-accent mx-auto mt-5 max-w-[480px] text-left font-medium"
+              data-testid="deposit-note"
+            >
+              {depositNote}
+            </p>
+          ) : null}
           <p className="mt-8 inline-flex rounded-full bg-(--surface) px-4 py-2 text-sm font-semibold text-(--secondary)">
             Ezt a lapot most bezárhatod.
           </p>

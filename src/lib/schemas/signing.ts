@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { customerOfferSchema } from "../customer-contract.ts";
 import { signatureMeanings } from "../types/domain.ts";
 import { envelopePageSchema } from "./envelope.ts";
 import { fieldInputMethodSchema, fieldTypeSchema } from "./field.ts";
@@ -94,6 +95,18 @@ export const signingPayloadSchema = z.object({
       level: z.enum(["advanced", "qualified"]),
       providerName: z.string().trim().min(1),
       startUrl: z.string().trim().min(1),
+    })
+    .nullable()
+    .optional(),
+  /**
+   * Set on a customer contract, for the signer who gives the billing
+   * details (the first one): the offer, and where the terms they accept are.
+   */
+  customerContract: z
+    .object({
+      offer: customerOfferSchema,
+      privacyUrl: z.string().trim().min(1),
+      termsUrl: z.string().trim().min(1).nullable(),
     })
     .nullable()
     .optional(),

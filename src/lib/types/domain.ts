@@ -99,6 +99,7 @@ export const emailTemplateKinds = [
   "expiry_notice",
   "test_email",
   "signing_lock_alert",
+  "billing_ready",
 ] as const;
 
 export type EnvelopeStatus = (typeof envelopeStatuses)[number];

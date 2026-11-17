@@ -3,6 +3,16 @@ import { randomUUID } from "node:crypto";
 
 import { type Branding } from "./branding.ts";
 import {
+  billingFullName,
+  billingSubmissionSchema,
+  buildDepositNote,
+  type BillingSubmission,
+  type CustomerOffer,
+  type StoredBilling,
+  transferDeadlineDate,
+} from "./customer-contract.ts";
+import { notifyBillingReady } from "./billing.ts";
+import {
   type DbExecutor,
   type DbPool,
   getDb,
@@ -139,12 +149,17 @@ type FieldPersistenceUpdate = {
 };
 
 type SigningEnvelopeRow = {
+  billing: unknown;
+  billingStatus: string | null;
+  billingStatusChangedAt: number | null;
   completedAt: number | null;
+  contractType: "customer" | "partner";
   createdAt: number;
   declinedAt: number | null;
   evidenceKey: string | null;
   expiresAt: number | null;
   id: string;
+  offer: unknown;
   pageCount: number;
   part11: boolean;
   revisionKey: string | null;
@@ -334,10 +349,28 @@ function getSigningDeclineUrl(token: string): string {
 function getSigningDoneRedirectPath(
   token: string,
   envelopeTitle: string,
+  /** For the customer who accepted an offer: the deposit they owe. */
+  customer: { completedAt?: number; offer: CustomerOffer } | null = null,
 ): string {
   const searchParams = new URLSearchParams();
 
   searchParams.set("title", envelopeTitle);
+
+  if (customer) {
+    searchParams.set("deposit", String(customer.offer.depositAmount));
+
+    if (customer.completedAt) {
+      searchParams.set(
+        "due",
+        transferDeadlineDate(
+          customer.completedAt,
+          customer.offer.transferDeadlineDays,
+        ).iso,
+      );
+    } else {
+      searchParams.set("days", String(customer.offer.transferDeadlineDays));
+    }
+  }
 
   return `/sign/${encodeURIComponent(token)}/done?${searchParams.toString()}`;
 }
@@ -474,6 +507,8 @@ function buildCompletionSignerEmail(input: {
   branding: Branding;
   /** True for someone who gets a copy without having signed. */
   copyOnly?: boolean;
+  /** A customer contract's deposit, for the signer who owes it. */
+  depositNote?: string | null;
   evidenceDownloadUrl: string;
   envelopeId: string;
   envelopeTitle: string;
@@ -504,6 +539,7 @@ function buildCompletionSignerEmail(input: {
     ...(copyLine ? [copyLine] : []),
     filesLine,
     keepLine,
+    ...(input.depositNote ? ["", input.depositNote] : []),
     "",
     `Hitelesített szerződés: ${input.signedDownloadUrl}`,
     `Hitelesítési igazolás külön (kitakart adatokkal): ${input.evidenceDownloadUrl}`,
@@ -515,6 +551,9 @@ function buildCompletionSignerEmail(input: {
     `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
     `<p>${escapeHtml(introLine)} ${escapeHtml(statementLine)}</p>`,
     copyLine ? `<p>${escapeHtml(copyLine)}</p>` : "",
+    input.depositNote
+      ? `<p><strong>${escapeHtml(input.depositNote)}</strong></p>`
+      : "",
     `<p>${escapeHtml(filesLine)}</p>`,
     emailButton("Hitelesített szerződés letöltése", input.signedDownloadUrl),
     emailNote(escapeHtml(keepLine)),
@@ -606,6 +645,11 @@ async function getEnvelopeRow(
           declined_at AS "declinedAt",
           voided_at AS "voidedAt",
           expires_at AS "expiresAt",
+          contract_type AS "contractType",
+          offer,
+          billing,
+          billing_status AS "billingStatus",
+          billing_status_changed_at AS "billingStatusChangedAt",
           created_at AS "createdAt",
           updated_at AS "updatedAt"
         FROM envelopes
@@ -1130,6 +1174,8 @@ async function sendCompletionEmails(input: {
   envelopeTitle: string;
   sender: SenderRow;
   signers: Array<ReturnType<typeof signerRecordSchema.parse>>;
+  /** A customer contract: the deposit note for the signer who owes it. */
+  depositNote?: { signerId: string | undefined; text: string };
 }) {
   const fileNameStem =
     sanitizeFileNameSegment(input.envelopeTitle) ||
@@ -1197,6 +1243,12 @@ async function sendCompletionEmails(input: {
             attached: attach,
             branding,
             copyOnly: signer.copyOnly,
+            depositNote:
+              !signer.copyOnly &&
+              input.depositNote &&
+              input.depositNote.signerId === signer.id
+                ? input.depositNote.text
+                : null,
             envelopeId: input.envelopeId,
             envelopeTitle: input.envelopeTitle,
             evidenceDownloadUrl: redactedEvidenceLink.url,
@@ -1825,11 +1877,19 @@ export async function getSigningPayloadForToken(
   );
 
   const disclosure = await resolveDisclosureForSigner(context, branding);
+  const customerOffer = customerOfferForSigner(context);
 
   return signingPayloadSchema.parse({
     consentUrl: getSigningConsentUrl(token),
     consentedAt: checkState.consentedAt,
     currentSignerFields,
+    customerContract: customerOffer
+      ? {
+          offer: customerOffer,
+          privacyUrl: branding.privacyUrl ?? "/signer-privacy",
+          termsUrl: branding.termsUrl,
+        }
+      : null,
     disclosure: {
       sections: disclosure.sections,
       statement: disclosure.statement,
@@ -2059,6 +2119,100 @@ async function assertStillSignersTurn(
 type SigningContext = Awaited<ReturnType<typeof resolveSigningContext>>;
 
 /**
+ * The offer this signer accepts, when the envelope is a customer contract
+ * and they are the one who gives the billing details: the first signer.
+ */
+function customerOfferForSigner(
+  context: Pick<ResolvedSigningContext, "envelope" | "signer" | "signers">,
+): CustomerOffer | null {
+  if (context.envelope.contractType !== "customer" || !context.envelope.offer) {
+    return null;
+  }
+
+  const firstSigner = context.signers[0];
+
+  return firstSigner && firstSigner.id === context.signer.id
+    ? context.envelope.offer
+    : null;
+}
+
+/** The billing details of a customer contract's first signer, checked. */
+function parseBillingForSigner(
+  context: SigningContext,
+  parsedInput: SigningSubmission,
+): BillingSubmission | null {
+  if (!customerOfferForSigner(context)) {
+    return null;
+  }
+
+  if (parsedInput.billing === undefined || parsedInput.billing === null) {
+    throw new SigningMutationError(
+      "Mielőtt befejeznéd, add meg a számlázási adataidat.",
+      400,
+    );
+  }
+
+  const parsed = billingSubmissionSchema.safeParse(parsedInput.billing);
+
+  if (!parsed.success) {
+    throw new SigningMutationError(
+      parsed.error.issues[0]?.message ?? "Ellenőrizd a számlázási adataidat.",
+      400,
+    );
+  }
+
+  return parsed.data;
+}
+
+/** The billing details as they are stored on the envelope. */
+function buildStoredBilling(
+  context: SigningContext,
+  billing: BillingSubmission,
+  acceptedAt: number,
+  branding: Branding,
+): StoredBilling {
+  return {
+    acceptedAt,
+    acceptedPaymentObligation: true,
+    acceptedPrivacy: true,
+    acceptedTerms: true,
+    city: billing.city,
+    country: billing.country,
+    county: billing.county ?? null,
+    firstName: billing.firstName,
+    lastName: billing.lastName,
+    phone: billing.phone,
+    postalCode: billing.postalCode,
+    privacyUrl: branding.privacyUrl ?? "/signer-privacy",
+    projectAddress: billing.projectAddress,
+    signerEmail: context.signer.email,
+    signerId: context.signer.id ?? "",
+    street: billing.street,
+    termsUrl: branding.termsUrl,
+  };
+}
+
+/** What the "signed" audit event records about the accepted offer. */
+function billingAuditMetadata(
+  offer: CustomerOffer,
+  billing: StoredBilling,
+): Record<string, unknown> {
+  return {
+    acceptedAt: billing.acceptedAt,
+    acceptedPaymentObligation: true,
+    acceptedPrivacy: true,
+    acceptedTerms: true,
+    billingName: billingFullName(billing),
+    depositAmount: offer.depositAmount,
+    offerNumber: offer.offerNumber,
+    privacyUrl: billing.privacyUrl,
+    termsUrl: billing.termsUrl,
+    totalAmount: offer.totalAmount,
+    transferDeadlineDays: offer.transferDeadlineDays,
+  };
+}
+
+/**
  * What the signer's submission changes: each of their fields' new value,
  * checked against what the field accepts, and the drawn signatures to store.
  */
@@ -2249,7 +2403,10 @@ function buildSignerSubmission(
 
   assertRadioGroupsAnswered(currentSignerFields, fieldUpdates);
 
+  const billing = parseBillingForSigner(context, parsedInput);
+
   return {
+    billing,
     currentSignerFields,
     currentSignerId,
     drawnSignatureUploads,
@@ -2318,11 +2475,16 @@ export async function submitSigningForToken(
   // The revision this signer's replaces, deleted once the change is saved.
   let replacedRevisionKey: string | null = null;
   const {
+    billing,
     currentSignerFields,
     currentSignerId,
     drawnSignatureUploads,
     fieldUpdates,
   } = buildSignerSubmission(context, parsedInput, submittedAt);
+  const signerOffer = customerOfferForSigner(context);
+  const storedBilling = billing
+    ? buildStoredBilling(context, billing, submittedAt, await getBranding())
+    : null;
 
   let signingStatePersisted = false;
 
@@ -2392,6 +2554,15 @@ export async function submitSigningForToken(
       timezoneOffsetMinutes: parsedInput.clientTimezoneOffsetMinutes,
     });
 
+    // The accepted offer and terms go in the audit trail with the
+    // signature. The full address stays on the envelope.
+    if (signerOffer && storedBilling) {
+      signedAuditEvent.metadata = {
+        ...signedAuditEvent.metadata,
+        billing: billingAuditMetadata(signerOffer, storedBilling),
+      };
+    }
+
     if (nextSigner && nextSignerLink) {
       // The deadline the next signer is given. The sender can move it while
       // this signer submits, and moving it only reaches the signer whose
@@ -2421,6 +2592,13 @@ export async function submitSigningForToken(
         }
 
         nextSignerDeadline = lockedEnvelope.expiresAt;
+
+        if (storedBilling) {
+          await tx.query(
+            `UPDATE envelopes SET billing = $1::jsonb WHERE id = $2`,
+            [JSON.stringify(storedBilling), context.envelope.id],
+          );
+        }
 
         if (providerSignature) {
           replacedRevisionKey = await commitProviderRevision(
@@ -2572,7 +2750,11 @@ export async function submitSigningForToken(
 
       return signingSubmitResponseSchema.parse({
         envelopeId: context.envelope.id,
-        redirectPath: getSigningDoneRedirectPath(token, context.envelope.title),
+        redirectPath: getSigningDoneRedirectPath(
+          token,
+          context.envelope.title,
+          signerOffer ? { offer: signerOffer } : null,
+        ),
         submittedAt,
       });
     }
@@ -2622,6 +2804,10 @@ export async function submitSigningForToken(
       }),
     ];
 
+    // A customer contract's billing details: given just now by a single
+    // signer, or earlier by the first one.
+    const completedBilling = storedBilling ?? context.envelope.billing ?? null;
+    const isCustomerContract = context.envelope.contractType === "customer";
     // The seal's key and the install's name, read before the transaction:
     // sealing inside it then needs no second connection from the pool.
     const seal = await loadInstallSealer();
@@ -2642,7 +2828,9 @@ export async function submitSigningForToken(
           {
             auditEvents,
             copyRecipients,
-            envelope: context.envelope,
+            envelope: completedBilling
+              ? { ...context.envelope, billing: completedBilling }
+              : context.envelope,
             fields: completedFields,
             signers: completedSigners,
             sourcePdf: {
@@ -2736,7 +2924,16 @@ export async function submitSigningForToken(
               updated_at = $4,
               signed_pdf_sha256 = $6,
               evidence_sha256 = $7,
-              recipient_evidence_sha256 = $8
+              recipient_evidence_sha256 = $8,
+              billing = COALESCE($9::jsonb, billing),
+              billing_status = CASE
+                WHEN contract_type = 'customer' THEN 'pending'
+                ELSE billing_status
+              END,
+              billing_status_changed_at = CASE
+                WHEN contract_type = 'customer' THEN $3
+                ELSE billing_status_changed_at
+              END
             WHERE id = $5
               AND status = 'sent'
           `,
@@ -2749,6 +2946,7 @@ export async function submitSigningForToken(
             artifacts.signedPdf.sha256,
             artifacts.certificate.sha256,
             artifacts.recipientCertificate.sha256,
+            storedBilling ? JSON.stringify(storedBilling) : null,
           ],
         );
 
@@ -2815,6 +3013,20 @@ export async function submitSigningForToken(
         envelopeTitle: context.envelope.title,
         sender: context.sender,
         signers: completedSigners,
+        ...(isCustomerContract && context.envelope.offer
+          ? {
+              depositNote: {
+                signerId: completedBilling?.signerId ?? context.signers[0]?.id,
+                text: buildDepositNote({
+                  depositAmount: context.envelope.offer.depositAmount,
+                  dueDateLabel: transferDeadlineDate(
+                    finalArtifacts.generatedAt,
+                    context.envelope.offer.transferDeadlineDays,
+                  ).label,
+                }),
+              },
+            }
+          : {}),
       });
     } catch (error) {
       console.error(
@@ -2823,9 +3035,28 @@ export async function submitSigningForToken(
       );
     }
 
+    if (isCustomerContract) {
+      // Never stands in the signer's way: the envelope is complete.
+      await notifyBillingReady(context.envelope.id, {
+        database,
+        emailService,
+      }).catch((error: unknown) => {
+        console.error(
+          `Failed to report envelope ${context.envelope.id} as ready for invoicing:`,
+          error,
+        );
+      });
+    }
+
     return signingSubmitResponseSchema.parse({
       envelopeId: context.envelope.id,
-      redirectPath: getSigningDoneRedirectPath(token, context.envelope.title),
+      redirectPath: getSigningDoneRedirectPath(
+        token,
+        context.envelope.title,
+        signerOffer
+          ? { completedAt: finalArtifacts.generatedAt, offer: signerOffer }
+          : null,
+      ),
       submittedAt,
     });
   } catch (error) {

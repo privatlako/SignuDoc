@@ -48,6 +48,14 @@ import {
 } from "@/lib/schemas/signing";
 import { type SigningSubmission } from "@/lib/schemas/field";
 import {
+  type BillingFormErrors,
+  type BillingFormValues,
+  emptyBillingForm,
+  formatForint,
+  transferDeadlineLabel,
+  validateBillingForm,
+} from "@/lib/customer-contract";
+import {
   countAnswerableFields,
   isNumberEntry,
   NUMBER_ENTRY_MESSAGE,
@@ -461,6 +469,22 @@ export function SigningLiveShell({
       record.pages[0]?.pageNumber ??
       1,
   );
+  // A customer contract's billing form: bring it into view, at the first
+  // field that needs fixing.
+  const revealBillingForm = () => {
+    const form = document.getElementById("billing-form");
+
+    if (!form) {
+      return;
+    }
+
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+    const target =
+      form.querySelector<HTMLElement>('[aria-invalid="true"]') ??
+      form.querySelector<HTMLElement>("input");
+
+    target?.focus({ preventScroll: true });
+  };
   // From the list of the signer's fields: show the field's page, then bring
   // the field into view and give it focus once the page has drawn it.
   const goToField = (fieldId: string, page: number) => {
@@ -516,6 +540,17 @@ export function SigningLiveShell({
   // Signed with a certificate in the signer's own name: Finish goes to the
   // signing provider, which signs, then sends the signer back.
   const providerSignature = record.providerSignature ?? null;
+  // A customer contract: this signer gives the billing details and accepts
+  // the terms before they can finish.
+  const customerContract = record.customerContract ?? null;
+  const [billingValues, setBillingValues] = useState<BillingFormValues>(() =>
+    emptyBillingForm(customerContract?.offer ?? {}),
+  );
+  const [showBillingErrors, setShowBillingErrors] = useState(false);
+  const billingCheck = customerContract
+    ? validateBillingForm(billingValues)
+    : null;
+  const isBillingComplete = billingCheck === null || billingCheck.ok;
   const isReauthReady =
     part11 === null ||
     (isMeaningConfirmed &&
@@ -591,16 +626,19 @@ export function SigningLiveShell({
   const invalidNumberCount = record.currentSignerFields.filter((field) =>
     hasInvalidNumber(field, textValues),
   ).length;
-  const canFinish = remainingFields === 0 && invalidNumberCount === 0;
-  const requiredFieldCount = countAnswerableFields(
-    record.currentSignerFields,
-    (field) => field.required,
-  );
+  // The billing details count as one more required item.
+  const remainingItems = remainingFields + (isBillingComplete ? 0 : 1);
+  const canFinish = remainingItems === 0 && invalidNumberCount === 0;
+  const requiredFieldCount =
+    countAnswerableFields(
+      record.currentSignerFields,
+      (field) => field.required,
+    ) + (customerContract ? 1 : 0);
   const completionPercent =
     requiredFieldCount === 0
       ? 100
       : Math.round(
-          ((requiredFieldCount - remainingFields) / requiredFieldCount) * 100,
+          ((requiredFieldCount - remainingItems) / requiredFieldCount) * 100,
         );
   const isDocumentReady = pdfRenderState === "ready";
 
@@ -658,6 +696,7 @@ export function SigningLiveShell({
         {
           body: JSON.stringify({
             ...buildSigningSubmissionPayload(record, enteredValues),
+            ...(billingCheck?.ok ? { billing: billingCheck.data } : {}),
             ...(part11
               ? {
                   reauthentication: {
@@ -921,7 +960,7 @@ export function SigningLiveShell({
                 <div className="flex justify-center xl:justify-end">
                   <SigningToolbarStatus
                     hasLockedFields={pageVisibleFields.length > 0}
-                    remainingFields={remainingFields}
+                    remainingFields={remainingItems}
                   />
                 </div>
               </div>
@@ -1046,7 +1085,32 @@ export function SigningLiveShell({
             </div>
           </div>
 
-          <aside className="space-y-4 xl:sticky xl:top-[5.25rem] xl:self-start">
+          <aside
+            className={`space-y-4 ${
+              customerContract ? "" : "xl:sticky xl:top-[5.25rem] xl:self-start"
+            }`}
+          >
+            {customerContract ? (
+              <OfferSummary offer={customerContract.offer} />
+            ) : null}
+
+            {customerContract ? (
+              <BillingForm
+                disabled={isSubmitting}
+                errors={
+                  billingCheck && !billingCheck.ok ? billingCheck.errors : {}
+                }
+                onChange={(key, value) => {
+                  setSubmitError(null);
+                  setBillingValues((current) => ({ ...current, [key]: value }));
+                }}
+                privacyUrl={customerContract.privacyUrl}
+                showAllErrors={showBillingErrors}
+                termsUrl={customerContract.termsUrl}
+                values={billingValues}
+              />
+            ) : null}
+
             <section className="panel rounded-[1.25rem] p-5">
               <p className="section-eyebrow">Aláíró</p>
               <div className="mt-3 flex items-center gap-3">
@@ -1066,9 +1130,9 @@ export function SigningLiveShell({
               <div className="well mt-5 p-4">
                 <p className="section-eyebrow">Befejezés előtt</p>
                 <p className="mt-1.5 text-[0.9375rem] font-bold text-(--fg)">
-                  {remainingFields === 0
+                  {remainingItems === 0
                     ? "Minden kötelező mező kész"
-                    : `Még ${remainingFields} kötelező mező van hátra`}
+                    : `Még ${remainingItems} kötelező mező van hátra`}
                 </p>
                 {invalidNumberCount > 0 ? (
                   <p
@@ -1085,7 +1149,7 @@ export function SigningLiveShell({
                 >
                   <div
                     className={`h-full rounded-full transition-[width] duration-300 ${
-                      remainingFields === 0 ? "bg-(--success)" : "bg-(--accent)"
+                      remainingItems === 0 ? "bg-(--success)" : "bg-(--accent)"
                     }`}
                     style={{ width: `${completionPercent}%` }}
                   />
@@ -1099,7 +1163,7 @@ export function SigningLiveShell({
               <div className="mt-4">
                 <ShellButton
                   className={`w-full ${
-                    canFinish && remainingFields === 0
+                    canFinish && remainingItems === 0
                       ? "bg-(--success)! text-white! hover:brightness-110"
                       : ""
                   }`}
@@ -1118,10 +1182,26 @@ export function SigningLiveShell({
               <div className="flex items-center justify-between gap-3">
                 <p className="section-eyebrow">Neked kijelölt mezők</p>
                 <span className="pill pill-neutral">
-                  {actionSummaryFields.length}
+                  {actionSummaryFields.length + (customerContract ? 1 : 0)}
                 </span>
               </div>
               <div className="mt-3 space-y-2">
+                {customerContract ? (
+                  <FieldStatusRow
+                    isComplete={isBillingComplete}
+                    isInvalid={false}
+                    label="Számlázási adatok · oldalsáv"
+                    onSelect={() => {
+                      setShowBillingErrors(true);
+                      revealBillingForm();
+                    }}
+                    value={
+                      isBillingComplete
+                        ? `${billingValues.lastName} ${billingValues.firstName}`.trim()
+                        : "Kitöltésre vár"
+                    }
+                  />
+                ) : null}
                 {actionSummaryFields.map((field) => (
                   <FieldStatusRow
                     isComplete={isFieldComplete(
@@ -2285,5 +2365,203 @@ function FieldStatusRow({
         {isInvalid ? "Javítsd" : isComplete ? "Kész" : "Kötelező"}
       </span>
     </button>
+  );
+}
+
+function OfferSummary({
+  offer,
+}: {
+  offer: NonNullable<SigningPayload["customerContract"]>["offer"];
+}) {
+  return (
+    <section
+      aria-label="Az ajánlat összefoglalója"
+      className="panel rounded-[1.25rem] p-5"
+    >
+      <p className="section-eyebrow">Az ajánlat</p>
+      <dl className="mt-3 grid gap-2.5 text-sm">
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-(--secondary)">Ajánlat sorszáma</dt>
+          <dd className="text-right font-semibold text-(--fg)">
+            {offer.offerNumber}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-(--secondary)">Árajánlat összege</dt>
+          <dd className="whitespace-nowrap text-right font-semibold text-(--fg)">
+            {formatForint(offer.totalAmount)}
+          </dd>
+        </div>
+        <div className="well flex items-baseline justify-between gap-3 rounded-xl px-3.5 py-3">
+          <dt className="font-semibold text-(--fg)">Fizetendő előleg</dt>
+          <dd
+            className="whitespace-nowrap text-right text-lg font-extrabold text-(--accent-ink)"
+            data-testid="deposit-amount"
+          >
+            {formatForint(offer.depositAmount)}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-3 text-[0.8125rem] leading-5 text-(--secondary)">
+        Utalási határidő: {transferDeadlineLabel(offer.transferDeadlineDays)}.
+      </p>
+    </section>
+  );
+}
+
+const billingTextFields: ReadonlyArray<{
+  autoComplete: string;
+  key: Exclude<
+    keyof BillingFormValues,
+    "acceptedPaymentObligation" | "acceptedPrivacy" | "acceptedTerms"
+  >;
+  label: string;
+  optional?: boolean;
+  type?: "text";
+}> = [
+  { autoComplete: "family-name", key: "lastName", label: "Vezetéknév" },
+  { autoComplete: "given-name", key: "firstName", label: "Keresztnév" },
+  { autoComplete: "country-name", key: "country", label: "Ország" },
+  {
+    autoComplete: "address-level1",
+    key: "county",
+    label: "Megye (nem kötelező)",
+    optional: true,
+  },
+  { autoComplete: "postal-code", key: "postalCode", label: "Irányítószám" },
+  { autoComplete: "address-level2", key: "city", label: "Város" },
+  { autoComplete: "street-address", key: "street", label: "Utca, házszám" },
+  { autoComplete: "off", key: "projectAddress", label: "Tervezési cím" },
+  { autoComplete: "tel", key: "phone", label: "Telefonszám" },
+];
+
+function BillingForm({
+  disabled,
+  errors,
+  onChange,
+  privacyUrl,
+  showAllErrors,
+  termsUrl,
+  values,
+}: {
+  disabled: boolean;
+  errors: BillingFormErrors;
+  onChange: (key: keyof BillingFormValues, value: boolean | string) => void;
+  privacyUrl: string;
+  /** Also flag the fields left empty, once the signer asked what is missing. */
+  showAllErrors: boolean;
+  termsUrl: string | null;
+  values: BillingFormValues;
+}) {
+  const linkClass =
+    "font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4";
+  const acceptances: ReadonlyArray<{
+    content: ReactNode;
+    key: "acceptedPaymentObligation" | "acceptedPrivacy" | "acceptedTerms";
+  }> = [
+    {
+      content: (
+        <>
+          Elolvastam és elfogadom az{" "}
+          {termsUrl ? (
+            <a
+              className={linkClass}
+              href={termsUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Általános Szerződési Feltételeket
+            </a>
+          ) : (
+            "Általános Szerződési Feltételeket"
+          )}
+          .
+        </>
+      ),
+      key: "acceptedTerms",
+    },
+    {
+      content: (
+        <>
+          Elolvastam és elfogadom az{" "}
+          <a
+            className={linkClass}
+            href={privacyUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Adatvédelmi Nyilatkozatot
+          </a>
+          .
+        </>
+      ),
+      key: "acceptedPrivacy",
+    },
+    {
+      content:
+        "Tudomásul veszem, hogy a szerződés aláírásával fizetési kötelezettség keletkezik: az előleget a megadott határidőn belül kell átutalnom.",
+      key: "acceptedPaymentObligation",
+    },
+  ];
+
+  return (
+    <section
+      aria-labelledby="billing-form-title"
+      className="panel scroll-mt-24 rounded-[1.25rem] p-5"
+      id="billing-form"
+    >
+      <p className="section-eyebrow" id="billing-form-title">
+        Számlázási adatok
+      </p>
+      <p className="mt-1.5 text-[0.8125rem] leading-5 text-(--secondary)">
+        Kizárólag magánszemély részére. Ezekre az adatokra állítjuk ki az
+        előlegszámlát.
+      </p>
+      <div className="mt-4 grid gap-3.5">
+        {billingTextFields.map((field) => {
+          const value = values[field.key];
+          const error =
+            showAllErrors || value.trim().length > 0
+              ? errors[field.key]
+              : undefined;
+
+          return (
+            <FieldShell
+              autoComplete={field.autoComplete}
+              disabled={disabled}
+              error={error}
+              key={field.key}
+              label={field.label}
+              name={`billing-${field.key}`}
+              onChange={(event) => onChange(field.key, event.target.value)}
+              readOnly={false}
+              value={value}
+            />
+          );
+        })}
+      </div>
+      <div className="mt-4 grid gap-3">
+        {acceptances.map((acceptance) => (
+          <label
+            className="flex items-start gap-3 text-sm leading-6 text-(--secondary)"
+            key={acceptance.key}
+          >
+            <Checkbox
+              aria-invalid={
+                showAllErrors && errors[acceptance.key] ? true : undefined
+              }
+              checked={values[acceptance.key]}
+              className="mt-1"
+              data-testid={`billing-${acceptance.key}`}
+              disabled={disabled}
+              onCheckedChange={(checked) =>
+                onChange(acceptance.key, checked === true)
+              }
+            />
+            <span>{acceptance.content}</span>
+          </label>
+        ))}
+      </div>
+    </section>
   );
 }

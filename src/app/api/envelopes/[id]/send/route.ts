@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireVerifiedSenderSession } from "@/lib/auth/route-session";
+import { customerOfferSchema } from "@/lib/customer-contract";
 import { getDb } from "@/lib/db/connection";
 import { EnvelopeMutationError, sendDraftEnvelope } from "@/lib/envelopes";
 import { sendEnvelopeOptionsSchema } from "@/lib/schemas/envelope";
@@ -22,7 +23,9 @@ type EnvelopeSendRouteContext = {
 };
 
 type SendEnvelopeRequest = {
+  contractType?: unknown;
   expiresInDays?: unknown;
+  offer?: unknown;
   reminderIntervalDays?: unknown;
   signatureLevel?: unknown;
   permittedUseConfirmed?: boolean;
@@ -73,6 +76,7 @@ export async function POST(
     expiresInDays: body.expiresInDays ?? undefined,
     reminderIntervalDays: body.reminderIntervalDays ?? undefined,
     signatureLevel: body.signatureLevel ?? undefined,
+    contractType: body.contractType ?? undefined,
   });
 
   if (!options.success) {
@@ -85,6 +89,26 @@ export async function POST(
     );
   }
 
+  const contractType = options.data.contractType ?? "partner";
+  let offer = null;
+
+  if (contractType === "customer") {
+    const parsedOffer = customerOfferSchema.safeParse(body.offer);
+
+    if (!parsedOffer.success) {
+      return NextResponse.json(
+        {
+          error:
+            parsedOffer.error.issues[0]?.message ??
+            "Ellenőrizd az ajánlat adatait.",
+        },
+        { status: 400 },
+      );
+    }
+
+    offer = parsedOffer.data;
+  }
+
   try {
     const result = await sendDraftEnvelope(
       session.user.id,
@@ -93,6 +117,8 @@ export async function POST(
         expiresInDays: options.data.expiresInDays,
         reminderIntervalDays: options.data.reminderIntervalDays,
         signatureLevel: options.data.signatureLevel,
+        contractType,
+        offer,
         ipAddress,
         senderEmail: session.user.email,
         senderName:
