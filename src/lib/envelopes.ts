@@ -751,7 +751,7 @@ function formatFileSize(sizeBytes: number): string {
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-async function getEnvelopeByIdForUser(
+export async function getEnvelopeByIdForUser(
   userId: string,
   envelopeId: string,
   database: DbExecutor,

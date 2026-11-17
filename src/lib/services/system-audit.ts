@@ -24,6 +24,7 @@ export const systemAuditEventTypes = [
   "signing_locked",
   "signing_unlocked",
   "reauthentication_failed",
+  "envelope_deleted",
 ] as const;
 
 export type SystemAuditEventType = (typeof systemAuditEventTypes)[number];

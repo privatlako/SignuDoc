@@ -25,6 +25,7 @@ const EVENT_LABELS: Record<SystemAuditEvent["event"], string> = {
   settings_changed: "Settings changed",
   signing_locked: "Signing locked",
   signing_unlocked: "Signing unlocked",
+  envelope_deleted: "Envelope deleted",
 };
 
 function describeEvent(event: SystemAuditEvent): string {

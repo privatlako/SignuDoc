@@ -72,6 +72,7 @@ type ModalState =
   | "change-deadline"
   | "change-reminders"
   | "delete-draft"
+  | "delete-envelope"
   | "save-template"
   | "void-envelope"
   | null;
@@ -326,7 +327,12 @@ export function EnvelopeDetailShell({
       } | null;
 
       if (!response.ok) {
-        setActionError(payload?.error ?? "Unable to delete this draft.");
+        setActionError(
+          payload?.error ??
+            (activeRecord.status === "draft"
+              ? "Unable to delete this draft."
+              : "Unable to delete this envelope."),
+        );
         return;
       }
 
@@ -479,6 +485,17 @@ export function EnvelopeDetailShell({
                 variant="secondary"
               >
                 Download certificate
+              </ShellButton>
+            ) : null}
+
+            {activeRecord.status === "completed" ||
+            activeRecord.status === "declined" ||
+            activeRecord.status === "voided" ? (
+              <ShellButton
+                onClick={() => setActiveModal("delete-envelope")}
+                variant="danger"
+              >
+                Delete
               </ShellButton>
             ) : null}
 
@@ -775,6 +792,22 @@ export function EnvelopeDetailShell({
           onConfirm={handleConfirmDeleteDraft}
           processing={isDeletingDraft}
           title="Delete this draft?"
+        />
+      ) : null}
+
+      {activeModal === "delete-envelope" ? (
+        <ConfirmationDialog
+          confirmLabel="Delete permanently"
+          description={[
+            "This permanently deletes the envelope and all of its files: the original PDF, the signed PDF and the certificates.",
+            "Download links already sent to signers stop working. Download the signed PDF first if you need to keep it.",
+            "This action cannot be undone.",
+          ]}
+          errorMessage={actionError}
+          onCancel={() => setActiveModal(null)}
+          onConfirm={handleConfirmDeleteDraft}
+          processing={isDeletingDraft}
+          title="Delete this envelope?"
         />
       ) : null}
 

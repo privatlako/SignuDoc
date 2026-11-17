@@ -12,13 +12,10 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+// The icon comes from app/icon.png and app/apple-icon.png.
 export const metadata: Metadata = {
-  title: "SignuDoc",
-  description:
-    "Free e-signature software for small businesses. Upload, send, sign — no enterprise circus required.",
-  icons: {
-    icon: "/icon.svg",
-  },
+  title: "Elektronikus szerződés aláíró portál",
+  description: "Szerződések elektronikus aláírása.",
 };
 
 export default function RootLayout({

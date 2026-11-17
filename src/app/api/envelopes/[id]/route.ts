@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 
 import { requireVerifiedSenderSession } from "@/lib/auth/route-session";
 import { getDb } from "@/lib/db/connection";
-import {
-  deleteDraftEnvelope,
-  EnvelopeMutationError,
-} from "@/lib/envelopes";
+import { deleteEnvelope } from "@/lib/envelope-deletion";
+import { EnvelopeMutationError } from "@/lib/envelopes";
 import { logRouteError } from "@/lib/security/logging";
 import { getClientIpAddress, getRequestPathname } from "@/lib/security/request";
 
@@ -26,9 +24,16 @@ export async function DELETE(request: Request, context: EnvelopeRouteContext) {
   const { id } = await context.params;
 
   try {
-    const envelope = await deleteDraftEnvelope(session.user.id, id, {
-      database: getDb(),
-    });
+    const envelope = await deleteEnvelope(
+      {
+        email: session.user.email,
+        ipAddress: getClientIpAddress(request.headers),
+        userAgent: request.headers.get("user-agent"),
+        userId: session.user.id,
+      },
+      id,
+      { database: getDb() },
+    );
 
     return NextResponse.json(
       {
@@ -46,15 +51,15 @@ export async function DELETE(request: Request, context: EnvelopeRouteContext) {
     }
 
     logRouteError(error, {
-      category: "draft_envelope_delete_failure",
+      category: "envelope_delete_failure",
       ipAddress: getClientIpAddress(request.headers),
-      message: "Unexpected failure while deleting a draft envelope.",
+      message: "Unexpected failure while deleting an envelope.",
       path: getRequestPathname(request),
       userId: session.user.id,
     });
 
     return NextResponse.json(
-      { error: "Unable to delete this draft envelope." },
+      { error: "Unable to delete this envelope." },
       { status: 500 },
     );
   }
