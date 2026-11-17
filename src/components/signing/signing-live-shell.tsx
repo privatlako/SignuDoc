@@ -461,6 +461,38 @@ export function SigningLiveShell({
       record.pages[0]?.pageNumber ??
       1,
   );
+  // From the list of the signer's fields: show the field's page, then bring
+  // the field into view and give it focus once the page has drawn it.
+  const goToField = (fieldId: string, page: number) => {
+    setActivePage(page);
+
+    let attempts = 0;
+    const reveal = () => {
+      const element = document.querySelector<HTMLElement>(
+        `[data-field-id="${CSS.escape(fieldId)}"]`,
+      );
+
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        const target = element.matches("button, input, select, textarea")
+          ? element
+          : element.querySelector<HTMLElement>(
+              "button, input, select, textarea",
+            );
+
+        target?.focus({ preventScroll: true });
+        return;
+      }
+
+      attempts += 1;
+
+      if (attempts < 20) {
+        window.setTimeout(reveal, 50);
+      }
+    };
+
+    window.setTimeout(reveal, 0);
+  };
   const [checkboxValues, setCheckboxValues] = useState<Record<string, boolean>>(
     {},
   );
@@ -1066,7 +1098,11 @@ export function SigningLiveShell({
 
               <div className="mt-4">
                 <ShellButton
-                  className="w-full"
+                  className={`w-full ${
+                    canFinish && remainingFields === 0
+                      ? "bg-(--success)! text-white! hover:brightness-110"
+                      : ""
+                  }`}
                   disabled={!canFinish || isDeclining || isSubmitting}
                   onClick={() => {
                     setSubmitError(null);
@@ -1096,6 +1132,7 @@ export function SigningLiveShell({
                     isInvalid={hasInvalidNumber(field, textValues)}
                     key={field.id}
                     label={`${getSummaryLabel(field)} · ${field.page}. oldal`}
+                    onSelect={() => goToField(field.id, field.page)}
                     value={getCompletionValue(
                       field,
                       record.currentSignerFields,
@@ -1481,6 +1518,7 @@ function CurrentSignerField({
             ? "bg-[rgb(var(--accent-rgb)/0.10)]"
             : "bg-[rgb(var(--accent-rgb)/0.07)] hover:bg-[rgb(var(--accent-rgb)/0.16)]"
         }`}
+        data-field-id={field.id}
         data-signing-field="true"
         onClick={onSignatureClick}
         style={frame}
@@ -1528,6 +1566,7 @@ function CurrentSignerField({
     return (
       <div
         className="absolute z-2 overflow-hidden rounded-[0.375rem] border border-(--border-strong) bg-white/92 text-sm text-(--fg)"
+        data-field-id={field.id}
         data-signing-field="true"
         style={frame}
       >
@@ -1544,6 +1583,7 @@ function CurrentSignerField({
     return (
       <div
         className="absolute z-2 overflow-hidden rounded-[0.375rem] border-2 border-(--accent) bg-[rgb(var(--accent-rgb)/0.07)] focus-within:bg-white"
+        data-field-id={field.id}
         data-signing-field="true"
         style={frame}
       >
@@ -1568,6 +1608,7 @@ function CurrentSignerField({
             ? "border-(--danger) bg-(--danger-soft)"
             : "border-(--accent) bg-[rgb(var(--accent-rgb)/0.07)]"
         }`}
+        data-field-id={field.id}
         data-signing-field="true"
         style={frame}
         title={isInvalid ? NUMBER_ENTRY_MESSAGE : undefined}
@@ -1592,6 +1633,7 @@ function CurrentSignerField({
     return (
       <div
         className="absolute z-2 overflow-hidden rounded-[0.375rem] border-2 border-(--accent) bg-[rgb(var(--accent-rgb)/0.07)] focus-within:bg-white"
+        data-field-id={field.id}
         data-signing-field="true"
         style={frame}
       >
@@ -1628,6 +1670,7 @@ function CurrentSignerField({
             ? "bg-[rgb(var(--accent-rgb)/0.14)]"
             : "bg-white hover:bg-[rgb(var(--accent-rgb)/0.10)]"
         }`}
+        data-field-id={field.id}
         data-signing-field="true"
         // An answer that is needed can be changed but not taken back; one
         // that is optional can be cleared by choosing it again.
@@ -1655,6 +1698,7 @@ function CurrentSignerField({
           ? "bg-[rgb(var(--accent-rgb)/0.14)]"
           : "bg-white hover:bg-[rgb(var(--accent-rgb)/0.10)]"
       }`}
+      data-field-id={field.id}
       data-signing-field="true"
       onClick={() => onCheckboxChange(!checkboxValue)}
       style={frame}
@@ -2205,16 +2249,24 @@ function FieldStatusRow({
   isComplete,
   isInvalid,
   label,
+  onSelect,
   value,
 }: {
   isComplete: boolean;
   /** Filled in, but with something the field cannot take. */
   isInvalid: boolean;
   label: string;
+  /** Shows the field on its page. */
+  onSelect: () => void;
   value: string;
 }) {
   return (
-    <div className="well flex items-center justify-between gap-3 rounded-xl px-3.5 py-3">
+    <button
+      aria-label={`${label}: ugrás a mezőhöz`}
+      className="well flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition-colors hover:bg-(--surface-strong) focus-visible:outline-2 focus-visible:outline-(--accent)"
+      onClick={onSelect}
+      type="button"
+    >
       <div className="min-w-0">
         <p className="text-xs font-semibold text-(--tertiary)">{label}</p>
         <p className="mt-0.5 truncate text-sm font-semibold text-(--fg)">
@@ -2232,6 +2284,6 @@ function FieldStatusRow({
       >
         {isInvalid ? "Javítsd" : isComplete ? "Kész" : "Kötelező"}
       </span>
-    </div>
+    </button>
   );
 }
