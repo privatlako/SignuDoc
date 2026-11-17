@@ -789,7 +789,7 @@ export function SigningLiveShell({
       <header className="sticky top-0 z-20 bg-[rgba(243,244,248,0.88)] backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex min-w-0 items-center gap-5">
-            <Brand href="/" />
+            <Brand href={null} />
             <div className="hidden min-w-0 border-l border-(--border-strong) pl-5 sm:block">
               <p className="truncate text-sm font-bold text-(--fg)">
                 {record.envelopeTitle}
@@ -1273,13 +1273,28 @@ export function SigningLiveShell({
         <DialogFrame
           description={`${record.senderName} elektronikus aláírásra küldte neked ezt a dokumentumot: „${record.envelopeTitle}”.`}
           onClose={() => undefined}
+          size="wide"
           title="Mielőtt aláírod"
         >
-          <div className="well max-h-[45vh] space-y-4 overflow-y-auto px-4 py-4 text-sm leading-6 text-(--secondary) sm:px-5">
-            {record.disclosure.sections.map((section) => (
-              <section key={section.heading}>
-                <h3 className="font-bold text-(--fg)">{section.heading}</h3>
-                <p className="mt-1">{section.text}</p>
+          {/* The text scrolls inside its box, so the checkbox and the
+              buttons stay in view. It is plain text from the settings and
+              is only ever rendered as text. */}
+          <div
+            aria-label="Tájékoztató"
+            className="well max-h-[min(50dvh,30rem)] space-y-5 overflow-y-auto px-4 py-4 text-sm leading-6 text-(--secondary) sm:px-6 sm:py-5 sm:text-[0.9375rem] sm:leading-7"
+            role="region"
+            tabIndex={0}
+          >
+            {record.disclosure.sections.map((section, sectionIndex) => (
+              <section className="space-y-2" key={sectionIndex}>
+                {section.heading !== null ? (
+                  <h3 className="font-bold text-(--fg)">{section.heading}</h3>
+                ) : null}
+                {section.paragraphs.map((paragraph, paragraphIndex) => (
+                  <p className="whitespace-pre-line" key={paragraphIndex}>
+                    {paragraph}
+                  </p>
+                ))}
               </section>
             ))}
           </div>
@@ -2152,17 +2167,24 @@ function DialogFrame({
   children,
   description,
   onClose,
+  size = "default",
   title,
 }: {
   children: ReactNode;
   description: string;
   onClose: () => void;
+  /** "wide" for a dialog that is mostly reading, such as the disclosure. */
+  size?: "default" | "wide";
   title: string;
 }) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-h-[calc(100dvh-2rem)] max-w-[600px] overflow-y-auto p-0"
+        className={
+          size === "wide"
+            ? "max-h-[calc(100dvh-2rem)] max-w-[calc(100%-1.5rem)] overflow-y-auto p-0 sm:max-w-3xl"
+            : "max-h-[calc(100dvh-2rem)] max-w-[600px] overflow-y-auto p-0"
+        }
         showCloseButton={false}
       >
         <div>

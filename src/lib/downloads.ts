@@ -503,8 +503,8 @@ function buildDownloadFileName(
     sanitizeFileNameSegment(envelope.title) || `envelope-${envelope.id}`;
 
   return fileType === "signed"
-    ? `${safeTitle} - signed.pdf`
-    : `${safeTitle} - certificate.pdf`;
+    ? `${safeTitle} - hitelesitett.pdf`
+    : `${safeTitle} - igazolas.pdf`;
 }
 
 function getStoredCertificateKey(

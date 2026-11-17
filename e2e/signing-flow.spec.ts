@@ -211,8 +211,8 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     ]) {
       await page.goto(publicPath);
 
-      // The link still carries the name, and now shows the logo.
-      const brandLink = page.getByRole("link", {
+      // The logo carries the name, and is not a link to the sign-in page.
+      const brandLink = page.getByRole("img", {
         exact: true,
         name: ORGANIZATION_NAME,
       });
@@ -240,11 +240,13 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
         ).toHaveCount(0);
       }
 
-      // The product's own link goes to its repository. There is no site
-      // run by the project to send anyone to.
+      // No product links in the footer: no "Powered by" and no E-aláírás.
+      await expect(footer.getByRole("link", { name: /SignuDoc/ })).toHaveCount(
+        0,
+      );
       await expect(
-        footer.getByRole("link", { name: "Powered by SignuDoc" }),
-      ).toHaveAttribute("href", "https://github.com/NYLLON-SOFTWARE/SignuDoc");
+        footer.getByRole("link", { exact: true, name: "E-aláírás" }),
+      ).toHaveCount(0);
     }
 
     // A signer with a question is sent to the organization's own address.
@@ -607,11 +609,10 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     }
 
     // The signer's copy comes attached, and the Verify page knows it.
-    const signedAttachment = completionEmail.attachments?.find(
-      (attachment) => !attachment.filename.includes("certificate"),
-    );
+    // One file: the signed document with its certificate pages at the end.
+    const signedAttachment = completionEmail.attachments?.[0];
 
-    expect(completionEmail.attachments?.length).toBe(2);
+    expect(completionEmail.attachments?.length).toBe(1);
     expect(signedAttachment).toBeDefined();
 
     const verification = await recipientContext.request.post("/api/verify", {
@@ -630,7 +631,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       to: copyEmail,
     });
 
-    expect(copyEmailMessage.attachments?.length).toBe(2);
+    expect(copyEmailMessage.attachments?.length).toBe(1);
     expect(
       extractLinks(copyEmailMessage.text).some((link) =>
         new URL(link).pathname.startsWith("/sign/"),

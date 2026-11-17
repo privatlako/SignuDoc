@@ -15,7 +15,7 @@ export function SigningDoneShell({ envelopeTitle }: SigningDoneShellProps) {
     <div className="flex min-h-screen flex-col">
       <header>
         <div className="page-width flex items-center py-4">
-          <Brand href="/" />
+          <Brand href={null} />
         </div>
       </header>
 

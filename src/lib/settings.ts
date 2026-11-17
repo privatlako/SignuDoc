@@ -47,6 +47,13 @@ export type AppSettings = {
   retentionDays: number | null;
   senderAddress: string | null;
   setupCompletedAt: number | null;
+  /**
+   * What signers are asked to agree to before signing, as the plain text an
+   * administrator typed, or null for the built-in words. See
+   * electronic-records-disclosure.ts.
+   */
+  signerConsentStatement: string | null;
+  signerDisclosureText: string | null;
   signupMode: SignupMode;
   supportAddress: string | null;
   termsUrl: string | null;
@@ -93,6 +100,8 @@ type AppSettingsRow = {
   retention_days: number | null;
   sender_address: string | null;
   setup_completed_at: number | null;
+  signer_consent_statement: string | null;
+  signer_disclosure_text: string | null;
   signup_mode: SignupMode;
   support_address: string | null;
   terms_url: string | null;
@@ -120,6 +129,7 @@ const LATER_SETTINGS_COLUMNS = [
   ["retention_days"], // 20261113090000_signature_evidence
   ["brand_color", "logo_hash"], // 20261114120000_branding
   ["part11_mode"], // 20261115090000_part11_mode
+  ["signer_disclosure_text", "signer_consent_statement"], // 20261117090000_signer_disclosure
 ] as const;
 
 type LaterSettingsColumn = (typeof LATER_SETTINGS_COLUMNS)[number][number];
@@ -152,6 +162,8 @@ const UNSET_SETTINGS: AppSettings = {
   retentionDays: null,
   senderAddress: null,
   setupCompletedAt: null,
+  signerConsentStatement: null,
+  signerDisclosureText: null,
   signupMode: "open",
   supportAddress: null,
   termsUrl: null,
@@ -218,6 +230,8 @@ function mapSettingsRow(row: StoredSettingsRow): AppSettings {
     retentionDays: row.retention_days ?? null,
     senderAddress: row.sender_address,
     setupCompletedAt: row.setup_completed_at,
+    signerConsentStatement: row.signer_consent_statement ?? null,
+    signerDisclosureText: row.signer_disclosure_text ?? null,
     signupMode: row.signup_mode,
     supportAddress: row.support_address,
     termsUrl: row.terms_url,
@@ -379,10 +393,12 @@ async function saveSettingsLocked(
         retention_days,
         brand_color,
         part11_mode,
+        signer_disclosure_text,
+        signer_consent_statement,
         created_at,
         updated_at
       )
-      values (true, $1, $2, $3, $4, $5, $6, $7, $8, $9, $11, $12, $13, $10, $10)
+      values (true, $1, $2, $3, $4, $5, $6, $7, $8, $9, $11, $12, $13, $14, $15, $10, $10)
       on conflict (id) do update set
         allowed_email_domains = excluded.allowed_email_domains,
         email_ready_at = excluded.email_ready_at,
@@ -396,6 +412,8 @@ async function saveSettingsLocked(
         retention_days = excluded.retention_days,
         brand_color = excluded.brand_color,
         part11_mode = excluded.part11_mode,
+        signer_disclosure_text = excluded.signer_disclosure_text,
+        signer_consent_statement = excluded.signer_consent_statement,
         updated_at = excluded.updated_at
       returning ${SETTINGS_COLUMNS}
     `,
@@ -413,6 +431,8 @@ async function saveSettingsLocked(
       next.retentionDays,
       next.brandColor,
       next.part11Mode,
+      next.signerDisclosureText,
+      next.signerConsentStatement,
     ],
   );
 

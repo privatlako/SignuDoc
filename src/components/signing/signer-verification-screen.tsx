@@ -116,7 +116,7 @@ export function SignerVerificationScreen({
     <div className="flex min-h-screen flex-col">
       <header>
         <div className="page-width flex items-center py-4">
-          <Brand href="/" />
+          <Brand href={null} />
         </div>
       </header>
       <main className="page-width flex flex-1 items-center justify-center py-10">
@@ -176,6 +176,15 @@ export function SignerVerificationScreen({
               </p>
             ) : null}
             <div className="flex flex-col gap-3 sm:flex-row">
+              {method === "email_code" ? (
+                <ShellButton
+                  loading={isSending}
+                  onClick={sendCode}
+                  variant="secondary"
+                >
+                  {notice ? "Új kód küldése" : "Kód küldése e-mailben"}
+                </ShellButton>
+              ) : null}
               <ShellButton
                 disabled={
                   code.trim().length === 0 ||
@@ -186,15 +195,6 @@ export function SignerVerificationScreen({
               >
                 Tovább
               </ShellButton>
-              {method === "email_code" ? (
-                <ShellButton
-                  loading={isSending}
-                  onClick={sendCode}
-                  variant="secondary"
-                >
-                  {notice ? "Új kód küldése" : "Kód küldése e-mailben"}
-                </ShellButton>
-              ) : null}
             </div>
           </form>
         </section>

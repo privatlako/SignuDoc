@@ -8,6 +8,19 @@ import { BrandingPanel } from "@/components/settings/branding-panel";
 import { Part11Panel } from "@/components/settings/part11-panel";
 import { PeoplePanel } from "@/components/settings/people-panel";
 import { SignerDataPanel } from "@/components/settings/signer-data-panel";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  CONSENT_STATEMENT,
+  DEFAULT_DISCLOSURE_TEMPLATE,
+  MAX_CONSENT_STATEMENT_LENGTH,
+  MAX_DISCLOSURE_TEXT_LENGTH,
+} from "@/lib/electronic-records-disclosure";
 import type { EmailDnsRecord, EmailStatus } from "@/lib/email-status";
 import type {
   OrganizationSettingsField,
@@ -83,13 +96,22 @@ export function OrganizationSettings({
   const [emailRevision, setEmailRevision] = useState(0);
 
   function handleChange(field: OrganizationSettingsField) {
-    return (event: ChangeEvent<HTMLInputElement>) => {
+    return (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const nextValue = event.target.value;
 
       setValues((currentValues) => ({ ...currentValues, [field]: nextValue }));
       setErrors((currentErrors) => ({ ...currentErrors, [field]: undefined }));
       setFeedback(null);
     };
+  }
+
+  function setTextField(
+    field: "signerConsentStatement" | "signerDisclosureText",
+    value: string,
+  ) {
+    setValues((currentValues) => ({ ...currentValues, [field]: value }));
+    setErrors((currentErrors) => ({ ...currentErrors, [field]: undefined }));
+    setFeedback(null);
   }
 
   function handleBrandColorChange(brandColor: string) {
@@ -128,6 +150,8 @@ export function OrganizationSettings({
           privacyUrl: values.privacyUrl,
           retentionDays: values.retentionDays,
           senderAddress: values.senderAddress,
+          signerConsentStatement: values.signerConsentStatement,
+          signerDisclosureText: values.signerDisclosureText,
           signupMode: values.signupMode,
           supportAddress: values.supportAddress,
           termsUrl: values.termsUrl,
@@ -357,6 +381,15 @@ export function OrganizationSettings({
             </div>
           ) : null}
 
+          <SignerDisclosureFields
+            consentError={errors.signerConsentStatement}
+            consentStatement={values.signerConsentStatement}
+            disabled={isSaving}
+            disclosureError={errors.signerDisclosureText}
+            disclosureText={values.signerDisclosureText}
+            onChange={setTextField}
+          />
+
           <div className="space-y-5 border-t border-(--border) pt-8">
             <div className="space-y-2">
               <h3 className="text-lg font-extrabold tracking-[-0.02em] text-(--fg)">
@@ -407,6 +440,174 @@ export function OrganizationSettings({
         <SignerDataPanel />
       </div>
     </section>
+  );
+}
+
+/**
+ * The disclosure signers read, and the checkbox they tick, before signing.
+ * Both are plain text: nothing typed here is read as HTML.
+ */
+function SignerDisclosureFields({
+  consentError,
+  consentStatement,
+  disabled,
+  disclosureError,
+  disclosureText,
+  onChange,
+}: {
+  consentError?: string;
+  consentStatement: string;
+  disabled: boolean;
+  disclosureError?: string;
+  disclosureText: string;
+  onChange: (
+    field: "signerConsentStatement" | "signerDisclosureText",
+    value: string,
+  ) => void;
+}) {
+  function fillWithDefault(
+    field: "signerConsentStatement" | "signerDisclosureText",
+  ) {
+    const current =
+      field === "signerDisclosureText" ? disclosureText : consentStatement;
+    const builtIn =
+      field === "signerDisclosureText"
+        ? DEFAULT_DISCLOSURE_TEMPLATE
+        : CONSENT_STATEMENT;
+
+    if (
+      current.trim().length > 0 &&
+      current.trim() !== builtIn &&
+      !window.confirm("Replace what you have written with the built-in text?")
+    ) {
+      return;
+    }
+
+    onChange(field, builtIn);
+  }
+
+  return (
+    <div className="space-y-5 border-t border-(--border) pt-8">
+      <div className="space-y-2">
+        <h3 className="text-lg font-extrabold tracking-[-0.02em] text-(--fg)">
+          What signers agree to
+        </h3>
+        <p className="max-w-2xl text-sm leading-6 text-(--secondary)">
+          Optional. Before signing, every signer reads this disclosure and ticks
+          the checkbox to agree to electronic documents and signatures. Leave
+          both empty to use the built-in Hungarian text. Each signer&apos;s
+          agreement records a version that names the exact words they saw, and
+          your own words are kept in the envelope&apos;s audit trail.
+        </p>
+      </div>
+
+      <Field className="gap-2 text-sm">
+        <FieldLabel
+          className="text-[0.8125rem] font-semibold text-(--secondary)"
+          htmlFor="signer-disclosure-text"
+        >
+          Signer disclosure text
+        </FieldLabel>
+        <Textarea
+          aria-describedby="signer-disclosure-text-description signer-disclosure-text-count"
+          aria-invalid={disclosureError ? true : undefined}
+          className="field-sizing-fixed h-80 resize-y leading-6"
+          disabled={disabled}
+          id="signer-disclosure-text"
+          maxLength={MAX_DISCLOSURE_TEXT_LENGTH}
+          name="signer-disclosure-text"
+          onChange={(event) =>
+            onChange("signerDisclosureText", event.target.value)
+          }
+          placeholder={DEFAULT_DISCLOSURE_TEMPLATE}
+          value={disclosureText}
+        />
+        {disclosureError ? (
+          <FieldError
+            className="text-xs font-semibold text-(--danger)"
+            id="signer-disclosure-text-description"
+          >
+            {disclosureError}
+          </FieldError>
+        ) : (
+          <FieldDescription
+            className="text-xs leading-5 text-(--tertiary)"
+            id="signer-disclosure-text-description"
+          >
+            Plain text. Leave a blank line between paragraphs, and start a line
+            with &quot;## &quot; to make it a heading. {"{sender}"} is replaced
+            with the sender&apos;s name and {"{contact}"} with the sender&apos;s
+            name and the address signers can write to. Leave empty to use the
+            built-in text, shown in grey.
+          </FieldDescription>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <ShellButton
+            className="min-h-10 px-4 text-sm"
+            disabled={disabled}
+            onClick={() => fillWithDefault("signerDisclosureText")}
+            variant="secondary"
+          >
+            Start from the built-in text
+          </ShellButton>
+          <span
+            className="text-xs text-(--tertiary)"
+            id="signer-disclosure-text-count"
+          >
+            {disclosureText.length.toLocaleString("en-US")} /{" "}
+            {MAX_DISCLOSURE_TEXT_LENGTH.toLocaleString("en-US")} characters
+          </span>
+        </div>
+      </Field>
+
+      <Field className="gap-2 text-sm">
+        <FieldLabel
+          className="text-[0.8125rem] font-semibold text-(--secondary)"
+          htmlFor="signer-consent-statement"
+        >
+          Consent checkbox text
+        </FieldLabel>
+        <Textarea
+          aria-describedby="signer-consent-statement-description"
+          aria-invalid={consentError ? true : undefined}
+          className="min-h-20 resize-y leading-6"
+          disabled={disabled}
+          id="signer-consent-statement"
+          maxLength={MAX_CONSENT_STATEMENT_LENGTH}
+          name="signer-consent-statement"
+          onChange={(event) =>
+            onChange("signerConsentStatement", event.target.value)
+          }
+          placeholder={CONSENT_STATEMENT}
+          value={consentStatement}
+        />
+        {consentError ? (
+          <FieldError
+            className="text-xs font-semibold text-(--danger)"
+            id="signer-consent-statement-description"
+          >
+            {consentError}
+          </FieldError>
+        ) : (
+          <FieldDescription
+            className="text-xs leading-5 text-(--tertiary)"
+            id="signer-consent-statement-description"
+          >
+            The sentence next to the checkbox, kept on one line. {"{sender}"}{" "}
+            and {"{contact}"} work here too. Leave empty to use the built-in
+            sentence, shown in grey.
+          </FieldDescription>
+        )}
+        <ShellButton
+          className="min-h-10 w-fit px-4 text-sm"
+          disabled={disabled}
+          onClick={() => fillWithDefault("signerConsentStatement")}
+          variant="secondary"
+        >
+          Start from the built-in sentence
+        </ShellButton>
+      </Field>
+    </div>
   );
 }
 

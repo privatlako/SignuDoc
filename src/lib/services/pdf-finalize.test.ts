@@ -241,7 +241,7 @@ test("the certificate names the people who were sent a copy", async () => {
     ).then(async (bytes) => (await extractText(bytes)).replace(/\s+/g, " "));
   const full = await render(false);
 
-  assert.ok(full.includes("Másolatot kapott címzettek"));
+  assert.ok(full.includes("MÁSOLATOT KAPOTT CÍMZETTEK"));
   assert.ok(full.includes("Nem írták alá."));
   assert.ok(full.includes("Zofia Wiśniewska <zofia@example.com>"));
 
@@ -262,7 +262,7 @@ test("the certificate names the people who were sent a copy", async () => {
   );
 
   assert.ok(
-    !(await extractText(without)).includes("Másolatot kapott címzettek"),
+    !(await extractText(without)).includes("MÁSOLATOT KAPOTT CÍMZETTEK"),
   );
 });
 
@@ -278,9 +278,10 @@ test("the certificate's Hungarian wording draws ő and ű, not stand-ins", async
   );
   const text = (await extractText(pdfBytes)).replace(/\s+/g, " ");
 
-  assert.ok(text.includes("SignuDoc lezárási igazolás"));
+  assert.ok(text.includes("Hitelesítési igazolás"));
+  assert.ok(!text.includes("SignuDoc"));
   assert.ok(text.includes("Lezárás időpontja"));
-  assert.ok(text.includes("Hogyan ellenőrizheted ezt az igazolást"));
+  assert.ok(text.includes("HOGYAN ELLENŐRIZHETED EZT AZ IGAZOLÁST"));
   assert.ok(text.includes("bélyegzővel"));
   assert.ok(!text.includes("\uFFFD"));
 });

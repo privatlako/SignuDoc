@@ -8,9 +8,34 @@ import { cn } from "@/lib/cn";
 type BrandProps = {
   className?: string;
   compact?: boolean;
-  href?: string;
+  /** Where the logo links to, or null for a logo that is not a link. */
+  href?: string | null;
   labelClassName?: string;
 };
+
+// Signers and visitors of public pages get the logo without a link, so it
+// does not lead them to the sign-in page.
+function BrandWrapper({
+  children,
+  className,
+  href,
+  label,
+}: {
+  children: React.ReactNode;
+  className: string;
+  href: string | null;
+  label: string;
+}) {
+  return href === null ? (
+    <span aria-label={label} className={className} role="img">
+      {children}
+    </span>
+  ) : (
+    <Link aria-label={label} className={className} href={href}>
+      {children}
+    </Link>
+  );
+}
 
 export function Brand({
   className = "",
@@ -19,29 +44,28 @@ export function Brand({
   labelClassName = "",
 }: BrandProps) {
   const { logoUrl, productName } = useBranding();
-
-  // An install's own logo stands in for the mark and the name. The link
+  // An install's own logo stands in for the mark and the name. The wrapper
   // still carries the name, for people who cannot see the picture.
   if (logoUrl) {
     return (
-      <Link
-        aria-label={productName}
-        className={cn("inline-flex min-w-0 items-center", className)}
+      <BrandWrapper
         href={href}
+        label={productName}
+        className={cn("inline-flex min-w-0 items-center", className)}
       >
         <BrandLogo compact={compact} src={logoUrl} />
-      </Link>
+      </BrandWrapper>
     );
   }
 
   return (
-    <Link
-      aria-label={productName}
+    <BrandWrapper
+      href={href}
+      label={productName}
       className={cn(
         "inline-flex min-w-0 items-center gap-2.5 text-(--fg)",
         className,
       )}
-      href={href}
     >
       <BrandMark />
       {!compact ? (
@@ -54,7 +78,7 @@ export function Brand({
           {productName}
         </span>
       ) : null}
-    </Link>
+    </BrandWrapper>
   );
 }
 

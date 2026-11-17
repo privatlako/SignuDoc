@@ -19,6 +19,8 @@ const stored: AppSettings = {
   retentionDays: null,
   senderAddress: "sign@acme.com",
   setupCompletedAt: 1_800_000_000,
+  signerConsentStatement: null,
+  signerDisclosureText: null,
   signupMode: "domains",
   supportAddress: "help@acme.com",
   termsUrl: null,
@@ -278,4 +280,89 @@ test("the hosted service keeps its own color whatever the form sends", async () 
   );
 
   assert.equal(result.brandColor, null);
+});
+
+test("the signer disclosure and checkbox text are saved as typed, and empty means the built-in words", async () => {
+  const current = resolveSettings(stored, {});
+  const { database } = fakeDatabase();
+  const result = await updateOrganizationSettings(
+    {
+      ...form,
+      signerConsentStatement: "  Elfogadom,\n  {sender}.  ",
+      signerDisclosureText:
+        "\r\n## Tájékoztató\r\n\r\nKérdés esetén: {contact}.\r\n",
+    },
+    current,
+    database,
+  );
+
+  assert.equal(
+    result.signerDisclosureText,
+    "## Tájékoztató\n\nKérdés esetén: {contact}.",
+  );
+  assert.equal(result.signerConsentStatement, "Elfogadom, {sender}.");
+
+  for (const blank of ["", "   \n  ", undefined]) {
+    const cleared = await updateOrganizationSettings(
+      { ...form, signerConsentStatement: blank, signerDisclosureText: blank },
+      resolveSettings(
+        {
+          ...stored,
+          signerConsentStatement: "Elfogadom.",
+          signerDisclosureText: "Saját szöveg.",
+        },
+        {},
+      ),
+      fakeDatabase().database,
+    );
+
+    assert.equal(cleared.signerDisclosureText, null);
+    assert.equal(cleared.signerConsentStatement, null);
+  }
+});
+
+test("a disclosure that is too long, only headings, or has an unknown placeholder is refused", async () => {
+  const current = resolveSettings(stored, {});
+
+  for (const [input, field] of [
+    [{ signerDisclosureText: "a".repeat(8001) }, "signerDisclosureText"],
+    [
+      { signerDisclosureText: "## Csak cím\n\n## Még egy" },
+      "signerDisclosureText",
+    ],
+    [{ signerDisclosureText: "Írj ide: {email}." }, "signerDisclosureText"],
+    [{ signerConsentStatement: "a".repeat(601) }, "signerConsentStatement"],
+    [
+      { signerConsentStatement: "Elfogadom, {name}." },
+      "signerConsentStatement",
+    ],
+  ] as const) {
+    const { database, saved } = fakeDatabase();
+
+    await assert.rejects(
+      updateOrganizationSettings({ ...form, ...input }, current, database),
+      (error: unknown) => {
+        assert.ok(error instanceof OrganizationSettingsError);
+        assert.deepEqual(Object.keys(error.fieldErrors), [field]);
+
+        return true;
+      },
+    );
+    assert.equal(saved.values, null);
+  }
+
+  // Exactly at the limits is fine.
+  const { database } = fakeDatabase();
+  const result = await updateOrganizationSettings(
+    {
+      ...form,
+      signerConsentStatement: "b".repeat(600),
+      signerDisclosureText: "a".repeat(8000),
+    },
+    current,
+    database,
+  );
+
+  assert.equal(result.signerDisclosureText?.length, 8000);
+  assert.equal(result.signerConsentStatement?.length, 600);
 });

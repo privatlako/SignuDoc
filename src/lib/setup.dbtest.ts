@@ -385,6 +385,15 @@ test("a database that is behind this version still applies its sign-up rule", as
   };
 
   try {
+    // The table as it was before signers' words could be changed.
+    await hide("signer_disclosure_text");
+
+    const beforeDisclosure = await readStoredSettings(database);
+
+    assert.equal(beforeDisclosure?.signupMode, "closed");
+    assert.equal(beforeDisclosure?.signerDisclosureText, null);
+    assert.equal(beforeDisclosure?.retentionDays, 365);
+
     // The table as it was before an install could have its own color.
     await hide("brand_color");
 

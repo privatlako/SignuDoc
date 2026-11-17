@@ -3,6 +3,13 @@ import { z } from "zod";
 import { normalizeBrandColor } from "./brand-color.ts";
 import { buildBrandLogoPath } from "./branding.ts";
 import { getDb, type DbExecutor } from "./db/connection.ts";
+import {
+  findUnknownPlaceholders,
+  MAX_CONSENT_STATEMENT_LENGTH,
+  MAX_DISCLOSURE_TEXT_LENGTH,
+  normalizeConsentStatement,
+  parseDisclosureText,
+} from "./electronic-records-disclosure.ts";
 import { emailSchema } from "./schemas/common.ts";
 import {
   saveSettings,
@@ -20,6 +27,8 @@ export type OrganizationSettingsField =
   | "privacyUrl"
   | "retentionDays"
   | "senderAddress"
+  | "signerConsentStatement"
+  | "signerDisclosureText"
   | "signupMode"
   | "supportAddress"
   | "termsUrl";
@@ -50,6 +59,10 @@ export type OrganizationSettingsView = {
   retentionDays: string;
   senderAddress: string;
   senderAddressFromEnv: boolean;
+  /** The checkbox text signers tick. Empty for the built-in one. */
+  signerConsentStatement: string;
+  /** The disclosure signers read before signing. Empty for the built-in one. */
+  signerDisclosureText: string;
   signupMode: AppSettings["signupMode"];
   supportAddress: string;
   supportAddressFromEnv: boolean;
@@ -74,6 +87,8 @@ export function toOrganizationSettingsView(
       settings.retentionDays === null ? "" : String(settings.retentionDays),
     senderAddress: settings.senderAddress ?? "",
     senderAddressFromEnv: settings.senderAddressFromEnv,
+    signerConsentStatement: settings.signerConsentStatement ?? "",
+    signerDisclosureText: settings.signerDisclosureText ?? "",
     signupMode: settings.signupMode,
     supportAddress: settings.supportAddress ?? "",
     supportAddressFromEnv: settings.supportAddressFromEnv,
@@ -124,6 +139,25 @@ const optionalBrandColor = z.preprocess(
     .nullable(),
 );
 
+// Plain text, kept as typed apart from line endings and the space around
+// it. Empty means the built-in words.
+const optionalDisclosureText = z.preprocess(
+  (value) =>
+    typeof value === "string"
+      ? blankToNull(value.replace(/\r\n?/g, "\n").trim())
+      : value,
+  z.string().max(MAX_DISCLOSURE_TEXT_LENGTH).nullable(),
+);
+
+// One line: the checkbox label does not keep line breaks.
+const optionalConsentStatement = z.preprocess(
+  (value) =>
+    typeof value === "string"
+      ? blankToNull(normalizeConsentStatement(value))
+      : value,
+  z.string().max(MAX_CONSENT_STATEMENT_LENGTH).nullable(),
+);
+
 const organizationSettingsSchema = z.object({
   allowedEmailDomains: z.string().max(4000).default(""),
   brandColor: optionalBrandColor.default(null),
@@ -137,6 +171,8 @@ const organizationSettingsSchema = z.object({
     }, z.number().int().min(30).max(36_500).nullable())
     .default(null),
   senderAddress: optionalEmail.default(null),
+  signerConsentStatement: optionalConsentStatement.default(null),
+  signerDisclosureText: optionalDisclosureText.default(null),
   signupMode: z.enum(SIGNUP_MODES),
   supportAddress: optionalEmail.default(null),
   termsUrl: optionalWebUrl.default(null),
@@ -149,6 +185,8 @@ const FIELD_MESSAGES: Record<OrganizationSettingsField, string> = {
   privacyUrl: "Enter a full web address starting with https://",
   retentionDays: "Enter a number of days, 30 or more, or leave this empty",
   senderAddress: "Enter a valid email address, or leave this empty",
+  signerConsentStatement: `Keep the checkbox text to ${MAX_CONSENT_STATEMENT_LENGTH} characters or fewer, or leave it empty`,
+  signerDisclosureText: `Keep the disclosure to ${MAX_DISCLOSURE_TEXT_LENGTH.toLocaleString("en-US")} characters or fewer, or leave it empty`,
   signupMode: "Choose who can create an account",
   supportAddress: "Enter an email address people can write to for help",
   termsUrl: "Enter a full web address starting with https://",
@@ -243,6 +281,29 @@ export async function updateOrganizationSettings(
       "Part 11 mode is on, so finished envelopes are kept until you delete them. Leave this empty.";
   }
 
+  if (input.signerDisclosureText !== null) {
+    const unknown = findUnknownPlaceholders(input.signerDisclosureText);
+
+    if (unknown.length > 0) {
+      fieldErrors.signerDisclosureText = `Unknown placeholder: ${unknown.slice(0, 3).join(", ")}. Use {sender} or {contact}.`;
+    } else if (
+      !parseDisclosureText(input.signerDisclosureText).some(
+        (section) => section.paragraphs.length > 0,
+      )
+    ) {
+      fieldErrors.signerDisclosureText =
+        "Add at least one paragraph, not only headings, or leave this empty";
+    }
+  }
+
+  if (input.signerConsentStatement !== null) {
+    const unknown = findUnknownPlaceholders(input.signerConsentStatement);
+
+    if (unknown.length > 0) {
+      fieldErrors.signerConsentStatement = `Unknown placeholder: ${unknown.slice(0, 3).join(", ")}. Use {sender} or {contact}.`;
+    }
+  }
+
   if (Object.keys(fieldErrors).length > 0) {
     throw new OrganizationSettingsError(fieldErrors);
   }
@@ -252,6 +313,8 @@ export async function updateOrganizationSettings(
       ...(domainRule ? { allowedEmailDomains: domains } : {}),
       organizationName: input.organizationName,
       retentionDays: input.retentionDays,
+      signerConsentStatement: input.signerConsentStatement,
+      signerDisclosureText: input.signerDisclosureText,
       signupMode: input.signupMode,
       ...(current.hosted
         ? {}
@@ -278,6 +341,8 @@ const AUDITED_SETTINGS = [
   "privacyUrl",
   "retentionDays",
   "senderAddress",
+  "signerConsentStatement",
+  "signerDisclosureText",
   "signupMode",
   "supportAddress",
   "termsUrl",

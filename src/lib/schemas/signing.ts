@@ -54,8 +54,8 @@ export const signingVisibleFieldSchema = signingFieldBaseSchema.extend({
 export const signingDisclosureSchema = z.object({
   sections: z.array(
     z.object({
-      heading: z.string().trim().min(1),
-      text: z.string().trim().min(1),
+      heading: z.string().trim().min(1).nullable(),
+      paragraphs: z.array(z.string().trim().min(1)),
     }),
   ),
   statement: z.string().trim().min(1),

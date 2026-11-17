@@ -366,8 +366,8 @@ const CERTIFICATE_WORDING_EXTRA_CHARACTERS = "ŐőŰű„”";
 
 function getCertificateTitle(envelope: EnvelopeRecord): string {
   return envelope.status === "completed"
-    ? "SignuDoc lezárási igazolás"
-    : "SignuDoc hitelesítési igazolás";
+    ? "Hitelesítési igazolás"
+    : "Hitelesítési igazolás";
 }
 
 function getTerminalTimestampLabel(envelope: EnvelopeRecord): string {
@@ -640,6 +640,23 @@ function stampSignatureManifestation(
   });
 }
 
+type AuditLineColor = "ink" | "muted";
+
+type AuditLine = WrappedLine & {
+  color?: AuditLineColor;
+  gapAfter?: number;
+  gapBefore?: number;
+  indent?: number;
+  /** A thin rule across the page above this line. */
+  ruleBefore?: boolean;
+};
+
+const AUDIT_COLORS = {
+  ink: rgb(0.18, 0.15, 0.13),
+  muted: rgb(0.47, 0.43, 0.4),
+  rule: rgb(0.87, 0.84, 0.81),
+};
+
 function buildAuditLines(input: {
   auditEvents: AuditEventRecord[];
   auditFingerprint?: string | null;
@@ -655,19 +672,25 @@ function buildAuditLines(input: {
   signedPdfSha256?: string | null;
   signers: SignerRecord[];
 }) {
-  const titleFontSize = 18;
-  const sectionFontSize = 11;
+  const titleFontSize = 20;
+  const sectionFontSize = 8.5;
   const bodyFontSize = 9.25;
-  const lines: Array<WrappedLine & { gapAfter?: number; gapBefore?: number }> =
-    [];
+  const lines: AuditLine[] = [];
 
   const pushParagraph = (
     text: string,
     font: TextFace,
     size: number,
-    options: { gapAfter?: number; gapBefore?: number } = {},
+    options: {
+      color?: AuditLineColor;
+      gapAfter?: number;
+      gapBefore?: number;
+      indent?: number;
+      ruleBefore?: boolean;
+    } = {},
   ) => {
-    const wrapped = wrapText(font, size, input.maxWidth, text);
+    const indent = options.indent ?? 0;
+    const wrapped = wrapText(font, size, input.maxWidth - indent, text);
 
     if (wrapped.length === 0) {
       return;
@@ -676,11 +699,27 @@ function buildAuditLines(input: {
     wrapped.forEach((line, index) => {
       lines.push({
         ...line,
+        color: options.color,
         gapAfter: index === wrapped.length - 1 ? options.gapAfter : undefined,
         gapBefore: index === 0 ? options.gapBefore : undefined,
+        indent,
+        ruleBefore: index === 0 ? options.ruleBefore : undefined,
       });
     });
   };
+  // A section: a small, spaced, muted heading with a thin rule above it.
+  const pushSection = (text: string) =>
+    pushParagraph(text.toUpperCase(), input.fonts.bold, sectionFontSize, {
+      color: "muted",
+      gapAfter: 8,
+      gapBefore: 18,
+      ruleBefore: true,
+    });
+  // A "label: value" row, the label muted.
+  const pushField = (label: string, value: string) =>
+    pushParagraph(`${label}: ${value}`, input.fonts.regular, bodyFontSize, {
+      gapAfter: 2,
+    });
 
   const terminalTimestamp = resolveTerminalTimestamp(
     input.envelope,
@@ -697,90 +736,59 @@ function buildAuditLines(input: {
     input.fonts.bold,
     titleFontSize,
     {
-      gapAfter: 8,
+      gapAfter: 4,
     },
   );
-  pushParagraph(
-    `Aláírási kérés azonosítója: ${input.envelope.id}`,
-    input.fonts.regular,
-    bodyFontSize,
+  pushParagraph(input.envelope.title, input.fonts.regular, 12, {
+    color: "muted",
+    gapAfter: 6,
+  });
+
+  pushSection("A dokumentum");
+  pushField("Állapot", getEnvelopeStatusLabel(input.envelope.status));
+  pushField(
+    getTerminalTimestampLabel(input.envelope),
+    formatAuditTimestamp(terminalTimestamp),
   );
-  pushParagraph(
-    `Dokumentum címe: ${input.envelope.title}`,
-    input.fonts.regular,
-    bodyFontSize,
-  );
-  pushParagraph(
-    `Eredeti PDF: ${input.envelope.sourcePdfFilename}`,
-    input.fonts.regular,
-    bodyFontSize,
-  );
-  pushParagraph(
-    `Eredeti dokumentum hash-értéke: ${input.envelope.sourcePdfHash}`,
-    input.fonts.regular,
-    bodyFontSize,
-  );
+  pushField("Eredeti PDF", input.envelope.sourcePdfFilename);
+  pushField("Azonosító", input.envelope.id);
+  pushField("Eredeti dokumentum SHA-256", input.envelope.sourcePdfHash);
   if (input.signedPdfSha256) {
-    pushParagraph(
-      `Aláírt dokumentum SHA-256: ${input.signedPdfSha256}`,
-      input.fonts.regular,
-      bodyFontSize,
-    );
+    pushField("Aláírt dokumentum SHA-256", input.signedPdfSha256);
   }
 
   if (input.auditFingerprint) {
-    pushParagraph(
-      `Eseménynapló ujjlenyomata (SHA-256): ${input.auditFingerprint}`,
-      input.fonts.regular,
-      bodyFontSize,
-    );
+    pushField("Eseménynapló ujjlenyomata (SHA-256)", input.auditFingerprint);
   }
 
-  pushParagraph(
-    `Állapot: ${getEnvelopeStatusLabel(input.envelope.status)}`,
-    input.fonts.regular,
-    bodyFontSize,
-  );
-  pushParagraph(
-    `${getTerminalTimestampLabel(input.envelope)}: ${formatAuditTimestamp(terminalTimestamp)}`,
-    input.fonts.regular,
-    bodyFontSize,
-    {
-      gapAfter: 10,
-    },
-  );
-
-  pushParagraph("Aláírók", input.fonts.bold, sectionFontSize, {
-    gapAfter: 4,
-  });
+  pushSection("Aláírók");
 
   for (const signer of input.signers) {
     const actionLabel = getSignerCertificateActionLabel(input.envelope, signer);
     const signerLabel = input.redactForRecipients
-      ? `${signer.signOrder}. ${signer.name} | ${actionLabel}`
-      : `${signer.signOrder}. ${signer.name} <${signer.email}> | ${actionLabel}`;
+      ? `${signer.signOrder}. ${signer.name}`
+      : `${signer.signOrder}. ${signer.name} <${signer.email}>`;
 
-    pushParagraph(signerLabel, input.fonts.regular, bodyFontSize);
+    pushParagraph(signerLabel, input.fonts.bold, 10, { gapBefore: 6 });
+    pushParagraph(actionLabel, input.fonts.regular, bodyFontSize, {
+      gapAfter: 2,
+      indent: 14,
+    });
 
     for (const detail of describeSignerEvidence(
       signer,
       input.auditEvents,
       Boolean(input.redactForRecipients),
     )) {
-      pushParagraph(`   ${detail}`, input.fonts.regular, bodyFontSize);
+      pushParagraph(detail, input.fonts.regular, bodyFontSize - 0.5, {
+        color: "muted",
+        indent: 14,
+      });
     }
   }
 
   if (input.copyRecipients && input.copyRecipients.length > 0) {
-    pushParagraph(
-      "Másolatot kapott címzettek",
-      input.fonts.bold,
-      sectionFontSize,
-      {
-        gapAfter: 4,
-        gapBefore: 10,
-      },
-    );
+    pushSection("Másolatot kapott címzettek");
     pushParagraph(
       "Megkapták a lezárt dokumentum másolatát. Nem írták alá.",
       input.fonts.regular,
@@ -798,10 +806,7 @@ function buildAuditLines(input: {
     }
   }
 
-  pushParagraph("Eseménynapló", input.fonts.bold, sectionFontSize, {
-    gapAfter: 4,
-    gapBefore: 10,
-  });
+  pushSection("Eseménynapló");
 
   for (const event of auditEvents) {
     const actor =
@@ -817,25 +822,25 @@ function buildAuditLines(input: {
       signerName && actor !== signerName ? `${signerName} <${actor}>` : actor;
 
     pushParagraph(
-      `${formatAuditTimestamp(event.createdAt)} | ${AUDIT_EVENT_LABELS[event.event] ?? event.event} | ${actorLabel}`,
-      input.fonts.regular,
+      `${formatAuditTimestamp(event.createdAt)}  ·  ${AUDIT_EVENT_LABELS[event.event] ?? event.event}`,
+      input.fonts.bold,
       bodyFontSize,
+      { gapBefore: 4 },
     );
+    pushParagraph(actorLabel, input.fonts.regular, bodyFontSize - 0.5, {
+      color: "muted",
+      indent: 14,
+    });
 
     for (const detail of describeEventEvidence(event)) {
-      pushParagraph(`   ${detail}`, input.fonts.regular, bodyFontSize);
+      pushParagraph(detail, input.fonts.regular, bodyFontSize - 0.5, {
+        color: "muted",
+        indent: 14,
+      });
     }
   }
 
-  pushParagraph(
-    "Hogyan ellenőrizheted ezt az igazolást",
-    input.fonts.bold,
-    sectionFontSize,
-    {
-      gapAfter: 4,
-      gapBefore: 10,
-    },
-  );
+  pushSection("Hogyan ellenőrizheted ezt az igazolást");
   pushParagraph(
     "Az aláírt dokumentumot és ezt az igazolást is digitális aláírással, elektronikus bélyegzővel zártuk le. A PDF-olvasó csak akkor mutatja érvényesnek a bélyegzőt, ha a fájl a lezárás óta nem változott. A fenti SHA-256 értékeket ennek az oldalnak a Dokumentum ellenőrzése oldalán is ellenőrizheted.",
     input.fonts.regular,
@@ -1125,29 +1130,72 @@ function appendAuditTrailPages(input: {
     signers: input.signers,
   });
 
-  let page = input.pdfDocument.addPage([pageSize.width, pageSize.height]);
+  // Room kept at the bottom of each page for its footer.
+  const footerSpace = 28;
+  const pages: PDFPage[] = [];
+  const addPage = () => {
+    const added = input.pdfDocument.addPage([pageSize.width, pageSize.height]);
+
+    pages.push(added);
+    return added;
+  };
+  let page = addPage();
   let cursorY = pageSize.height - margin;
 
   for (const line of lines) {
-    cursorY -= line.gapBefore ?? 0;
-
     const lineHeight = line.size * lineHeightMultiplier;
+    const ruleSpace = line.ruleBefore ? 12 : 0;
 
-    if (cursorY - lineHeight < margin) {
-      page = input.pdfDocument.addPage([pageSize.width, pageSize.height]);
+    if (
+      cursorY - (line.gapBefore ?? 0) - ruleSpace - lineHeight <
+      margin + footerSpace
+    ) {
+      page = addPage();
       cursorY = pageSize.height - margin;
+    } else {
+      cursorY -= line.gapBefore ?? 0;
+    }
+
+    if (line.ruleBefore) {
+      page.drawLine({
+        color: AUDIT_COLORS.rule,
+        end: { x: pageSize.width - margin, y: cursorY },
+        start: { x: margin, y: cursorY },
+        thickness: 0.6,
+      });
+      cursorY -= ruleSpace;
     }
 
     line.font.drawText(page, line.text, {
-      color: rgb(0.14, 0.14, 0.14),
+      color: AUDIT_COLORS[line.color ?? "ink"],
       size: line.size,
-      x: margin,
+      x: margin + (line.indent ?? 0),
       y: cursorY - line.size,
     });
 
     cursorY -= lineHeight;
     cursorY -= line.gapAfter ?? 0;
   }
+
+  // A quiet footer on every certificate page: what it is and where it is.
+  pages.forEach((footerPage, index) => {
+    const text = `${input.envelope.title}  ·  Hitelesítési igazolás  ·  ${String(index + 1)}/${String(pages.length)}`;
+    const size = 7.5;
+    const width = input.fonts.regular.widthOfTextAtSize(text, size);
+
+    footerPage.drawLine({
+      color: AUDIT_COLORS.rule,
+      end: { x: pageSize.width - margin, y: margin + 14 },
+      start: { x: margin, y: margin + 14 },
+      thickness: 0.6,
+    });
+    input.fonts.regular.drawText(footerPage, text, {
+      color: AUDIT_COLORS.muted,
+      size,
+      x: Math.max(margin, (pageSize.width - width) / 2),
+      y: margin,
+    });
+  });
 }
 
 /** Someone sent a copy of the finished document who did not sign it. */
@@ -1392,6 +1440,7 @@ export async function renderFinalizedEnvelopePdf(
       envelope: input.envelope,
       fonts: faces,
       pdfDocument,
+      redactForRecipients: true,
       signers: input.signers,
     });
   }
@@ -1435,6 +1484,10 @@ export async function finalizeEnvelope(
           copyRecipients: input.copyRecipients,
           envelope: input.envelope,
           fields: input.fields,
+          // The certificate goes at the end of the signed document itself,
+          // so everyone gets one file. It is the redacted version, because
+          // the signed document goes to every signer and copy recipient.
+          includeAuditTrail: true,
           signers: input.signers,
           sourcePdfKey: input.sourcePdf.key,
         },

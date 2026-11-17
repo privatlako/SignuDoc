@@ -43,7 +43,7 @@ import {
   signerRecordSchema,
   type CopyRecipientRecord,
 } from "./schemas/signer.ts";
-import { getBranding } from "./settings.ts";
+import { getBranding, getSettings } from "./settings.ts";
 import {
   checkSigningCredentials,
   MAX_SIGNING_PASSWORD_ATTEMPTS,
@@ -67,7 +67,6 @@ import {
   emailCode,
   emailHeading,
   emailNote,
-  emailSecondaryButton,
 } from "./services/email-layout.ts";
 import { hashOpaqueToken } from "./services/opaque-tokens.ts";
 import {
@@ -108,10 +107,9 @@ import {
 } from "./envelope-deadline.ts";
 import { describeEntryProblem, judgeRadioGroups } from "./field-choices.ts";
 import {
-  buildElectronicRecordsDisclosure,
-  CONSENT_STATEMENT,
-  ELECTRONIC_RECORDS_DISCLOSURE_VERSION,
-} from "./electronic-records-disclosure.ts";
+  resolveSignerDisclosure,
+  type SignerDisclosure,
+} from "./signer-disclosure.ts";
 import {
   checkAccessCode,
   checkEmailCode,
@@ -348,6 +346,26 @@ function normalizeSenderName(sender: SenderRow): string {
   return sender.name?.trim() ? sender.name : sender.email;
 }
 
+/** The disclosure this signer is shown, in the install's current words. */
+async function resolveDisclosureForSigner(
+  context: ResolvedSigningContext,
+  branding?: Branding,
+): Promise<SignerDisclosure> {
+  const settings = await getSettings();
+  const { supportAddress } = branding ?? (await getBranding());
+
+  return resolveSignerDisclosure(
+    {
+      contactAddress: supportAddress ?? context.sender.email,
+      senderName: normalizeSenderName(context.sender),
+    },
+    {
+      statement: settings.signerConsentStatement,
+      text: settings.signerDisclosureText,
+    },
+  );
+}
+
 function getEnvelopeUrl(envelopeId: string): string {
   const appUrl = requireConfigValue("app", "APP_URL", getEnv().appUrl);
 
@@ -366,8 +384,8 @@ function buildCompletionSenderEmail(input: {
 }) {
   const completedUrl = getEnvelopeUrl(input.envelopeId);
   const title = quoteTitle(input.envelopeTitle);
-  const subject = `Mindenki aláírta: ${title}`;
-  const introLine = `Mindenki aláírta ezt a szerződést: ${title}.`;
+  const subject = `Minden fél aláírta: ${title}`;
+  const introLine = `Minden fél aláírta ezt a szerződést: ${title}. A felek az abban foglalt nyilatkozatot megtették, elfogadták, magukra nézve kötelezőnek ismerték el.`;
   const readyLine =
     "Az aláírt PDF és a hitelesítési igazolás már elérhető a fiókodban.";
   const textBody = [
@@ -380,7 +398,7 @@ function buildCompletionSenderEmail(input: {
     completedUrl,
   ].join("\n");
   const htmlBody = [
-    emailHeading("Mindenki aláírta a szerződést"),
+    emailHeading("Minden fél aláírta a szerződést"),
     `<p>${escapeHtml(buildGreeting(input.senderName))}</p>`,
     `<p>${escapeHtml(introLine)}</p>`,
     `<p>${readyLine}</p>`,
@@ -465,38 +483,43 @@ function buildCompletionSignerEmail(input: {
   signedDownloadUrl: string;
 }) {
   const title = quoteTitle(input.envelopeTitle);
-  const subject = `Mindenki aláírta: ${title}`;
-  const introLine = `Mindenki aláírta ezt a szerződést: ${title}. Küldő: ${input.senderName}.`;
+  const subject = `Minden fél aláírta: ${title}`;
+  const introLine = `Minden fél aláírta ezt a szerződést: ${title}. Küldő: ${input.senderName}.`;
+  const statementLine =
+    "A felek az abban foglalt nyilatkozatot megtették, elfogadták, magukra nézve kötelezőnek ismerték el.";
   const copyLine = input.copyOnly
     ? `${input.senderName} kérte, hogy kapj róla egy másolatot.`
     : null;
   const filesLine = input.attached
-    ? "Csatoltuk az aláírt szerződést és a hitelesítési igazolást. Őrizd meg őket: ez a te példányod a megállapodásból."
-    : "Az aláírt szerződés és a hitelesítési igazolás elkészült.";
+    ? "A szerződést hitelesített PDF formátumban a jelen levelünkhöz csatoltuk."
+    : "A szerződést hitelesített PDF formátumban az alábbi gombbal töltheted le.";
+  const keepLine =
+    "A PDF végén megtalálod a hitelesítési igazolást is. Őrizd meg: ez a te példányod a megállapodásból.";
+  const linksLine = `A letöltési link ${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} napig érvényes. Ha lejárt, ott kérhetsz újat.`;
   const textBody = [
     buildGreeting(input.signerName),
     "",
     introLine,
+    statementLine,
     ...(copyLine ? [copyLine] : []),
     filesLine,
+    keepLine,
     "",
-    `Letöltési linkek (${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} napig érvényesek; ha egy link lejárt, ott kérhetsz újat):`,
-    `Aláírt PDF: ${input.signedDownloadUrl}`,
-    `Hitelesítési igazolás (kitakart adatokkal): ${input.evidenceDownloadUrl}`,
+    `Hitelesített szerződés: ${input.signedDownloadUrl}`,
+    `Hitelesítési igazolás külön (kitakart adatokkal): ${input.evidenceDownloadUrl}`,
+    "",
+    linksLine,
   ].join("\n");
   const htmlBody = [
-    emailHeading("Mindenki aláírta a szerződést"),
+    emailHeading("Minden fél aláírta a szerződést"),
     `<p>${escapeHtml(buildGreeting(input.signerName))}</p>`,
-    `<p>${escapeHtml(introLine)}</p>`,
+    `<p>${escapeHtml(introLine)} ${escapeHtml(statementLine)}</p>`,
     copyLine ? `<p>${escapeHtml(copyLine)}</p>` : "",
-    `<p>${filesLine}</p>`,
-    emailButton("Aláírt szerződés letöltése", input.signedDownloadUrl),
-    emailSecondaryButton(
-      "Hitelesítési igazolás letöltése",
-      input.evidenceDownloadUrl,
-    ),
+    `<p>${escapeHtml(filesLine)}</p>`,
+    emailButton("Hitelesített szerződés letöltése", input.signedDownloadUrl),
+    emailNote(escapeHtml(keepLine)),
     emailNote(
-      `A letöltési linkek ${RECIPIENT_DOWNLOAD_LINK_TTL_DAYS} napig érvényesek. Ha egy link lejárt, ott kérhetsz újat. Az igazolásban a személyes adatok egy része ki van takarva.`,
+      `${escapeHtml(linksLine)} A hitelesítési igazolást <a href="${escapeHtml(input.evidenceDownloadUrl)}" style="color:inherit;text-decoration:underline;">külön is letöltheted</a>.`,
     ),
   ].join("");
   const legalFooter = withUserEmailLegalFooter(
@@ -1111,16 +1134,13 @@ async function sendCompletionEmails(input: {
   const fileNameStem =
     sanitizeFileNameSegment(input.envelopeTitle) ||
     `envelope-${input.envelopeId}`;
+  // The signed PDF carries its certificate pages at the end, so it is the
+  // only attachment.
   const attachments: EmailAttachment[] = [
     {
       content: input.attachments.signedPdf,
       contentType: "application/pdf",
-      filename: `${fileNameStem} - signed.pdf`,
-    },
-    {
-      content: input.attachments.recipientCertificate,
-      contentType: "application/pdf",
-      filename: `${fileNameStem} - certificate.pdf`,
+      filename: `${fileNameStem} - hitelesitett.pdf`,
     },
   ];
   const attach = fitsAsAttachments(attachments);
@@ -1586,7 +1606,12 @@ export async function recordSignerConsent(
     database,
   );
 
-  if (parsed.disclosureVersion !== ELECTRONIC_RECORDS_DISCLOSURE_VERSION) {
+  // The words are worked out again here, from the settings as they are now,
+  // so what is recorded is what this signer was shown, not what the browser
+  // says it was shown.
+  const disclosure = await resolveDisclosureForSigner(context);
+
+  if (parsed.disclosureVersion !== disclosure.version) {
     throw new SigningMutationError(
       "A tájékoztató közben megváltozott. Töltsd újra az oldalt, és olvasd el az aktuális változatot.",
       409,
@@ -1623,8 +1648,11 @@ export async function recordSignerConsent(
         ipAddress: requestMeta.ipAddress ?? null,
         metadata: {
           ...signerAuditMetadata(context),
-          disclosureVersion: ELECTRONIC_RECORDS_DISCLOSURE_VERSION,
-          statement: CONSENT_STATEMENT,
+          disclosureVersion: disclosure.version,
+          statement: disclosure.statement,
+          // The built-in words are named by their version alone. Words an
+          // administrator wrote can change later, so they go in the record.
+          ...(disclosure.custom ? { disclosureText: disclosure.text } : {}),
         },
         userAgent: requestMeta.userAgent ?? null,
       },
@@ -1796,17 +1824,16 @@ export async function getSigningPayloadForToken(
       })),
   );
 
+  const disclosure = await resolveDisclosureForSigner(context, branding);
+
   return signingPayloadSchema.parse({
     consentUrl: getSigningConsentUrl(token),
     consentedAt: checkState.consentedAt,
     currentSignerFields,
     disclosure: {
-      sections: buildElectronicRecordsDisclosure({
-        contactAddress: branding.supportAddress ?? context.sender.email,
-        senderName: normalizeSenderName(context.sender),
-      }),
-      statement: CONSENT_STATEMENT,
-      version: ELECTRONIC_RECORDS_DISCLOSURE_VERSION,
+      sections: disclosure.sections,
+      statement: disclosure.statement,
+      version: disclosure.version,
     },
     declineUrl: getSigningDeclineUrl(token),
     documentUrl: getSigningDocumentUrl(token),
