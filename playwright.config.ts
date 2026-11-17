@@ -83,7 +83,7 @@ export default defineConfig({
       // something that never touches the database. A page would remember for
       // a minute that the site is already set up, and an API route can fail
       // outright for want of tables.
-      url: `${baseURL}/icon.svg`,
+      url: `${baseURL}/icon.png`,
     },
     {
       command:
