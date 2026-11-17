@@ -155,10 +155,10 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       to: adminEmail,
     });
 
-    expect(testEmail.subject).toBe(`Test email from ${ORGANIZATION_NAME}`);
+    expect(testEmail.subject).toBe(`Teszt e-mail – ${ORGANIZATION_NAME}`);
     // Replies and questions go to the address given at setup.
     expect(testEmail.replyTo).toBe(supportEmail);
-    expect(testEmail.text).toContain(`Questions? Contact ${supportEmail}.`);
+    expect(testEmail.text).toContain(`Kérdésed van? Írj ide: ${supportEmail}`);
 
     // The organization puts its own logo and color on the site. The logo
     // is saved the moment it is chosen, the color with the form.
@@ -225,10 +225,14 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       const footer = page.getByRole("contentinfo");
 
       await expect(
-        footer.getByRole("link", { exact: true, name: "Privacy" }),
+        footer.getByRole("link", { exact: true, name: "Adatvédelem" }),
       ).toHaveAttribute("href", "/signer-privacy");
 
-      for (const hostedOnly of ["Terms", "Accessibility", "Contact"]) {
+      for (const hostedOnly of [
+        "Feltételek",
+        "Akadálymentesség",
+        "Kapcsolat",
+      ]) {
         await expect(
           footer.getByRole("link", { exact: true, name: hostedOnly }),
         ).toHaveCount(0);
@@ -280,7 +284,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
 
     // Emails carry the organization's name, not the product's.
     expect(verificationEmail.text).toContain(
-      `Sent by ${ORGANIZATION_NAME} using SignuDoc.`,
+      `Ezt az üzenetet ${ORGANIZATION_NAME} küldte a SignuDoc segítségével.`,
     );
 
     await page.goto(
@@ -510,7 +514,9 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
   });
   const signingLink = extractLink(invitation.text, "/sign/");
 
-  expect(invitation.text).toContain(`through ${ORGANIZATION_NAME}.`);
+  expect(invitation.text).toContain(
+    `Ezt az üzenetet ${ORGANIZATION_NAME} küldte a SignuDoc segítségével.`,
+  );
   expect(invitation.replyTo).toBe(supportEmail);
   // The logo opens the message, fetched from this site.
   expect(invitation.html).toMatch(
@@ -531,18 +537,18 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
 
     // Agreement to electronic records comes before anything else.
     const consent = recipientPage.getByRole("dialog", {
-      name: "Before you sign",
+      name: "Mielőtt aláírod",
     });
 
     await expect(
-      consent.getByRole("button", { name: "Agree and continue" }),
+      consent.getByRole("button", { name: "Elfogadom, tovább" }),
     ).toBeDisabled();
     await consent
       .getByRole("checkbox", {
-        name: "I agree to use electronic records and signatures",
+        name: "Hozzájárulok az elektronikus dokumentumok és aláírások használatához",
       })
       .check();
-    await consent.getByRole("button", { name: "Agree and continue" }).click();
+    await consent.getByRole("button", { name: "Elfogadom, tovább" }).click();
     await expect(consent).toBeHidden();
     await expect(
       recipientPage.getByRole("img", { name: "Rendered PDF page 1" }),
@@ -550,31 +556,37 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     expect(await readAccentColor(recipientPage)).toBe(BRAND_COLOR);
     // The signature, the dropdown and the radio group. The number is
     // optional, and the two radio buttons are one question.
-    await expect(recipientPage.getByText("3 required remaining")).toBeVisible();
+    await expect(
+      recipientPage.getByText("Még 3 kötelező mező", { exact: true }),
+    ).toBeVisible();
     await recipientPage
-      .getByRole("button", { exact: true, name: "Signature" })
+      .getByRole("button", { exact: true, name: "Aláírás" })
       .click();
     await recipientPage
-      .getByRole("dialog", { name: "Add your signature" })
-      .getByRole("button", { name: "Apply signature" })
+      .getByRole("dialog", { name: "Add meg az aláírásodat" })
+      .getByRole("button", { name: "Aláírás elfogadása" })
       .click();
-    await recipientPage.getByLabel("Choose one").selectOption("Yearly");
+    await recipientPage.getByLabel("Válassz egyet").selectOption("Yearly");
     await recipientPage.getByRole("radio", { name: "No" }).click();
     await recipientPage.getByRole("radio", { name: "Yes" }).click();
     await expect(
       recipientPage.getByRole("radio", { name: "No" }),
     ).toHaveAttribute("aria-checked", "false");
 
-    // A comma as a decimal mark could be read two ways, so it is not taken.
-    await recipientPage.getByLabel("Enter a number").fill("12,5");
+    // Numbers are written the Hungarian way: a space groups the thousands
+    // and a comma marks the decimals. A comma grouping thousands could be
+    // read as a decimal mark, so it is not taken.
+    await recipientPage.getByLabel("Írj be egy számot").fill("1,250.5");
     await expect(
-      recipientPage.getByRole("button", { name: "Finish" }),
+      recipientPage.getByRole("button", { exact: true, name: "Befejezés" }),
     ).toBeDisabled();
-    await recipientPage.getByLabel("Enter a number").fill("1,250.5");
-    await recipientPage.getByRole("button", { name: "Finish" }).click();
+    await recipientPage.getByLabel("Írj be egy számot").fill("1 250,5");
     await recipientPage
-      .getByRole("dialog", { name: "Finish signing?" })
-      .getByRole("button", { name: "Finish signing" })
+      .getByRole("button", { exact: true, name: "Befejezés" })
+      .click();
+    await recipientPage
+      .getByRole("dialog", { name: "Befejezed az aláírást?" })
+      .getByRole("button", { name: "Aláírás befejezése" })
       .click();
     await expect(recipientPage).toHaveURL(/\/sign\/[^/]+\/done/);
 
@@ -650,7 +662,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     await page.goto("/dashboard");
 
     const thumbnail = page.getByRole("img", {
-      name: `First page of ${ENVELOPE_TITLE}`,
+      name: `${ENVELOPE_TITLE} – első oldal`,
     });
 
     await expect(thumbnail).toBeVisible();
@@ -911,7 +923,9 @@ test("in Part 11 mode a verified account signs, with its password and a stated m
     await page
       .getByLabel("Signer 1 signature meaning")
       .selectOption("approval");
-    await expect(page.getByText("I approve this document.")).toBeVisible();
+    await expect(
+      page.getByText("Jóváhagyom ezt a dokumentumot."),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Next →" }).click();
     await expect(page).toHaveURL(/\/prepare$/);
 
@@ -978,45 +992,55 @@ test("in Part 11 mode a verified account signs, with its password and a stated m
 
     await signerPage.goto(extractLink(invitation.text, "/sign/"));
     await expect(
-      signerPage.getByRole("heading", { name: "Confirm it's you" }),
+      signerPage.getByRole("heading", { name: "Igazold, hogy te vagy az" }),
     ).toBeVisible();
-    await signerPage.getByLabel("Email address").fill(signerEmail);
-    await signerPage.getByLabel("Password").fill(PASSWORD);
-    await signerPage.getByRole("button", { name: "Continue" }).click();
+    await signerPage.getByLabel("E-mail-cím").fill(signerEmail);
+    await signerPage.getByLabel("Jelszó").fill(PASSWORD);
+    await signerPage
+      .getByRole("button", { exact: true, name: "Tovább" })
+      .click();
 
-    const consent = signerPage.getByRole("dialog", { name: "Before you sign" });
+    const consent = signerPage.getByRole("dialog", { name: "Mielőtt aláírod" });
 
     await consent
       .getByRole("checkbox", {
-        name: "I agree to use electronic records and signatures",
+        name: "Hozzájárulok az elektronikus dokumentumok és aláírások használatához",
       })
       .check();
-    await consent.getByRole("button", { name: "Agree and continue" }).click();
+    await consent.getByRole("button", { name: "Elfogadom, tovább" }).click();
     await signerPage
-      .getByRole("button", { exact: true, name: "Signature" })
+      .getByRole("button", { exact: true, name: "Aláírás" })
       .click();
     await signerPage
-      .getByRole("dialog", { name: "Add your signature" })
-      .getByRole("button", { name: "Apply signature" })
+      .getByRole("dialog", { name: "Add meg az aláírásodat" })
+      .getByRole("button", { name: "Aláírás elfogadása" })
       .click();
-    await signerPage.getByRole("button", { name: "Finish" }).click();
+    await signerPage
+      .getByRole("button", { exact: true, name: "Befejezés" })
+      .click();
 
-    const finish = signerPage.getByRole("dialog", { name: "Finish signing?" });
-    const finishButton = finish.getByRole("button", { name: "Finish signing" });
+    const finish = signerPage.getByRole("dialog", {
+      name: "Befejezed az aláírást?",
+    });
+    const finishButton = finish.getByRole("button", {
+      name: "Aláírás befejezése",
+    });
 
     await expect(
-      finish.getByText("Approval: I approve this document."),
+      finish.getByText("Jóváhagyás: Jóváhagyom ezt a dokumentumot."),
     ).toBeVisible();
     await expect(finishButton).toBeDisabled();
     await finish
-      .getByRole("checkbox", { name: "I confirm the meaning of my signature" })
+      .getByRole("checkbox", {
+        name: "Megerősítem az aláírásom jelentését",
+      })
       .check();
-    await finish.getByLabel("Email address").fill(signerEmail);
-    await finish.getByLabel("Password").fill("not my password");
+    await finish.getByLabel("E-mail-cím").fill(signerEmail);
+    await finish.getByLabel("Jelszó").fill("not my password");
     await finishButton.click();
     await expect(finish.getByRole("alert")).toBeVisible();
 
-    await finish.getByLabel("Password").fill(PASSWORD);
+    await finish.getByLabel("Jelszó").fill(PASSWORD);
     await finishButton.click();
     await expect(signerPage).toHaveURL(/\/sign\/[^/]+\/done/);
     await signerContext.close();
@@ -1162,29 +1186,35 @@ test("a signer signs with a qualified signature in their own name, through the s
 
     await signerPage.goto(extractLink(invitation.text, "/sign/"));
 
-    const consent = signerPage.getByRole("dialog", { name: "Before you sign" });
+    const consent = signerPage.getByRole("dialog", { name: "Mielőtt aláírod" });
 
     await consent
       .getByRole("checkbox", {
-        name: "I agree to use electronic records and signatures",
+        name: "Hozzájárulok az elektronikus dokumentumok és aláírások használatához",
       })
       .check();
-    await consent.getByRole("button", { name: "Agree and continue" }).click();
+    await consent.getByRole("button", { name: "Elfogadom, tovább" }).click();
     await signerPage
-      .getByRole("button", { exact: true, name: "Signature" })
+      .getByRole("button", { exact: true, name: "Aláírás" })
       .click();
     await signerPage
-      .getByRole("dialog", { name: "Add your signature" })
-      .getByRole("button", { name: "Apply signature" })
+      .getByRole("dialog", { name: "Add meg az aláírásodat" })
+      .getByRole("button", { name: "Aláírás elfogadása" })
       .click();
-    await signerPage.getByRole("button", { name: "Finish" }).click();
+    await signerPage
+      .getByRole("button", { exact: true, name: "Befejezés" })
+      .click();
 
-    const finish = signerPage.getByRole("dialog", { name: "Finish signing?" });
+    const finish = signerPage.getByRole("dialog", {
+      name: "Befejezed az aláírást?",
+    });
 
     await expect(
-      finish.getByText(/asks for a qualified electronic signature/),
+      finish.getByText(
+        /Ehhez a dokumentumhoz minősített elektronikus aláírás kell/,
+      ),
     ).toBeVisible();
-    await finish.getByRole("button", { name: "Continue to eID Easy" }).click();
+    await finish.getByRole("button", { name: "Tovább: eID Easy" }).click();
     await expect(signerPage).toHaveURL(/\/sign\/[^/]+\/done/);
     // The browser went to the provider and came back.
     expect(providerRequests).toContain("/eideasy/sign_contract_external");
