@@ -75,40 +75,42 @@ export function PublicLegalFooter({
   return (
     <footer className={cn("relative z-10", className)}>
       <div className={cn("page-width py-7", contentClassName)}>
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex flex-col items-center gap-2 sm:items-start">
-            <p className="text-[0.8125rem] text-(--tertiary)">
-              © {PUBLIC_COPYRIGHT_YEAR} {branding.productName}
-            </p>
-            {/* Reassurance for signers: the site is only served over HTTPS,
-                and finished documents carry an electronic seal. */}
-            <ul
-              aria-label="Biztonság"
-              className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[0.75rem] font-medium text-(--tertiary) sm:justify-start"
-            >
-              <li className="inline-flex items-center gap-1.5">
-                <LockKeyhole
-                  aria-hidden="true"
-                  className="size-3.5 text-(--success)"
-                  strokeWidth={2.2}
-                />
-                Biztonságos, titkosított kapcsolat (SSL)
-              </li>
-              <li className="inline-flex items-center gap-1.5">
-                <ShieldCheck
-                  aria-hidden="true"
-                  className="size-3.5 text-(--success)"
-                  strokeWidth={2.2}
-                />
-                Elektronikusan hitelesített dokumentumok
-              </li>
-            </ul>
-          </div>
+        {/* One row on wide screens: the name on the left, the reassurance in
+            the middle, the links on the right, all on one line. Stacked and
+            centred on phones. */}
+        <div className="flex flex-col items-center gap-3 text-center text-[0.8125rem] text-(--tertiary) lg:grid lg:grid-cols-[1fr_auto_1fr] lg:gap-6 lg:text-left">
+          <p className="lg:justify-self-start">
+            © {PUBLIC_COPYRIGHT_YEAR} {branding.productName}
+          </p>
+
+          {/* Reassurance for signers: the site is only served over HTTPS,
+              and finished documents carry an electronic seal. */}
+          <ul
+            aria-label="Biztonság"
+            className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5"
+          >
+            <li className="inline-flex items-center gap-1.5">
+              <LockKeyhole
+                aria-hidden="true"
+                className="size-3.5 shrink-0 text-(--success)"
+                strokeWidth={2.2}
+              />
+              Biztonságos, titkosított kapcsolat (SSL)
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <ShieldCheck
+                aria-hidden="true"
+                className="size-3.5 shrink-0 text-(--success)"
+                strokeWidth={2.2}
+              />
+              Elektronikusan hitelesített dokumentumok
+            </li>
+          </ul>
 
           {links.length > 0 ? (
             <nav
               aria-label="Lábléc"
-              className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
+              className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 lg:justify-self-end"
             >
               {links.map((link) =>
                 link.external ? (
