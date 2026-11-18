@@ -183,7 +183,11 @@ async function hasVerifiedSession(request: NextRequest) {
 }
 
 async function maybeRedirectAuthenticatedAuthRoute(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  // /belepes is Homilla's address for the sign-in page (see next.config.ts).
+  const pathname =
+    request.nextUrl.pathname === "/belepes"
+      ? "/login"
+      : request.nextUrl.pathname;
 
   if (pathname !== "/login" && pathname !== "/signup") {
     return null;

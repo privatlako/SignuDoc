@@ -21,6 +21,14 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // Homilla: the sign-in page lives at /belepes. Every link to /login lands
+  // there, and /belepes shows the sign-in page.
+  async redirects() {
+    return [{ destination: "/belepes", permanent: false, source: "/login" }];
+  },
+  async rewrites() {
+    return [{ destination: "/login", source: "/belepes" }];
+  },
   // Finished PDFs are drawn with fonts read from disk at runtime, cut down
   // by a WebAssembly subsetter (src/lib/services/pdf-fonts.ts). Listing the
   // files here makes sure they are copied into the deployed functions.

@@ -43,7 +43,7 @@ export function AuthShell({ children }: AuthShellProps) {
     <div className="flex min-h-screen flex-col">
       <header>
         <div className="page-width flex items-center justify-between gap-4 py-4">
-          <Brand href="/" />
+          <Brand href={null} />
           <nav
             aria-label="Public navigation"
             className="flex items-center gap-3"

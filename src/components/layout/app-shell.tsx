@@ -69,7 +69,7 @@ export function AppShell({
       <header className="sticky top-0 z-30 bg-[rgba(243,240,235,0.86)] backdrop-blur-md">
         <div className="page-width flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3 sm:py-4">
           <div className="flex min-w-0 items-center gap-7">
-            <Brand href="/" />
+            <Brand href="/dashboard" />
             <nav
               aria-label="Munkaterület"
               className="hidden items-center gap-1 md:flex"

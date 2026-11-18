@@ -294,7 +294,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     await page.goto(
       extractLink(verificationEmail.text, "/api/auth/verify-email"),
     );
-    await expect(page).toHaveURL(/\/login/);
+    await expect(page).toHaveURL(/\/belepes/);
   });
 
   await test.step("log in", async () => {
@@ -341,9 +341,12 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
 
     const stalePage = await staleContext.newPage();
 
-    for (const authPage of ["/login", "/signup"]) {
+    for (const [authPage, landsOn] of [
+      ["/login", "/belepes"],
+      ["/signup", "/signup"],
+    ]) {
       await stalePage.goto(authPage);
-      await expect(stalePage).toHaveURL(new RegExp(`${authPage}$`));
+      await expect(stalePage).toHaveURL(new RegExp(`${landsOn}$`));
     }
 
     await stalePage.goto("/login");

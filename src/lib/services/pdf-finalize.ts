@@ -17,7 +17,6 @@ import type { FieldRecord } from "../schemas/field.ts";
 import type { SignerRecord } from "../schemas/signer.ts";
 import { buildSignatureManifestation } from "../signature-meanings.ts";
 import { canonicalJson } from "../utils/canonical-json.ts";
-import { resolveAppUrl } from "../utils/env.ts";
 import { normalizedRectToPdfRect } from "../utils/pdf-coords.ts";
 import { embedTextFaces, type TextFace } from "./pdf-fonts.ts";
 import { sha256Hex } from "./pdf-seal.ts";
@@ -1373,27 +1372,13 @@ export class SourceDocumentChangedError extends PdfFinalizeError {
 }
 
 // The "electronically certified" badge at the top of the signed document's
-// first page: a green shield, what the document is, the portal's address
-// where it can be checked, and that a printout is not the certified copy.
+// first page: a green shield, what the document is, and that a printout is
+// not the certified copy. No web address on it, by the owner's choice.
 const BADGE_TITLE = "EZ A DOKUMENTUM ELEKTRONIKUSAN HITELESÍTETT";
 const BADGE_PRINT_NOTE = "Kinyomtatva nem hiteles!";
 
-function badgeHost(): string | null {
-  try {
-    const appUrl = resolveAppUrl();
-
-    return appUrl ? new URL(appUrl).host : null;
-  } catch {
-    return null;
-  }
-}
-
-function badgeTexts(host: string | null): string[] {
-  return [
-    BADGE_TITLE,
-    host ?? "",
-    host ? `${BADGE_PRINT_NOTE} Ellenőrzés: ${host}/verify` : BADGE_PRINT_NOTE,
-  ];
+function badgeTexts(): string[] {
+  return [BADGE_TITLE, BADGE_PRINT_NOTE];
 }
 
 /** A rounded rectangle as an SVG path, in a top-left origin box. */
@@ -1417,12 +1402,11 @@ function roundedRectPath(width: number, height: number, radius: number) {
 export function drawAuthenticityBadge(
   page: PDFPage,
   fonts: { bold: TextFace; regular: TextFace },
-  host: string | null,
 ) {
-  const [title, hostLine, note] = badgeTexts(host);
+  const [title, note] = badgeTexts();
   const { height: pageHeight, width: pageWidth } = page.getSize();
-  const width = Math.min(268, pageWidth - 24);
-  const height = 46;
+  const width = Math.min(250, pageWidth - 24);
+  const height = 42;
   const left = pageWidth - width - 18;
   const top = pageHeight - 10;
   const ink = rgb(0.18, 0.15, 0.13);
@@ -1439,9 +1423,9 @@ export function drawAuthenticityBadge(
   });
 
   // Shield with a tick, drawn in a 24 × 24 box scaled to 34 points.
-  const shieldScale = 34 / 24;
-  const shieldX = left + 8;
-  const shieldY = top - (height - 34) / 2;
+  const shieldScale = 30 / 24;
+  const shieldX = left + 9;
+  const shieldY = top - (height - 30) / 2;
 
   page.drawSvgPath(
     "M12 1 L21 4.5 V11 C21 16.5 17.2 21.3 12 23 C6.8 21.3 3 16.5 3 11 V4.5 Z",
@@ -1455,8 +1439,8 @@ export function drawAuthenticityBadge(
     y: shieldY,
   });
 
-  const textLeft = left + 48;
-  const textWidth = width - 48 - 16;
+  const textLeft = left + 46;
+  const textWidth = width - 46 - 16;
   const fit = (face: TextFace, text: string, size: number) => {
     const measured = face.widthOfTextAtSize(text, size);
 
@@ -1468,23 +1452,13 @@ export function drawAuthenticityBadge(
     color: ink,
     size: titleSize,
     x: textLeft,
-    y: top - 14,
+    y: top - 19,
   });
-
-  if (hostLine) {
-    fonts.bold.drawText(page, hostLine, {
-      color: green,
-      size: fit(fonts.bold, hostLine, 10),
-      x: textLeft,
-      y: top - 27,
-    });
-  }
-
   fonts.regular.drawText(page, note!, {
     color: muted,
-    size: fit(fonts.regular, note!, 6.2),
+    size: fit(fonts.regular, note!, 7),
     x: textLeft,
-    y: top - (hostLine ? 38 : 30),
+    y: top - 31,
   });
 }
 
@@ -1546,7 +1520,7 @@ export async function renderFinalizedEnvelopePdf(
             input.auditEvents,
             input.copyRecipients ?? [],
             CERTIFICATE_WORDING_EXTRA_CHARACTERS,
-            badgeTexts(badgeHost()),
+            badgeTexts(),
           ]
         : [],
     ],
@@ -1598,7 +1572,7 @@ export async function renderFinalizedEnvelopePdf(
     const firstPage = pdfDocument.getPages()[0];
 
     if (firstPage) {
-      drawAuthenticityBadge(firstPage, faces, badgeHost());
+      drawAuthenticityBadge(firstPage, faces);
     }
 
     appendAuditTrailPages({
