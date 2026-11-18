@@ -1,5 +1,6 @@
 "use client";
 
+import { LockKeyhole, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { useBranding } from "@/components/layout/branding-provider";
@@ -75,9 +76,34 @@ export function PublicLegalFooter({
     <footer className={cn("relative z-10", className)}>
       <div className={cn("page-width py-7", contentClassName)}>
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-[0.8125rem] text-(--tertiary)">
-            © {PUBLIC_COPYRIGHT_YEAR} {branding.productName}
-          </p>
+          <div className="flex flex-col items-center gap-2 sm:items-start">
+            <p className="text-[0.8125rem] text-(--tertiary)">
+              © {PUBLIC_COPYRIGHT_YEAR} {branding.productName}
+            </p>
+            {/* Reassurance for signers: the site is only served over HTTPS,
+                and finished documents carry an electronic seal. */}
+            <ul
+              aria-label="Biztonság"
+              className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[0.75rem] font-medium text-(--tertiary) sm:justify-start"
+            >
+              <li className="inline-flex items-center gap-1.5">
+                <LockKeyhole
+                  aria-hidden="true"
+                  className="size-3.5 text-(--success)"
+                  strokeWidth={2.2}
+                />
+                Biztonságos, titkosított kapcsolat (SSL)
+              </li>
+              <li className="inline-flex items-center gap-1.5">
+                <ShieldCheck
+                  aria-hidden="true"
+                  className="size-3.5 text-(--success)"
+                  strokeWidth={2.2}
+                />
+                Elektronikusan hitelesített dokumentumok
+              </li>
+            </ul>
+          </div>
 
           {links.length > 0 ? (
             <nav
