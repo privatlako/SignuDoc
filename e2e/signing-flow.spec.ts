@@ -824,7 +824,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     await wrongAccountPage
       .getByRole("button", { name: "Log in as someone else" })
       .click();
-    await expect(wrongAccountPage).toHaveURL(/\/login$/);
+    await expect(wrongAccountPage).toHaveURL(/\/belepes$/);
     await expect(
       wrongAccountPage.getByRole("button", { name: "Log in" }),
     ).toBeVisible();
