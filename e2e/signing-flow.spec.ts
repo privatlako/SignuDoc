@@ -923,7 +923,7 @@ test("in Part 11 mode a verified account signs, with its password and a stated m
     await signerPage.goto(
       extractLink(verificationEmail.text, "/api/auth/verify-email"),
     );
-    await expect(signerPage).toHaveURL(/\/login/);
+    await expect(signerPage).toHaveURL(/\/belepes/);
     await signerContext.close();
   });
 
