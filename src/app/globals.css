@@ -458,3 +458,24 @@
     background-size: 22px 22px;
   }
 }
+
+/*
+ * iOS Safari zooms the page into any text field whose text is smaller than
+ * 16px when it gets focus. On phones every field takes 16px text. This sits
+ * outside the layers on purpose, so it wins over text-sm and the like.
+ * (The small fields drawn on a document being signed are not inputs on a
+ * phone: they are filled in the field list instead.)
+ */
+@media (max-width: 639.98px) {
+  input:not(
+    [type="checkbox"],
+    [type="radio"],
+    [type="range"],
+    [type="color"],
+    [type="file"]
+  ),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

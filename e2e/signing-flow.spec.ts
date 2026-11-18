@@ -582,11 +582,50 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       .getByRole("button", { name: "Aláírás elfogadása" })
       .click();
     await recipientPage.getByLabel("Válassz egyet").selectOption("Yearly");
-    await recipientPage.getByRole("radio", { name: "No" }).click();
-    await recipientPage.getByRole("radio", { name: "Yes" }).click();
+    // The field list beside the page has the same radio buttons: these are
+    // the ones on the page.
+    const recipientDocument = recipientPage.locator("[data-field-viewport]");
+
+    await recipientDocument.getByRole("radio", { name: "No" }).click();
+    await recipientDocument.getByRole("radio", { name: "Yes" }).click();
     await expect(
-      recipientPage.getByRole("radio", { name: "No" }),
+      recipientDocument.getByRole("radio", { name: "No" }),
     ).toHaveAttribute("aria-checked", "false");
+    // The list follows the page, and the page the list.
+    await expect(
+      recipientPage
+        .getByRole("radiogroup", { name: "Választás · 1. oldal" })
+        .getByRole("radio", { name: "Yes" }),
+    ).toBeChecked();
+
+    await test.step("on a phone, fields are filled in the list above the page", async () => {
+      await recipientPage.setViewportSize({ height: 844, width: 390 });
+
+      const listNumber = recipientPage.getByLabel("Szám · 1. oldal", {
+        exact: true,
+      });
+      const pageNumber = recipientDocument.getByRole("button", {
+        name: /^Írj be egy számot/,
+      });
+
+      // Large enough text that iOS does not zoom in on focus.
+      expect(
+        await listNumber.evaluate((input) =>
+          Number.parseFloat(getComputedStyle(input).fontSize),
+        ),
+      ).toBeGreaterThanOrEqual(16);
+      await expect(recipientDocument.locator("input, select")).toHaveCount(0);
+
+      await listNumber.fill("42");
+      await expect(pageNumber).toContainText("42");
+      await listNumber.fill("");
+
+      // A tap on the small field on the page goes to its large twin.
+      await pageNumber.click();
+      await expect(listNumber).toBeFocused();
+
+      await recipientPage.setViewportSize({ height: 900, width: 1440 });
+    });
 
     // Numbers are written the Hungarian way: a space groups the thousands
     // and a comma marks the decimals. A comma grouping thousands could be
@@ -1458,6 +1497,18 @@ test("a customer accepts an offer with billing details, and the sender marks it 
     await expect(billingStep.getByLabel("Tervezési cím")).toHaveValue(
       "1052 Budapest, Tervező utca 2.",
     );
+
+    // On a phone the billing fields take 16px text, so iOS does not zoom in
+    // when one gets focus.
+    await signerPage.setViewportSize({ height: 844, width: 390 });
+    expect(
+      await billingStep
+        .getByLabel("Vezetéknév")
+        .evaluate((input) =>
+          Number.parseFloat(getComputedStyle(input).fontSize),
+        ),
+    ).toBeGreaterThanOrEqual(16);
+    await signerPage.setViewportSize({ height: 900, width: 1440 });
 
     const orderButton = billingStep.getByRole("button", {
       exact: true,
