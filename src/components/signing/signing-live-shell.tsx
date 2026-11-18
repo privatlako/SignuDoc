@@ -1,8 +1,9 @@
 "use client";
 
-import { DownloadIcon } from "lucide-react";
+import { CheckIcon, DownloadIcon } from "lucide-react";
 import Image from "next/image";
 import {
+  type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
   useRef,
@@ -61,6 +62,7 @@ import {
   isNumberEntry,
   NUMBER_ENTRY_MESSAGE,
 } from "@/lib/field-choices";
+import { fieldDisplayName, findNextOpenRow } from "@/lib/signing-field-list";
 
 const typedSignatureFont =
   '"Snell Roundhand", "Brush Script MT", "Segoe Script", cursive';
@@ -121,9 +123,31 @@ function getListFieldId(fieldId: string) {
   return `signing-list-field-${fieldId}`;
 }
 
-/** How a field is named in the field list: its own label and its page. */
+/**
+ * What a field is called where the signer reads about it: the name the
+ * sender gave it, or else its kind. A radio button's label says what that
+ * one button means, so a group of them goes by its kind.
+ */
+function getFieldName(field: SigningCurrentField) {
+  return field.type === "radio"
+    ? getSummaryLabel(field)
+    : fieldDisplayName(field.label, getSummaryLabel(field));
+}
+
+/** How a field is named in the field list: its name and its page. */
 function getListFieldLabel(field: SigningCurrentField) {
-  return `${field.label?.trim() || getSummaryLabel(field)} · ${field.page}. oldal`;
+  return `${getFieldName(field)} · ${field.page}. oldal`;
+}
+
+/** Fields whose row opens into an input, as opposed to signatures. */
+function isListValueField(field: SigningCurrentField) {
+  return (
+    field.type === "text" ||
+    field.type === "number" ||
+    field.type === "dropdown" ||
+    field.type === "checkbox" ||
+    field.type === "radio"
+  );
 }
 
 const compactFieldHeightThreshold = 0.045;
@@ -396,6 +420,44 @@ function isFieldComplete(
   return true;
 }
 
+/**
+ * Whether the signer has given this field its value. Unlike
+ * isFieldComplete, an optional field left empty is not done: the list
+ * still leads the signer to it, and shows it as still open.
+ */
+function isRowDone(
+  field: SigningCurrentField,
+  fields: readonly SigningCurrentField[],
+  { checkboxValues, signatureValues, textValues }: EnteredValues,
+) {
+  if (field.type === "signature" || field.type === "initials") {
+    return Boolean(signatureValues[field.id]?.value);
+  }
+
+  if (
+    field.type === "text" ||
+    field.type === "number" ||
+    field.type === "dropdown"
+  ) {
+    return (
+      (textValues[field.id] ?? "").trim().length > 0 &&
+      !hasInvalidNumber(field, textValues)
+    );
+  }
+
+  if (field.type === "checkbox") {
+    return Boolean(checkboxValues[field.id]);
+  }
+
+  if (field.type === "radio") {
+    return getRadioGroup(field, fields).some(
+      (button) => checkboxValues[button.id],
+    );
+  }
+
+  return true;
+}
+
 function getVisibleFieldValue(field: SigningVisibleField) {
   if (field.type === "checkbox" || field.type === "radio") {
     return field.checked ? "Bejelölve" : "Nincs bejelölve";
@@ -520,8 +582,13 @@ export function SigningLiveShell({
     target?.focus({ preventScroll: true });
   };
   // From the list of the signer's fields: show the field's page, then bring
-  // the field into view and give it focus once the page has drawn it.
-  const goToField = (fieldId: string, page: number) => {
+  // the field into view and, unless told not to, give it focus once the
+  // page has drawn it.
+  const goToField = (
+    fieldId: string,
+    page: number,
+    { focus = true }: { focus?: boolean } = {},
+  ) => {
     setActivePage(page);
 
     let attempts = 0;
@@ -532,6 +599,11 @@ export function SigningLiveShell({
 
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        if (!focus) {
+          return;
+        }
+
         const target = element.matches("button, input, select, textarea")
           ? element
           : element.querySelector<HTMLElement>(
@@ -605,6 +677,16 @@ export function SigningLiveShell({
     useState<SignatureModalState | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [textValues, setTextValues] = useState<Record<string, string>>({});
+  // The one row of the field list that is open, with its input. It starts
+  // at the first field there is something to fill in.
+  const [activeRowId, setActiveRowId] = useState<string | null>(
+    () =>
+      record.currentSignerFields.find(
+        (field) => isActionSummaryField(field) && isListValueField(field),
+      )?.id ?? null,
+  );
+  // A row whose input should get focus once it has opened.
+  const pendingListFocusRef = useRef<string | null>(null);
   const [drawnSignatureVersion, setDrawnSignatureVersion] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_DOCUMENT_ZOOM_LEVEL);
   const [localDateLabel] = useState(() =>
@@ -690,6 +772,157 @@ export function SigningLiveShell({
         !isFieldComplete(field, record.currentSignerFields, enteredValues),
     );
 
+  const isRowDoneNow = (field: SigningCurrentField) =>
+    isRowDone(field, record.currentSignerFields, enteredValues);
+  const doneRowCount = actionSummaryFields.filter(isRowDoneNow).length;
+  const areAllRowsDone =
+    actionSummaryFields.length > 0 &&
+    doneRowCount === actionSummaryFields.length &&
+    invalidNumberCount === 0;
+  const invalidNumberNames = record.currentSignerFields
+    .filter((field) => hasInvalidNumber(field, textValues))
+    .map(getFieldName);
+  // The next required field still to do, named in the side panel.
+  const nextRequiredField = actionSummaryFields.find(
+    (field) =>
+      field.required &&
+      !isFieldComplete(field, record.currentSignerFields, enteredValues),
+  );
+
+  function focusListInput(rowId: string) {
+    const row = actionSummaryFields.find((field) => field.id === rowId);
+    // In a group of radio buttons: the chosen one, or else the first.
+    const targetId =
+      row?.type === "radio"
+        ? (getRadioGroup(row, record.currentSignerFields).find(
+            (button) => checkboxValues[button.id],
+          )?.id ?? row.id)
+        : rowId;
+    const input = document.getElementById(getListFieldId(targetId));
+
+    if (!input) {
+      return;
+    }
+
+    input.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    input.focus({ preventScroll: true });
+  }
+
+  useEffect(() => {
+    const rowId = pendingListFocusRef.current;
+
+    if (rowId === null || rowId !== activeRowId) {
+      return;
+    }
+
+    pendingListFocusRef.current = null;
+    focusListInput(rowId);
+  });
+
+  /** Opens a value field's row in the list and puts the cursor in it. */
+  function openListRow(rowId: string) {
+    setActiveRowId(rowId);
+
+    // Already open, so its input is there to take focus now.
+    if (rowId === activeRowId) {
+      pendingListFocusRef.current = null;
+      focusListInput(rowId);
+      return;
+    }
+
+    pendingListFocusRef.current = rowId;
+  }
+
+  /** The row in the list that stands for this field on the page. */
+  function getRowIdForField(field: SigningCurrentField) {
+    if (field.type !== "radio") {
+      return field.id;
+    }
+
+    return (
+      actionSummaryFields.find(
+        (row) =>
+          row.type === "radio" &&
+          (row.id === field.id ||
+            (field.groupId !== undefined && row.groupId === field.groupId)),
+      )?.id ?? field.id
+    );
+  }
+
+  /**
+   * A tap on a row of the list. A value field's row opens with its input,
+   * and the page follows; a signature's opens the signature dialog.
+   */
+  function activateRow(field: SigningCurrentField) {
+    if (!isListValueField(field)) {
+      openSignatureRow(field, new Set());
+      return;
+    }
+
+    openListRow(field.id);
+
+    if (isStackedLayout) {
+      setActivePage(field.page);
+    } else {
+      goToField(field.id, field.page, { focus: false });
+    }
+  }
+
+  function openSignatureRow(
+    field: SigningCurrentField,
+    doneNow: ReadonlySet<string>,
+  ) {
+    setActiveRowId(field.id);
+    setActivePage(field.page);
+
+    // A signature given before goes straight on: move along.
+    if (handleSignatureFieldClick(field) === "applied") {
+      advanceFrom(field.id, new Set([...doneNow, field.id]));
+    }
+  }
+
+  /**
+   * "Következő mező": on to the next field that is not done, round to the
+   * start of the list. Fields done a moment ago, whose values are not in
+   * this render yet, are named in doneNow.
+   */
+  function advanceFrom(
+    rowId: string,
+    doneNow: ReadonlySet<string> = new Set(),
+  ) {
+    const next = findNextOpenRow(
+      actionSummaryFields,
+      rowId,
+      (field) => doneNow.has(field.id) || isRowDoneNow(field),
+    );
+
+    if (!next) {
+      setActiveRowId(null);
+      return;
+    }
+
+    if (!isListValueField(next)) {
+      openSignatureRow(next, doneNow);
+      return;
+    }
+
+    openListRow(next.id);
+    setActivePage(next.page);
+
+    if (!isStackedLayout) {
+      goToField(next.id, next.page, { focus: false });
+    }
+  }
+
+  function revealFinishButton() {
+    const button = document.querySelector<HTMLElement>(
+      "#signing-finish button",
+    );
+
+    button?.scrollIntoView({ behavior: "smooth", block: "center" });
+    button?.focus({ preventScroll: true });
+  }
+
   function handleTextChange(fieldId: string, value: string) {
     setSubmitError(null);
     setTextValues((current) => ({
@@ -719,18 +952,11 @@ export function SigningLiveShell({
     });
   }
 
-  // A tap on a small field on the page, in the stacked layout: bring its
-  // large input in the field list into view and give it focus, so the
-  // keyboard opens there.
+  // A tap on a small field on the page, in the stacked layout: open its
+  // row in the field list and give its large input focus, so the keyboard
+  // opens there.
   function focusListField(fieldId: string) {
-    const input = document.getElementById(getListFieldId(fieldId));
-
-    if (!input) {
-      return;
-    }
-
-    input.scrollIntoView({ behavior: "smooth", block: "center" });
-    input.focus({ preventScroll: true });
+    openListRow(fieldId);
   }
 
   function applyZoomLevel(nextZoomLevel: number) {
@@ -742,11 +968,17 @@ export function SigningLiveShell({
     setZoomLevel(nextZoomLevel);
   }
 
-  function handleSignatureFieldClick(field: SigningCurrentField) {
+  /**
+   * Opens the signature dialog for a signature or initials field, or puts
+   * in the one the signer gave before ("applied").
+   */
+  function handleSignatureFieldClick(
+    field: SigningCurrentField,
+  ): "applied" | "dialog" | null {
     const fieldType = getSignatureFieldType(field);
 
     if (!fieldType) {
-      return;
+      return null;
     }
 
     const existingFieldEntry = signatureValues[field.id];
@@ -760,7 +992,7 @@ export function SigningLiveShell({
         ...current,
         [field.id]: reusableEntry,
       }));
-      return;
+      return "applied";
     }
 
     setSignatureModal({
@@ -771,6 +1003,8 @@ export function SigningLiveShell({
         "typed",
       type: fieldType,
     });
+
+    return "dialog";
   }
 
   async function handleFinishSigning() {
@@ -962,35 +1196,58 @@ export function SigningLiveShell({
   const fieldListPanel = (
     <section
       aria-labelledby="signer-field-list-title"
-      className="panel rounded-[1.25rem] p-5"
+      className="panel rounded-[1.25rem] p-4 sm:p-5"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="section-eyebrow" id="signer-field-list-title">
-          Neked kijelölt mezők
+          Kitöltendő mezők
         </h2>
-        <span className="pill pill-neutral">{actionSummaryFields.length}</span>
+        <span
+          className={`pill ${areAllRowsDone ? "pill-success" : "pill-neutral"}`}
+        >
+          {`${doneRowCount} / ${actionSummaryFields.length} kész`}
+        </span>
       </div>
-      {isStackedLayout ? (
+      {areAllRowsDone ? (
+        <div className="notice notice-success mt-3" role="status">
+          <p className="font-bold">Minden mező kész</p>
+          <p className="mt-0.5 text-[0.8125rem] leading-5">
+            {`Folytasd a ${customerContract ? "Tovább" : "Befejezés"} gombbal.`}
+            {isStackedLayout ? (
+              <>
+                {" "}
+                <button
+                  className="cursor-pointer font-semibold underline underline-offset-4"
+                  onClick={revealFinishButton}
+                  type="button"
+                >
+                  Ugrás a gombhoz
+                </button>
+              </>
+            ) : null}
+          </p>
+        </div>
+      ) : isStackedLayout ? (
         <p className="mt-1.5 text-[0.8125rem] leading-5 text-(--secondary)">
-          Itt kényelmesebben kitöltheted a mezőket: amit beírsz, rögtön
-          megjelenik a dokumentumon is.
+          Itt kényelmesen kitöltheted a mezőket: amit beírsz, rögtön megjelenik
+          a dokumentumon is.
         </p>
       ) : null}
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 space-y-1.5">
         {actionSummaryFields.map((field) => (
           <SignerFieldRow
             checkboxValues={checkboxValues}
             field={field}
             fields={record.currentSignerFields}
-            isComplete={isFieldComplete(
-              field,
-              record.currentSignerFields,
-              enteredValues,
-            )}
+            isDone={isRowDoneNow(field)}
+            isExpanded={field.id === activeRowId && isListValueField(field)}
+            isHighlighted={field.id === activeRowId}
             isInvalid={hasInvalidNumber(field, textValues)}
             key={field.id}
+            onActivate={() => activateRow(field)}
             onCheckboxChange={handleCheckboxChange}
-            onSelect={() => goToField(field.id, field.page)}
+            onNext={() => advanceFrom(field.id)}
+            onShowOnPage={() => goToField(field.id, field.page)}
             onTextChange={(value) => handleTextChange(field.id, value)}
             textValue={textValues[field.id] ?? ""}
             value={getCompletionValue(field, record.currentSignerFields, {
@@ -1229,6 +1486,9 @@ export function SigningLiveShell({
                               key={field.id}
                               localDateLabel={localDateLabel}
                               isInvalid={hasInvalidNumber(field, textValues)}
+                              onActivate={() =>
+                                setActiveRowId(getRowIdForField(field))
+                              }
                               onCheckboxChange={(checked) =>
                                 handleCheckboxChange(field, checked)
                               }
@@ -1283,12 +1543,17 @@ export function SigningLiveShell({
                     ? "Minden kötelező mező kész"
                     : `Még ${remainingItems} kötelező mező van hátra`}
                 </p>
+                {nextRequiredField ? (
+                  <p className="mt-1 text-[0.8125rem] leading-5 text-(--secondary)">
+                    {`Következő: ${getListFieldLabel(nextRequiredField)}`}
+                  </p>
+                ) : null}
                 {invalidNumberCount > 0 ? (
                   <p
                     className="mt-1.5 text-[0.8125rem] font-semibold leading-5 text-(--danger)"
                     role="alert"
                   >
-                    A pirossal jelölt számmező nem számot tartalmaz.{" "}
+                    {`Nem számot tartalmaz: ${invalidNumberNames.join(", ")}.`}{" "}
                     {NUMBER_ENTRY_MESSAGE}
                   </p>
                 ) : null}
@@ -1309,7 +1574,7 @@ export function SigningLiveShell({
                 </p>
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4" id="signing-finish">
                 <ShellButton
                   className={`w-full ${
                     canFinish && remainingItems === 0
@@ -1354,6 +1619,14 @@ export function SigningLiveShell({
             }));
             setSubmitError(null);
             setSignatureModal(null);
+
+            // Reached from the list: go on to the next field.
+            if (signatureModal.fieldId === activeRowId) {
+              advanceFrom(
+                signatureModal.fieldId,
+                new Set([signatureModal.fieldId]),
+              );
+            }
           }}
           onClearDrawnSignature={() =>
             setDrawnSignatureVersion((current) => current + 1)
@@ -1708,6 +1981,7 @@ function CurrentSignerField({
   field,
   isInvalid,
   localDateLabel,
+  onActivate,
   onCheckboxChange,
   onRouteToList,
   onSignatureClick,
@@ -1720,6 +1994,8 @@ function CurrentSignerField({
   /** True for a number field holding something that is not a number. */
   isInvalid: boolean;
   localDateLabel: string;
+  /** The signer is at this field on the page: the list opens its row. */
+  onActivate: () => void;
   onCheckboxChange: (checked: boolean) => void;
   /**
    * Set in the stacked layout: text, number and dropdown fields are then
@@ -1813,8 +2089,9 @@ function CurrentSignerField({
   ) {
     // No input on the page here: its small text would make iOS zoom in.
     // The value is shown as it is typed in the list.
-    const placeholder =
-      field.type === "number"
+    const placeholder = field.label?.trim()
+      ? field.label
+      : field.type === "number"
         ? "Szám"
         : field.type === "dropdown"
           ? field.required
@@ -1864,6 +2141,7 @@ function CurrentSignerField({
           id={`signing-field-${field.id}`}
           name={`signing-field-${field.id}`}
           onChange={(event) => onTextChange(event.target.value)}
+          onFocus={onActivate}
           placeholder={showInlineLabel ? getFieldLabel(field) : ""}
           value={textValue}
         />
@@ -1893,7 +2171,8 @@ function CurrentSignerField({
           inputMode="decimal"
           name={`signing-field-${field.id}`}
           onChange={(event) => onTextChange(event.target.value)}
-          placeholder={showInlineLabel ? "Szám" : ""}
+          onFocus={onActivate}
+          placeholder={showInlineLabel ? field.label?.trim() || "Szám" : ""}
           value={textValue}
         />
       </div>
@@ -1916,6 +2195,7 @@ function CurrentSignerField({
           id={`signing-field-${field.id}`}
           name={`signing-field-${field.id}`}
           onChange={(event) => onTextChange(event.target.value)}
+          onFocus={onActivate}
           value={textValue}
         >
           <option value="">
@@ -2545,38 +2825,62 @@ function DialogFrame({
   );
 }
 
-function FieldStatusPill({
-  isComplete,
+/**
+ * Where a row of the field list stands: done (with a check), to be fixed,
+ * or still to fill in, needed or not.
+ */
+function FieldRowStatus({
+  field,
+  isDone,
   isInvalid,
 }: {
-  isComplete: boolean;
+  field: SigningCurrentField;
+  isDone: boolean;
   isInvalid: boolean;
 }) {
-  return (
-    <span
-      className={`pill shrink-0 ${
-        isInvalid ? "pill-danger" : isComplete ? "pill-success" : "pill-accent"
-      }`}
-    >
-      {isInvalid ? "Javítsd" : isComplete ? "Kész" : "Kötelező"}
-    </span>
+  if (isInvalid) {
+    return <span className="pill pill-danger shrink-0">Javítsd</span>;
+  }
+
+  if (isDone) {
+    return (
+      <span
+        className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-(--success) text-white"
+        title="Kész"
+      >
+        <CheckIcon aria-hidden="true" className="size-3.5" strokeWidth={3} />
+        <span className="sr-only">Kész</span>
+      </span>
+    );
+  }
+
+  return field.required ? (
+    <span className="pill pill-accent shrink-0">Kötelező</span>
+  ) : (
+    <span className="pill pill-neutral shrink-0">Nem kötelező</span>
   );
 }
 
 /**
- * One of the signer's fields in the field list. Text, number and dropdown
- * fields, checkboxes and radio groups are filled in right here, in a large
- * input bound to the same value as the field on the page. Signatures and
- * initials open from the page, so their row takes the signer there.
+ * One of the signer's fields in the field list. Rows stay closed, showing
+ * the field's name, page and value, so a long list stays short; one row is
+ * open at a time. An open text, number or dropdown field, checkbox or
+ * radio group is filled in right there, in a large input bound to the same
+ * value as the field on the page, and "Következő mező" moves on to the
+ * next one not done. A signature's row opens the signature dialog.
  */
 function SignerFieldRow({
   checkboxValues,
   field,
   fields,
-  isComplete,
+  isDone,
+  isExpanded,
+  isHighlighted,
   isInvalid,
+  onActivate,
   onCheckboxChange,
-  onSelect,
+  onNext,
+  onShowOnPage,
   onTextChange,
   textValue,
   value,
@@ -2584,29 +2888,104 @@ function SignerFieldRow({
   checkboxValues: Record<string, boolean>;
   field: SigningCurrentField;
   fields: readonly SigningCurrentField[];
-  isComplete: boolean;
+  /** Given its value, and a valid one. */
+  isDone: boolean;
+  /** Open, with its input. Only ever one row. */
+  isExpanded: boolean;
+  /** The row the signer is at, open or (for a signature) not. */
+  isHighlighted: boolean;
   /** Filled in, but with something the field cannot take. */
   isInvalid: boolean;
+  /** Opens the row, or for a signature, the signature dialog. */
+  onActivate: () => void;
   onCheckboxChange: (field: SigningCurrentField, checked: boolean) => void;
+  /** On to the next field that is not done. */
+  onNext: () => void;
   /** Shows the field on its page. */
-  onSelect: () => void;
+  onShowOnPage: () => void;
   onTextChange: (value: string) => void;
   textValue: string;
   /** What the field holds so far, in words. */
   value: string;
 }) {
+  const name = getFieldName(field);
   const label = getListFieldLabel(field);
   const inputId = getListFieldId(field.id);
   const errorId = `${inputId}-error`;
-  const showOnPage = (
-    <button
-      aria-label={`Mutasd a dokumentumon: ${label}`}
-      className="mt-2 cursor-pointer text-xs font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
-      onClick={onSelect}
-      type="button"
-    >
-      Mutasd a dokumentumon
-    </button>
+
+  if (!isExpanded) {
+    const shownValue = isDone || isInvalid ? value : null;
+    const isSignature = !isListValueField(field);
+
+    return (
+      <button
+        aria-expanded={isSignature ? undefined : false}
+        aria-label={`${label}: ${
+          shownValue ??
+          (isSignature
+            ? "aláírás megadása"
+            : field.required
+              ? "kötelező, még üres"
+              : "nem kötelező, még üres")
+        }`}
+        className={`well flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-left transition-colors hover:bg-(--surface-strong) focus-visible:outline-2 focus-visible:outline-(--accent) ${
+          isHighlighted ? "ring-2 ring-(--accent)" : ""
+        }`}
+        data-list-field={field.id}
+        onClick={onActivate}
+        type="button"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate text-sm font-bold text-(--fg)">
+              {name}
+            </span>
+            <span className="shrink-0 text-xs font-semibold text-(--tertiary)">
+              {`${field.page}. oldal`}
+            </span>
+          </span>
+          {shownValue ? (
+            <span
+              className={`mt-0.5 block truncate text-[0.8125rem] ${
+                isInvalid ? "text-(--danger)" : "text-(--secondary)"
+              }`}
+            >
+              {shownValue}
+            </span>
+          ) : null}
+        </span>
+        <FieldRowStatus field={field} isDone={isDone} isInvalid={isInvalid} />
+      </button>
+    );
+  }
+
+  const footer = (
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <button
+        aria-label={`Mutasd a dokumentumon: ${label}`}
+        className="cursor-pointer text-xs font-semibold text-(--accent-ink) underline decoration-[rgb(var(--accent-rgb)/0.35)] underline-offset-4"
+        onClick={onShowOnPage}
+        type="button"
+      >
+        Mutasd a dokumentumon
+      </button>
+      <ShellButton className="min-h-11 px-4 text-sm" onClick={onNext}>
+        Következő mező
+      </ShellButton>
+    </div>
+  );
+  // Enter in a one-line input goes on, as the button does.
+  const goOnWithEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      onNext();
+    }
+  };
+  const header = (labelElement: ReactNode) => (
+    <div className="flex items-center justify-between gap-3">
+      {labelElement}
+      <FieldRowStatus field={field} isDone={isDone} isInvalid={isInvalid} />
+    </div>
   );
 
   if (
@@ -2615,16 +2994,18 @@ function SignerFieldRow({
     field.type === "dropdown"
   ) {
     return (
-      <div className="well rounded-xl px-3.5 py-3" data-list-field={field.id}>
-        <div className="flex items-center justify-between gap-3">
+      <div
+        className="well rounded-xl px-3.5 py-3 ring-2 ring-(--accent)"
+        data-list-field={field.id}
+      >
+        {header(
           <label
-            className="min-w-0 text-xs font-semibold text-(--tertiary)"
+            className="min-w-0 text-sm font-bold text-(--fg)"
             htmlFor={inputId}
           >
             {label}
-          </label>
-          <FieldStatusPill isComplete={isComplete} isInvalid={isInvalid} />
-        </div>
+          </label>,
+        )}
         {field.type === "dropdown" ? (
           <select
             aria-required={field.required ? true : undefined}
@@ -2652,10 +3033,12 @@ function SignerFieldRow({
             aria-required={field.required ? true : undefined}
             autoComplete="off"
             className="field-input mt-2"
+            enterKeyHint="next"
             id={inputId}
             inputMode={field.type === "number" ? "decimal" : undefined}
             name={inputId}
             onChange={(event) => onTextChange(event.target.value)}
+            onKeyDown={goOnWithEnter}
             placeholder={field.type === "number" ? "Szám" : undefined}
             value={textValue}
           />
@@ -2665,19 +3048,22 @@ function SignerFieldRow({
             className="mt-1.5 text-xs font-semibold leading-5 text-(--danger)"
             id={errorId}
           >
-            {NUMBER_ENTRY_MESSAGE}
+            {`${name}: ${NUMBER_ENTRY_MESSAGE}`}
           </p>
         ) : null}
-        {showOnPage}
+        {footer}
       </div>
     );
   }
 
   if (field.type === "checkbox") {
     return (
-      <div className="well rounded-xl px-3.5 py-3" data-list-field={field.id}>
-        <div className="flex items-center justify-between gap-3">
-          <label className="flex min-w-0 items-center gap-3 text-sm font-semibold text-(--fg)">
+      <div
+        className="well rounded-xl px-3.5 py-3 ring-2 ring-(--accent)"
+        data-list-field={field.id}
+      >
+        {header(
+          <label className="flex min-h-11 min-w-0 cursor-pointer items-center gap-3 text-sm font-bold text-(--fg)">
             <Checkbox
               checked={Boolean(checkboxValues[field.id])}
               id={inputId}
@@ -2686,72 +3072,50 @@ function SignerFieldRow({
               }
             />
             <span className="min-w-0">{label}</span>
-          </label>
-          <FieldStatusPill isComplete={isComplete} isInvalid={isInvalid} />
-        </div>
-        {showOnPage}
+          </label>,
+        )}
+        {footer}
       </div>
     );
   }
 
-  if (field.type === "radio") {
-    const buttons = getRadioGroup(field, fields);
-    const groupLabelId = `${inputId}-label`;
+  const buttons = getRadioGroup(field, fields);
+  const groupLabelId = `${inputId}-label`;
 
-    return (
-      <div className="well rounded-xl px-3.5 py-3" data-list-field={field.id}>
-        <div className="flex items-center justify-between gap-3">
-          <p
-            className="min-w-0 text-xs font-semibold text-(--tertiary)"
-            id={groupLabelId}
-          >
-            {`${getSummaryLabel(field)} · ${field.page}. oldal`}
-          </p>
-          <FieldStatusPill isComplete={isComplete} isInvalid={isInvalid} />
-        </div>
-        <div
-          aria-labelledby={groupLabelId}
-          className="mt-2 grid gap-1"
-          role="radiogroup"
-        >
-          {buttons.map((button) => (
-            <label
-              className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-(--fg)"
-              key={button.id}
-            >
-              <input
-                checked={Boolean(checkboxValues[button.id])}
-                className="size-5 shrink-0 accent-(--accent)"
-                id={getListFieldId(button.id)}
-                name={`signing-list-radio-${field.groupId ?? field.id}`}
-                onChange={() => onCheckboxChange(button, true)}
-                type="radio"
-              />
-              <span className="min-w-0">{getFieldLabel(button)}</span>
-            </label>
-          ))}
-        </div>
-        {showOnPage}
-      </div>
-    );
-  }
-
-  // Signatures and initials: chosen on the page.
   return (
-    <button
-      aria-label={`${label}: ugrás a mezőhöz`}
-      className="well flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition-colors hover:bg-(--surface-strong) focus-visible:outline-2 focus-visible:outline-(--accent)"
-      onClick={onSelect}
-      type="button"
+    <div
+      className="well rounded-xl px-3.5 py-3 ring-2 ring-(--accent)"
+      data-list-field={field.id}
     >
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-(--tertiary)">{label}</p>
-        <p className="mt-0.5 truncate text-sm font-semibold text-(--fg)">
-          {value}
-        </p>
+      {header(
+        <p className="min-w-0 text-sm font-bold text-(--fg)" id={groupLabelId}>
+          {label}
+        </p>,
+      )}
+      <div
+        aria-labelledby={groupLabelId}
+        className="mt-2 grid gap-1"
+        role="radiogroup"
+      >
+        {buttons.map((button) => (
+          <label
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-(--fg)"
+            key={button.id}
+          >
+            <input
+              checked={Boolean(checkboxValues[button.id])}
+              className="size-5 shrink-0 accent-(--accent)"
+              id={getListFieldId(button.id)}
+              name={`signing-list-radio-${field.groupId ?? field.id}`}
+              onChange={() => onCheckboxChange(button, true)}
+              type="radio"
+            />
+            <span className="min-w-0">{getFieldLabel(button)}</span>
+          </label>
+        ))}
       </div>
-      <FieldStatusPill isComplete={isComplete} isInvalid={isInvalid} />
-    </button>
+      {footer}
+    </div>
   );
 }
 

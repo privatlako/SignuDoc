@@ -75,7 +75,7 @@ export function optionsTextToShow(
     : saved.join("\n");
 }
 
-/** The same for the box that holds a radio button's label. */
+/** The same for the box that holds a field's label or a radio button's meaning. */
 export function labelTextToShow(
   typedText: string,
   savedLabel: string | null | undefined,

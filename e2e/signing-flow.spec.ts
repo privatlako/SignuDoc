@@ -479,6 +479,14 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       page.getByRole("textbox", { name: "Választási lehetőségek" }),
     ).toHaveValue("Monthly\nYearly");
 
+    // A text field named for the signer: the name stands on the page in
+    // place of the field's kind.
+    await placeField("Szöveg", 0.5, 0.55);
+    await page.getByRole("textbox", { name: "Mező neve" }).fill("Név");
+    await expect(
+      page.getByRole("button", { name: "Riley Recipient · Név" }),
+    ).toBeVisible();
+
     await placeField("Választógomb", 0.25, 0.4);
     await page
       .getByRole("textbox", { name: "Mit jelent ez a gomb" })
@@ -585,18 +593,55 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     // The field list beside the page has the same radio buttons: these are
     // the ones on the page.
     const recipientDocument = recipientPage.locator("[data-field-viewport]");
+    const fieldList = recipientPage.getByRole("region", {
+      name: "Kitöltendő mezők",
+    });
 
     await recipientDocument.getByRole("radio", { name: "No" }).click();
     await recipientDocument.getByRole("radio", { name: "Yes" }).click();
     await expect(
       recipientDocument.getByRole("radio", { name: "No" }),
     ).toHaveAttribute("aria-checked", "false");
-    // The list follows the page, and the page the list.
+    // The list follows the page, and the page the list. Its rows stay
+    // closed until one is opened, one at a time.
+    await fieldList
+      .getByRole("button", { name: /^Választás · 1\. oldal/ })
+      .click();
     await expect(
       recipientPage
         .getByRole("radiogroup", { name: "Választás · 1. oldal" })
         .getByRole("radio", { name: "Yes" }),
     ).toBeChecked();
+
+    await test.step("the list names the field as the sender did, and leads on to the next", async () => {
+      const nameInput = recipientPage.getByLabel("Név · 1. oldal", {
+        exact: true,
+      });
+
+      await expect(nameInput).toHaveCount(0);
+      await fieldList.getByRole("button", { name: /^Név · 1\. oldal/ }).click();
+      await expect(
+        recipientPage.getByRole("radiogroup", { name: "Választás · 1. oldal" }),
+      ).toHaveCount(0);
+      await expect(nameInput).toBeFocused();
+      await nameInput.fill("Riley Recipient");
+      await expect(
+        recipientDocument.getByLabel("Név", { exact: true }),
+      ).toHaveValue("Riley Recipient");
+
+      // Enter goes on to the next field not done, round the list: the
+      // optional number.
+      await nameInput.press("Enter");
+      await expect(
+        recipientPage.getByLabel("Szám · 1. oldal", { exact: true }),
+      ).toBeFocused();
+      await expect(
+        fieldList.getByRole("button", {
+          name: "Név · 1. oldal: Riley Recipient",
+        }),
+      ).toBeVisible();
+      await expect(fieldList.getByText("4 / 5 kész")).toBeVisible();
+    });
 
     await test.step("on a phone, fields are filled in the list above the page", async () => {
       await recipientPage.setViewportSize({ height: 844, width: 390 });
@@ -620,7 +665,13 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       await expect(pageNumber).toContainText("42");
       await listNumber.fill("");
 
-      // A tap on the small field on the page goes to its large twin.
+      // A tap on the small field on the page opens its row in the list
+      // and goes to its large twin.
+      await recipientDocument.getByRole("button", { name: /^Név:/ }).click();
+      await expect(
+        recipientPage.getByLabel("Név · 1. oldal", { exact: true }),
+      ).toBeFocused();
+      await expect(listNumber).toHaveCount(0);
       await pageNumber.click();
       await expect(listNumber).toBeFocused();
 
@@ -810,7 +861,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
       page.getByRole("heading", { name: "Works agreement, phase 2" }),
     ).toBeVisible();
     await expect(page.getByText("Sasha Second")).toBeVisible();
-    await expect(page.getByText("(4 mező)")).toBeVisible();
+    await expect(page.getByText("(5 mező)")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Elküldés", exact: true }),
     ).toBeEnabled();

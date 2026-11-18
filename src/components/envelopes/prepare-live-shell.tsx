@@ -56,6 +56,11 @@ import {
 } from "@/components/shared/document-viewport";
 import { getCachedDraftPdfBlob } from "@/lib/draft-pdf-cache";
 import {
+  canHaveFieldName,
+  fieldDisplayName,
+  MAX_FIELD_NAME_LENGTH,
+} from "@/lib/signing-field-list";
+import {
   moveFieldRect,
   placeFieldAtViewportPoint,
   resizeFieldRectFromHandle,
@@ -285,6 +290,19 @@ function buildLiveFields(
     x: field.x,
     y: field.y,
   }));
+}
+
+/** What a placed field says on the page: its name, if the sender gave one. */
+function getPlacedFieldLabel(field: PrepareField) {
+  const placeholder = getFieldTool(field.type).placeholderLabel;
+
+  if (field.type === "radio") {
+    return field.label ? `Választógomb: ${field.label}` : placeholder;
+  }
+
+  return canHaveFieldName(field.type)
+    ? fieldDisplayName(field.label, placeholder)
+    : placeholder;
 }
 
 function getFieldTool(type: PrepareFieldType) {
@@ -1016,11 +1034,7 @@ function PrepareLiveShellContent({
                           field={field}
                           isSelected={selectedField?.id === field.id}
                           key={field.id}
-                          label={
-                            field.type === "radio" && field.label
-                              ? `Választógomb: ${field.label}`
-                              : getFieldTool(field.type).placeholderLabel
-                          }
+                          label={getPlacedFieldLabel(field)}
                           onInteractionChange={setIsFieldInteracting}
                           onMove={(deltaX, deltaY) =>
                             moveField(field.id, deltaX, deltaY, setFields)
@@ -1477,6 +1491,37 @@ function FieldEditor({
             })}
           </div>
         </div>
+
+        {canHaveFieldName(field.type) ? (
+          <div>
+            <label
+              className="block px-1 text-[0.8125rem] font-semibold text-(--secondary)"
+              htmlFor={labelId}
+            >
+              Mező neve
+            </label>
+            <input
+              aria-describedby={`${labelId}-help`}
+              autoComplete="off"
+              className="field-input mt-2"
+              id={labelId}
+              maxLength={MAX_FIELD_NAME_LENGTH}
+              onChange={(event) => {
+                setLabelDraft(event.target.value);
+                onSetLabel(event.target.value.trim() || undefined);
+              }}
+              placeholder="pl. Név"
+              value={shownLabel}
+            />
+            <p
+              className="mt-1.5 px-1 text-xs leading-5 text-(--tertiary)"
+              id={`${labelId}-help`}
+            >
+              Ebből tudja az aláíró, mit írjon ide, például: Név, Lakcím,
+              Születési dátum, Adószám.
+            </p>
+          </div>
+        ) : null}
 
         {field.type === "dropdown" ? (
           <div>
