@@ -17,6 +17,7 @@ import type { FieldRecord } from "../schemas/field.ts";
 import type { SignerRecord } from "../schemas/signer.ts";
 import { buildSignatureManifestation } from "../signature-meanings.ts";
 import { canonicalJson } from "../utils/canonical-json.ts";
+import { resolveAppUrl } from "../utils/env.ts";
 import { normalizedRectToPdfRect } from "../utils/pdf-coords.ts";
 import { embedTextFaces, type TextFace } from "./pdf-fonts.ts";
 import { sha256Hex } from "./pdf-seal.ts";
@@ -1371,6 +1372,122 @@ export class SourceDocumentChangedError extends PdfFinalizeError {
   }
 }
 
+// The "electronically certified" badge at the top of the signed document's
+// first page: a green shield, what the document is, the portal's address
+// where it can be checked, and that a printout is not the certified copy.
+const BADGE_TITLE = "EZ A DOKUMENTUM ELEKTRONIKUSAN HITELESÍTETT";
+const BADGE_PRINT_NOTE = "Kinyomtatva nem hiteles!";
+
+function badgeHost(): string | null {
+  try {
+    const appUrl = resolveAppUrl();
+
+    return appUrl ? new URL(appUrl).host : null;
+  } catch {
+    return null;
+  }
+}
+
+function badgeTexts(host: string | null): string[] {
+  return [
+    BADGE_TITLE,
+    host ?? "",
+    host ? `${BADGE_PRINT_NOTE} Ellenőrzés: ${host}/verify` : BADGE_PRINT_NOTE,
+  ];
+}
+
+/** A rounded rectangle as an SVG path, in a top-left origin box. */
+function roundedRectPath(width: number, height: number, radius: number) {
+  const r = Math.min(radius, height / 2, width / 2);
+
+  return [
+    `M ${r} 0`,
+    `H ${width - r}`,
+    `A ${r} ${r} 0 0 1 ${width} ${r}`,
+    `V ${height - r}`,
+    `A ${r} ${r} 0 0 1 ${width - r} ${height}`,
+    `H ${r}`,
+    `A ${r} ${r} 0 0 1 0 ${height - r}`,
+    `V ${r}`,
+    `A ${r} ${r} 0 0 1 ${r} 0`,
+    "Z",
+  ].join(" ");
+}
+
+export function drawAuthenticityBadge(
+  page: PDFPage,
+  fonts: { bold: TextFace; regular: TextFace },
+  host: string | null,
+) {
+  const [title, hostLine, note] = badgeTexts(host);
+  const { height: pageHeight, width: pageWidth } = page.getSize();
+  const width = Math.min(268, pageWidth - 24);
+  const height = 46;
+  const left = pageWidth - width - 18;
+  const top = pageHeight - 10;
+  const ink = rgb(0.18, 0.15, 0.13);
+  const muted = rgb(0.45, 0.42, 0.39);
+  const green = rgb(0.2, 0.62, 0.27);
+
+  page.drawSvgPath(roundedRectPath(width, height, height / 2), {
+    borderColor: rgb(0.78, 0.76, 0.73),
+    borderWidth: 1,
+    color: rgb(1, 1, 1),
+    opacity: 0.94,
+    x: left,
+    y: top,
+  });
+
+  // Shield with a tick, drawn in a 24 × 24 box scaled to 34 points.
+  const shieldScale = 34 / 24;
+  const shieldX = left + 8;
+  const shieldY = top - (height - 34) / 2;
+
+  page.drawSvgPath(
+    "M12 1 L21 4.5 V11 C21 16.5 17.2 21.3 12 23 C6.8 21.3 3 16.5 3 11 V4.5 Z",
+    { color: green, scale: shieldScale, x: shieldX, y: shieldY },
+  );
+  page.drawSvgPath("M7.6 12.2 L10.6 15.2 L16.6 9", {
+    borderColor: rgb(1, 1, 1),
+    borderWidth: 2.4,
+    scale: shieldScale,
+    x: shieldX,
+    y: shieldY,
+  });
+
+  const textLeft = left + 48;
+  const textWidth = width - 48 - 16;
+  const fit = (face: TextFace, text: string, size: number) => {
+    const measured = face.widthOfTextAtSize(text, size);
+
+    return measured > textWidth ? (size * textWidth) / measured : size;
+  };
+  const titleSize = fit(fonts.bold, title!, 7.4);
+
+  fonts.bold.drawText(page, title!, {
+    color: ink,
+    size: titleSize,
+    x: textLeft,
+    y: top - 14,
+  });
+
+  if (hostLine) {
+    fonts.bold.drawText(page, hostLine, {
+      color: green,
+      size: fit(fonts.bold, hostLine, 10),
+      x: textLeft,
+      y: top - 27,
+    });
+  }
+
+  fonts.regular.drawText(page, note!, {
+    color: muted,
+    size: fit(fonts.regular, note!, 6.2),
+    x: textLeft,
+    y: top - (hostLine ? 38 : 30),
+  });
+}
+
 export async function renderFinalizedEnvelopePdf(
   input: {
     auditEvents: AuditEventRecord[];
@@ -1429,6 +1546,7 @@ export async function renderFinalizedEnvelopePdf(
             input.auditEvents,
             input.copyRecipients ?? [],
             CERTIFICATE_WORDING_EXTRA_CHARACTERS,
+            badgeTexts(badgeHost()),
           ]
         : [],
     ],
@@ -1477,6 +1595,12 @@ export async function renderFinalizedEnvelopePdf(
   }
 
   if (input.includeAuditTrail) {
+    const firstPage = pdfDocument.getPages()[0];
+
+    if (firstPage) {
+      drawAuthenticityBadge(firstPage, faces, badgeHost());
+    }
+
     appendAuditTrailPages({
       auditEvents: stripCompletedAuditEvents(input.auditEvents),
       completedAt: input.completedAt,
