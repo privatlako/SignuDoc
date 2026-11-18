@@ -23,11 +23,23 @@ const nextConfig: NextConfig = {
   },
   // Homilla: the sign-in page lives at /belepes. Every link to /login lands
   // there, and /belepes shows the sign-in page.
+  // The same for the page that checks a signed document:
+  // /hitelesites-ellenorzes, with /verify sending visitors there.
   async redirects() {
-    return [{ destination: "/belepes", permanent: false, source: "/login" }];
+    return [
+      { destination: "/belepes", permanent: false, source: "/login" },
+      {
+        destination: "/hitelesites-ellenorzes",
+        permanent: false,
+        source: "/verify",
+      },
+    ];
   },
   async rewrites() {
-    return [{ destination: "/login", source: "/belepes" }];
+    return [
+      { destination: "/login", source: "/belepes" },
+      { destination: "/verify", source: "/hitelesites-ellenorzes" },
+    ];
   },
   // Finished PDFs are drawn with fonts read from disk at runtime, cut down
   // by a WebAssembly subsetter (src/lib/services/pdf-fonts.ts). Listing the

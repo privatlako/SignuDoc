@@ -206,7 +206,7 @@ test("a new install is set up, a sender sends a PDF and a recipient signs it", a
     for (const publicPath of [
       "/signer-privacy",
       "/electronic-signatures",
-      "/verify",
+      "/hitelesites-ellenorzes",
       "/download/not-a-real-link",
     ]) {
       await page.goto(publicPath);
